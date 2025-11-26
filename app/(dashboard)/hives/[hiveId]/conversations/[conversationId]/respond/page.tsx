@@ -67,9 +67,9 @@ export default async function RespondPage({
     conversation.phase === "understand_open"
   ) {
     return (
-      <div className="space-y-3 text-slate-700">
+      <div className="space-y-3 text-slate-700 p-8">
         <h2 className="text-xl font-medium text-slate-900">Respond</h2>
-        <p>Admin hasn&apos;t opened this stage yet.</p>
+        <p>Upload your survey resutls in the listen tab to unlock this!</p>
       </div>
     );
   }
@@ -88,30 +88,29 @@ export default async function RespondPage({
     { data: themes },
     { data: counts },
     { data: mine },
-  ] =
-    await Promise.all([
-      supabase
-        .from("conversation_responses")
-        .select("id,response_text,tag,cluster_index")
-        .eq("conversation_id", conversation.id)
-        .order("id", { ascending: true })
-        .returns<ResponseRow[]>(),
-      supabase
-        .from("conversation_themes")
-        .select("cluster_index,name,description,size")
-        .eq("conversation_id", conversation.id)
-        .order("cluster_index", { ascending: true })
-        .returns<ThemeRow[]>(),
-      supabase
-        .from("response_feedback")
-        .select("response_id,feedback")
-        .eq("conversation_id", conversation.id),
-      supabase
-        .from("response_feedback")
-        .select("response_id,feedback")
-        .eq("conversation_id", conversation.id)
-        .eq("user_id", DEFAULT_USER_ID),
-    ]);
+  ] = await Promise.all([
+    supabase
+      .from("conversation_responses")
+      .select("id,response_text,tag,cluster_index")
+      .eq("conversation_id", conversation.id)
+      .order("id", { ascending: true })
+      .returns<ResponseRow[]>(),
+    supabase
+      .from("conversation_themes")
+      .select("cluster_index,name,description,size")
+      .eq("conversation_id", conversation.id)
+      .order("cluster_index", { ascending: true })
+      .returns<ThemeRow[]>(),
+    supabase
+      .from("response_feedback")
+      .select("response_id,feedback")
+      .eq("conversation_id", conversation.id),
+    supabase
+      .from("response_feedback")
+      .select("response_id,feedback")
+      .eq("conversation_id", conversation.id)
+      .eq("user_id", DEFAULT_USER_ID),
+  ]);
 
   const countMap: Record<
     number,

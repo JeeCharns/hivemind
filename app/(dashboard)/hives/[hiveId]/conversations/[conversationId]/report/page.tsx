@@ -59,9 +59,9 @@ export default async function ReportPage({
 
   if (comparePhase(conversation.phase, "report_open") < 0) {
     return (
-      <div className="space-y-3 text-slate-700">
+      <div className="space-y-3 text-slate-70 p-8">
         <h2 className="text-xl font-medium text-slate-900">Report</h2>
-        <p>Admin hasn&apos;t opened this stage yet.</p>
+        <p>Upload your survey resutls in the listen tab to unlock this!</p>
       </div>
     );
   }

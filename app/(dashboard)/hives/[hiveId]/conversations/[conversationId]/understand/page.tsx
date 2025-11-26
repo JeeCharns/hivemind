@@ -75,9 +75,9 @@ export default async function UnderstandPage({
 
   if (comparePhase(conversation.phase, "understand_open") < 0) {
     return (
-      <div className="space-y-3 text-slate-700">
+      <div className="space-y-3 text-slate-700 p-8">
         <h2 className="text-xl font-medium text-slate-900">Understand</h2>
-        <p>Admin hasn&apos;t opened this stage yet.</p>
+        <p>Upload your survey resutls in the listen tab to unlock this!</p>
       </div>
     );
   }
@@ -124,26 +124,21 @@ export default async function UnderstandPage({
   }
 
   const points =
-    responses
-      ?.flatMap((r) => {
-        if (
-          r.x_umap === null ||
-          r.y_umap === null ||
-          r.cluster_index === null
-        ) {
-          return [];
-        }
-        return [
-          {
-            id: r.id,
-            response_text: r.response_text,
-            tag: r.tag,
-            cluster_index: r.cluster_index,
-            x_umap: r.x_umap,
-            y_umap: r.y_umap,
-          },
-        ];
-      }) ?? [];
+    responses?.flatMap((r) => {
+      if (r.x_umap === null || r.y_umap === null || r.cluster_index === null) {
+        return [];
+      }
+      return [
+        {
+          id: r.id,
+          response_text: r.response_text,
+          tag: r.tag,
+          cluster_index: r.cluster_index,
+          x_umap: r.x_umap,
+          y_umap: r.y_umap,
+        },
+      ];
+    }) ?? [];
 
   return (
     <Suspense
@@ -154,10 +149,7 @@ export default async function UnderstandPage({
         </div>
       }
     >
-      <UnderstandView
-        responses={points}
-        themes={themes ?? []}
-      />
+      <UnderstandView responses={points} themes={themes ?? []} />
     </Suspense>
   );
 }

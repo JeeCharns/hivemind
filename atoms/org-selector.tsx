@@ -3,7 +3,7 @@ import ButtonTemp from "./button-temp";
 
 export default function OrgSelector({ hiveName }: { hiveName?: string }) {
   return (
-    <div className="flex justify-between p-6 items-center">
+    <div className="flex justify-between p-6 space-x-4 items-center">
       <div className="flex space-x-4">
         <Avatar />
         <div className="flex-row">
