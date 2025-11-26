@@ -8,7 +8,7 @@ type ConversationHeaderProps = {
   hiveId: string;
   conversationId: string;
   title?: string;
-  lastUpdatedLabel?: string;
+  hiveName?: string;
 };
 
 export default function ConversationHeader({
@@ -43,10 +43,10 @@ export default function ConversationHeader({
             className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 text-sm font-medium"
           >
             <ArrowLeftIcon size={16} weight="bold" />
-            Back to hives
+            All Conversations
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
+            <h1 className="text-2xl font-medium text-slate-900">{title}</h1>
           </div>
         </div>
         <button

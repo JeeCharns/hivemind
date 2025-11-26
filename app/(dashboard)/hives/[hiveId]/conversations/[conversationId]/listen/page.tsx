@@ -1,3 +1,67 @@
-export default function ListenPage() {
-  return <div className="text-slate-700">Listen view placeholder.</div>;
+"use server";
+
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import ListenView from "@/components/listen-view";
+
+type ConversationRow = {
+  id: string;
+  hive_id: string;
+  type: string;
+  phase: string;
+  analysis_status: string;
+  analysis_error: string | null;
+};
+
+type AnalysisStatus =
+  | "not_started"
+  | "embedding"
+  | "analyzing"
+  | "ready"
+  | "error";
+
+export default async function ListenPage({
+  params,
+}: {
+  params: Promise<{ conversationId: string; hiveId: string }>;
+}) {
+  const { conversationId, hiveId } = await params;
+  const supabase = supabaseServerClient();
+
+  const { data: conversation, error: convoError } = await supabase
+    .from("conversations")
+    .select("id,hive_id,type,phase,analysis_status,analysis_error")
+    .eq("id", conversationId)
+    .maybeSingle<ConversationRow>();
+
+  if (convoError || !conversation) {
+    return (
+      <div className="space-y-3 text-slate-700">
+        <h2 className="text-xl font-medium text-slate-900">Listen</h2>
+        <p>Conversation not found.</p>
+      </div>
+    );
+  }
+
+  if (conversation.type !== "understand") {
+    return (
+      <div className="space-y-3 text-slate-700">
+        <h2 className="text-xl font-medium text-slate-900">Listen</h2>
+        <p>This tab is only available for understand conversations.</p>
+      </div>
+    );
+  }
+
+  return (
+    <ListenView
+      conversationId={conversation.id}
+      hiveId={hiveId}
+      initialAnalysisStatus={
+        (["not_started", "embedding", "analyzing", "ready", "error"].includes(
+          conversation.analysis_status,
+        )
+          ? conversation.analysis_status
+          : "not_started") as AnalysisStatus
+      }
+    />
+  );
 }

@@ -10,7 +10,12 @@ import {
 } from "@phosphor-icons/react";
 import NavLink from "@/atoms/nav-link";
 
-export default function Navbar() {
+type NavbarProps = {
+  profileName?: string;
+  hiveName?: string;
+};
+
+export default function Navbar({ profileName, hiveName }: NavbarProps) {
   return (
     <nav
       className="
@@ -25,12 +30,12 @@ export default function Navbar() {
     >
       <div className="flex flex-col h-full justify-between">
         <div>
-          <OrgSelector />
+          <OrgSelector hiveName={hiveName} />
           <div className="p-2">
             <NavLink
-              href="/"
+              href="/hives"
               icon={<DiamondsFourIcon size={24} />}
-              label="Home"
+              label={"Home"}
             />
             <NavLink
               href="/reports"
@@ -52,7 +57,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <UserSelector />
+        <UserSelector displayName={profileName} />
       </div>
     </nav>
   );

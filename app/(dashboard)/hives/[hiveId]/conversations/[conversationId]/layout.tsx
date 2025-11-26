@@ -1,4 +1,5 @@
 import ConversationHeader from "@/components/conversation-header";
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -10,15 +11,26 @@ export default async function ConversationLayout({
   params,
 }: LayoutProps) {
   const { hiveId, conversationId } = await params;
+  const supabase = supabaseServerClient();
+
+  const [{ data: conversation }, { data: hive }] = await Promise.all([
+    supabase
+      .from("conversations")
+      .select("title")
+      .eq("id", conversationId)
+      .maybeSingle(),
+    supabase.from("hives").select("name").eq("id", hiveId).maybeSingle(),
+  ]);
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden">
       <ConversationHeader
         hiveId={hiveId}
         conversationId={conversationId}
-        title={`Conversation ${conversationId}`}
+        hiveName={hive?.name}
+        title={conversation?.title ?? `Conversation ${conversationId}`}
       />
-      <div className="p-8">{children}</div>
+      <div>{children}</div>
     </div>
   );
 }

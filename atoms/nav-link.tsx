@@ -38,7 +38,7 @@ export default function NavLink({
       </div>
       <div className="flex items-center gap-2">
         {pillText && (
-          <span className="text-[10px] uppercase font-semibold tracking-wide bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+          <span className="text-[10px] uppercase font-medium tracking-wide bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
             {pillText}
           </span>
         )}
