@@ -1,16 +1,24 @@
-export default function ConversationLayout({
-  children,
-}: {
+import ConversationHeader from "@/components/conversation-header";
+
+type LayoutProps = {
   children: React.ReactNode;
-}) {
+  params: Promise<{ hiveId: string; conversationId: string }>;
+};
+
+export default async function ConversationLayout({
+  children,
+  params,
+}: LayoutProps) {
+  const { hiveId, conversationId } = await params;
+
   return (
-    <div className="space-y-4">
-      <header className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900">
-          Conversation
-        </h2>
-      </header>
-      {children}
+    <div className="bg-white rounded-2xl overflow-hidden">
+      <ConversationHeader
+        hiveId={hiveId}
+        conversationId={conversationId}
+        title={`Conversation ${conversationId}`}
+      />
+      <div className="p-8">{children}</div>
     </div>
   );
 }

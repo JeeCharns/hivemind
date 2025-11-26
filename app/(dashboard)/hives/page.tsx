@@ -30,8 +30,8 @@ const initialSessions: Session[] = [
     title: "Bottlenecks and Blockers",
     stage: "Problem Space",
     description: "Map the failure points that are stopping us from growing.",
-    participants: 1204,
-    currentPhase: "Synthesis",
+    participants: 100,
+    currentPhase: "Listen",
     isJoined: true,
     isPublic: false,
     scope: "org",
@@ -41,10 +41,10 @@ const initialSessions: Session[] = [
 
 const statsByView = {
   org: {
-    participants: "1,204",
+    participants: "100",
     consensus: "76%",
-    resolved: "42",
-    resolvedDelta: "+8 this month",
+    resolved: "1",
+    resolvedDelta: "+1 this month",
   },
   public: {
     participants: "34,201",
@@ -101,20 +101,17 @@ export default function HivesPage() {
     statsByView[currentView];
 
   return (
-    <main className="flex-1 flex flex-col overflow-hidden relative">
+    <main className="flex-1 flex flex-col p-8 overflow-hidden relative">
       <div className="flex flex-col gap-8">
         <section className="flex flex-col gap-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-2">
               <h1 className="text-3xl font-semibold text-slate-900">
-                {currentView === "org"
-                  ? "Nebula Industries"
-                  : "Explore Public Hives"}
+                Brightloop Mobility Co-Op
               </h1>
               <p className="text-slate-500 leading-relaxed max-w-2xl">
-                {currentView === "org"
-                  ? "Overview of your organization's collective intelligence sessions and active initiatives."
-                  : "Join global conversations and help solve the world's most pressing problems."}
+                Overview of your organization&apos;s collective intelligence
+                sessions and active initiatives.
               </p>
               <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-1 py-1 text-sm font-medium text-slate-700">
                 <button
@@ -140,12 +137,10 @@ export default function HivesPage() {
               </div>
             </div>
 
-            {currentView === "org" && (
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 whitespace-nowrap">
-                <PlusIcon size={24} />
-                New Hive
-              </button>
-            )}
+            <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 whitespace-nowrap">
+              <PlusIcon size={24} />
+              New Hive
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

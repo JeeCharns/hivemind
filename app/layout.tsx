@@ -27,20 +27,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
-      {/* `font-sans` now resolves to Space Grotesk by our @theme override */}
       <body className="font-sans antialiased">
         <Navbar />
         <main className="pl-96 pr-8 pt-8 h-screen">
           <section
             className="
-      mx-auto 
-      w-[688px]
-      h-[calc(100vh-32px)]   /* 32px = pt-8 = top gap */
-      bg-white
-      rounded-t-2xl          /* ✅ only top corners */
-      overflow-y-auto        /* ✅ scroll inside */
-      p-8
-    "
+              mx-auto 
+              w-[688px]
+              h-[calc(100vh-32px)]
+              bg-white
+              rounded-2xl
+              border border-slate-200
+              overflow-hidden
+              p-0
+              flex flex-col
+            "
           >
             {children}
           </section>
