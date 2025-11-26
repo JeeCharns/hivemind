@@ -4,8 +4,6 @@ import OrgSelector from "@/atoms/org-selector";
 import UserSelector from "@/atoms/user-selector";
 import {
   DiamondsFourIcon,
-  IntersectIcon,
-  GitForkIcon,
   FileIcon,
   UsersThreeIcon,
   GearFineIcon,
@@ -35,19 +33,11 @@ export default function Navbar() {
               label="Home"
             />
             <NavLink
-              href="/understand"
-              icon={<IntersectIcon size={24} />}
-              label="Understand"
-            />
-            <NavLink
-              href="/decide"
-              icon={<GitForkIcon size={24} />}
-              label="Decide"
-            />
-            <NavLink
-              href="/report"
+              href="/reports"
               icon={<FileIcon size={24} />}
-              label="Report"
+              label="Reports"
+              disabled
+              pillText="Coming soon"
             />
             <NavLink
               href="/members"

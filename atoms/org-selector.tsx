@@ -7,8 +7,10 @@ export default function OrgSelector() {
       <div className="flex space-x-4">
         <Avatar />
         <div className="flex-row">
-          <div className="text-lg">Sol Ltd</div>
-          <div> Organisation </div>
+          <div className="text-lg truncate max-w-[180px]">
+            BrightLoop Mobility Co-Op
+          </div>
+          <div className="text-sm"> Organisation </div>
         </div>
       </div>
 
