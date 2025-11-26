@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-type ReportContent =
+export type ReportContent =
   | string
   | {
       markdown?: string;

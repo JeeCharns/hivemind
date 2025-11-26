@@ -1,6 +1,6 @@
 "use server";
 
-import ReportView from "@/components/report-view";
+import ReportView, { type ReportContent } from "@/components/report-view";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { DEFAULT_USER_ID } from "@/lib/config";
 
@@ -86,7 +86,7 @@ export default async function ReportPage({
 
   return (
     <ReportView
-      report={conversation.report_json}
+      report={conversation.report_json as ReportContent}
       conversationId={conversation.id}
       canGenerate={canGenerate}
     />
