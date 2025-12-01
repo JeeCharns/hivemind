@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import UnderstandView from "@/components/understand-view";
+import { DEFAULT_USER_ID } from "@/lib/config";
 
 type ConversationRow = {
   id: string;
@@ -27,6 +28,11 @@ type ThemeRow = {
   name: string | null;
   description: string | null;
   size: number | null;
+};
+
+type FeedbackRow = {
+  response_id: number;
+  feedback: "agree" | "pass" | "disagree";
 };
 
 const phaseOrder = [
@@ -99,7 +105,12 @@ export default async function UnderstandPage({
     );
   }
 
-  const [{ data: responses }, { data: themes }] = await Promise.all([
+  const [
+    { data: responses },
+    { data: themes },
+    { data: counts },
+    { data: mine },
+  ] = await Promise.all([
     supabase
       .from("conversation_responses")
       .select("id,response_text,tag,cluster_index,x_umap,y_umap")
@@ -112,6 +123,15 @@ export default async function UnderstandPage({
       .eq("conversation_id", conversation.id)
       .order("cluster_index", { ascending: true })
       .returns<ThemeRow[]>(),
+    supabase
+      .from("response_feedback")
+      .select("response_id,feedback")
+      .eq("conversation_id", conversation.id),
+    supabase
+      .from("response_feedback")
+      .select("response_id,feedback")
+      .eq("conversation_id", conversation.id)
+      .eq("user_id", DEFAULT_USER_ID),
   ]);
 
   if (!responses || responses.length === 0) {
@@ -122,6 +142,33 @@ export default async function UnderstandPage({
       </div>
     );
   }
+
+  const countMap: Record<
+    number,
+    { agree: number; pass: number; disagree: number }
+  > = {};
+  (counts as FeedbackRow[] | null)?.forEach((c) => {
+    const { response_id: id, feedback: fb } = c;
+    if (!countMap[id]) {
+      countMap[id] = { agree: 0, pass: 0, disagree: 0 };
+    }
+    countMap[id][fb] = (countMap[id][fb] ?? 0) + 1;
+  });
+
+  const mineMap: Record<number, "agree" | "pass" | "disagree"> = {};
+  (mine as FeedbackRow[] | null)?.forEach((m) => {
+    mineMap[m.response_id] = m.feedback;
+  });
+
+  const feedbackItems =
+    responses?.map((r) => ({
+      id: r.id,
+      response_text: r.response_text,
+      tag: r.tag,
+      cluster_index: r.cluster_index,
+      counts: countMap[r.id] ?? { agree: 0, pass: 0, disagree: 0 },
+      current: mineMap[r.id] ?? null,
+    })) ?? [];
 
   const points =
     responses?.flatMap((r) => {
@@ -149,7 +196,12 @@ export default async function UnderstandPage({
         </div>
       }
     >
-      <UnderstandView responses={points} themes={themes ?? []} />
+      <UnderstandView
+        responses={points}
+        themes={themes ?? []}
+        feedbackItems={feedbackItems}
+        conversationId={conversation.id}
+      />
     </Suspense>
   );
 }

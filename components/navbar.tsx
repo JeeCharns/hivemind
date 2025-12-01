@@ -2,13 +2,8 @@
 
 import OrgSelector from "@/atoms/org-selector";
 import UserSelector from "@/atoms/user-selector";
-import {
-  DiamondsFourIcon,
-  FileIcon,
-  UsersThreeIcon,
-  GearFineIcon,
-} from "@phosphor-icons/react";
-import NavLink from "@/atoms/nav-link";
+import Image from "next/image";
+import Link from "next/link";
 
 type NavbarProps = {
   profileName?: string;
@@ -17,44 +12,20 @@ type NavbarProps = {
 
 export default function Navbar({ profileName, hiveName }: NavbarProps) {
   return (
-    <nav
-      className="
-        fixed      /* keep it locked to the left side */
-        top-8
-        left-8
-        bottom-8
-        w-80       /* pick a width; adjust to your design */
-        rounded-2xl
-        bg-white
-      "
-    >
-      <div className="flex flex-col h-full justify-between">
-        <div>
+    <nav className="fixed top-0 left-0 right-0 z-40 h-16 bg-white border-b border-slate-100">
+      <div className="h-full mx-auto max-w-[1440px] px-6 lg:px-10 xl:px-12 flex items-center justify-between py-2">
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/HiveMindLogo.png"
+              alt="HiveMind logo"
+              width={160}
+              height={27}
+              priority
+            />
+          </Link>
+          <span className="text-slate-200 text-xl font-medium">/</span>
           <OrgSelector hiveName={hiveName} />
-          <div className="p-2">
-            <NavLink
-              href="/hives"
-              icon={<DiamondsFourIcon size={24} />}
-              label={"Home"}
-            />
-            <NavLink
-              href="/reports"
-              icon={<FileIcon size={24} />}
-              label="Reports"
-              disabled
-              pillText="Coming soon"
-            />
-            <NavLink
-              href="/members"
-              icon={<UsersThreeIcon size={24} />}
-              label="Members"
-            />
-            <NavLink
-              href="/settings"
-              icon={<GearFineIcon size={24} />}
-              label="Settings"
-            />
-          </div>
         </div>
 
         <UserSelector displayName={profileName} />

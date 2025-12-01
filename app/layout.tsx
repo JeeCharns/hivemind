@@ -46,21 +46,10 @@ export default async function RootLayout({
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
         <Navbar profileName={profile?.display_name} hiveName={hive?.name} />
-        <main className="pl-96 pr-8 pt-8 min-h-screen overflow-y-auto no-scrollbar">
-          <section
-            className="
-              mx-auto 
-              w-[688px]
-              bg-white
-              rounded-2xl
-              border border-slate-200
-              overflow-visible
-              p-0
-              flex flex-col
-            "
-          >
+        <main className="min-h-screen bg-[#E8EAF3] pt-24 pb-16 overflow-y-auto no-scrollbar">
+          <div className="mx-auto max-w-[1440px] px-6 lg:px-10 xl:px-12">
             {children}
-          </section>
+          </div>
         </main>
       </body>
     </html>

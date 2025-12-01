@@ -8,7 +8,7 @@ export default function ConversationPage({ params }: ConversationPageProps) {
       <h3 className="text-lg font-medium">
         Conversation {params.conversationId}
       </h3>
-      <p>Choose a tab (listen, understand, respond, vote, report).</p>
+      <p>Choose a tab (listen, understand, vote, result).</p>
     </div>
   );
 }

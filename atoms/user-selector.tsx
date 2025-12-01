@@ -1,19 +1,25 @@
 import Avatar from "./avatar";
-import ButtonTemp from "./button-temp";
 
 export default function UserSelector({
   displayName,
 }: {
   displayName?: string;
 }) {
-  return (
-    <div className="flex justify-between p-6 items-center">
-      <div className="flex space-x-4 items-center">
-        <Avatar />
-        <div className="text-lg">{displayName ?? "User"}</div>
-      </div>
+  const initials =
+    displayName
+      ?.split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() ?? "U";
 
-      <ButtonTemp />
+  return (
+    <div className="flex items-center gap-3">
+      <div className="text-lg font-medium text-slate-800">
+        {displayName ?? "User"}
+      </div>
+      <Avatar initials={initials} size="sm" />
     </div>
   );
 }

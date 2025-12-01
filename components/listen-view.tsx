@@ -101,7 +101,7 @@ export default function ListenView({
     analysisStatus === "embedding" || analysisStatus === "analyzing";
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 pt-8">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-medium text-slate-900">Listen</h2>

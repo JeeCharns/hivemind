@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { DEFAULT_HIVE_ID } from "@/lib/config";
-import { GlobeIcon, PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
+import { PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import { getHiveDashboardData } from "@/lib/utils/actions";
 
 type Conversation = {
@@ -18,33 +18,46 @@ const phaseToTab = (phase: string) => {
   const normalized = phase.toLowerCase();
   if (normalized.includes("vote")) return "vote";
   if (normalized.includes("respond")) return "respond";
-  if (normalized.includes("report")) return "report";
+  if (normalized.includes("report") || normalized.includes("result"))
+    return "result";
   if (normalized.includes("understand")) return "understand";
   return "listen";
 };
 
-function DashboardSkeleton() {
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "26 Nov 25";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "26 Nov 25";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit",
+  }).format(date);
+};
+
+function FeaturedSkeleton() {
   return (
-    <div className="animate-pulse space-y-6">
-      <div className="h-8 w-64 bg-slate-100 rounded" />
-      <div className="h-4 w-96 bg-slate-100 rounded" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-24 bg-slate-100 border border-slate-200 rounded-2xl"
-          />
-        ))}
+    <div className="flex flex-col justify-between bg-white rounded-2xl border border-[#E6E9F2] p-6 min-h-[300px] shadow-sm animate-pulse">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start justify-between">
+          <div className="h-6 w-28 bg-[#E0E3ED] rounded" />
+          <div className="h-5 w-16 bg-[#E0E3ED] rounded" />
+        </div>
+        <div className="h-6 w-48 bg-[#E0E3ED] rounded" />
+        <div className="h-4 w-full bg-[#E0E3ED] rounded" />
+        <div className="h-4 w-2/3 bg-[#E0E3ED] rounded" />
+        <div className="h-5 w-24 bg-[#E0E3ED] rounded" />
       </div>
-      <div className="h-6 w-40 bg-slate-100 rounded" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-64 bg-slate-100 border border-slate-200 rounded-2xl"
-          />
-        ))}
-      </div>
+      <div className="mt-6 h-10 w-full bg-[#E0E3ED] rounded-sm" />
+    </div>
+  );
+}
+
+function HeaderSkeleton() {
+  return (
+    <div className="flex flex-col gap-2 pt-8">
+      <div className="h-8 w-64 bg-[#E0E3ED] rounded-md animate-pulse" />
+      <div className="h-4 w-72 bg-[#E0E3ED] rounded-md animate-pulse" />
     </div>
   );
 }
@@ -66,141 +79,95 @@ export default function HivesPage() {
   }, []);
 
   const rows: Conversation[] = data?.conversations ?? [];
-  const hiveName = data?.hiveName ?? "Hive";
-
-  const stats = {
-    participants: "1",
-    consensus: "–",
-    resolved: rows.length.toString(),
-    resolvedDelta: "+0 this month",
-  };
+  const hiveName = data?.hiveName ?? "Brightloop Mobility Co-Op";
+  const featured = rows[0];
+  const featuredHref = featured
+    ? `/hives/${DEFAULT_HIVE_ID}/conversations/${featured.id}/${phaseToTab(
+        featured.phase
+      )}`
+    : "#";
+  const isLoading = data === null;
 
   return (
-    <main className="flex-1 flex flex-col p-8 overflow-hidden relative">
-      <div className="flex flex-col gap-8">
-        <section className="flex flex-col gap-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-medium text-slate-900">
-                {hiveName}
-              </h1>
-              <p className="text-slate-500 leading-relaxed max-w-2xl">
-                Overview of your organization&apos;s collective intelligence
-                sessions and active initiatives.
-              </p>
-            </div>
+    <div className="mx-auto max-w-[1440px] relative flex flex-col gap-10">
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <Suspense fallback={<HeaderSkeleton />}>
+            {data ? (
+              <div className="flex flex-col gap-2">
+                <h1 className="text-[32px] leading-[41px] pt-8 font-medium text-[#172847]">
+                  {hiveName}
+                </h1>
+                <p className="text-sm leading-5 font-normal text-[#566888]">
+                  Your collective intelligence sessions live here
+                </p>
+              </div>
+            ) : (
+              <HeaderSkeleton />
+            )}
+          </Suspense>
+          <button className="bg-[#3A1DC8] hover:bg-[#2f18a6] text-white font-medium text-sm leading-6 px-4 py-2 rounded-md h-10 w-[117px]">
+            New Session
+          </button>
+        </div>
+      </header>
 
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 whitespace-nowrap">
-              <PlusIcon size={24} />
-              New Hive
-            </button>
-          </div>
+      <section className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {isLoading ? (
+            <FeaturedSkeleton />
+          ) : featured ? (
+            <article className="flex flex-col justify-between bg-white rounded-2xl border border-[#E6E9F2] p-6 min-h-[300px] shadow-sm">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-start justify-between">
+                  <span className="inline-flex items-center gap-2 px-2 py-1 bg-[#FFF1EB] text-[#E46E00] text-[12px] leading-6 font-semibold rounded">
+                    {featured.type === "decide"
+                      ? "SOLUTION SPACE"
+                      : "PROBLEM SPACE"}
+                  </span>
+                  <span className="text-sm font-medium text-[#566888]">
+                    {formatDate(featured.created_at)}
+                  </span>
+                </div>
+                <h3 className="text-xl font-medium text-[#172847]">
+                  {featured.title}
+                </h3>
+                <p className="text-sm leading-[1.4] font-normal text-[#566888]">
+                  {featured.type === "decide"
+                    ? "As we approach Q3, we're looking to get aligned on the next solutions to ship. What do you see in your work that we should know about?"
+                    : "As we approach Q3, we're looking to get aligned on the next problems to solve. What do you see in your work that we should know about?"}
+                </p>
+                <div className="flex items-center gap-2 text-sm font-medium text-[#566888]">
+                  <UsersThreeIcon
+                    size={18}
+                    weight="fill"
+                    className="text-[#566888]"
+                  />
+                  <span>124</span>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-                Active Participants
-              </div>
-              <div className="flex items-baseline gap-3">
-                <div className="text-3xl font-medium text-slate-900">
-                  {stats.participants}
-                </div>
-                <div className="text-green-600 text-xs font-medium bg-green-50 px-2 py-0.5 rounded-full">
-                  +0%
-                </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-                Avg Consensus
-              </div>
-              <div className="flex items-baseline gap-3">
-                <div className="text-3xl font-medium text-slate-900">
-                  {stats.consensus}
-                </div>
-                <div className="text-slate-500 text-xs font-medium bg-slate-100 px-2 py-0.5 rounded-full">
-                  Steady
-                </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-                Resolved Issues
-              </div>
-              <div className="flex items-baseline gap-3">
-                <div className="text-3xl font-medium text-slate-900">
-                  {stats.resolved}
-                </div>
-                <div className="text-green-600 text-xs font-medium bg-green-50 px-2 py-0.5 rounded-full">
-                  {stats.resolvedDelta}
-                </div>
-              </div>
-            </div>
-          </div>
+              <Link
+                href={featuredHref}
+                className="mt-6 bg-[#EDEFFD] hover:bg-[#dfe3ff] text-[#3A1DC8] text-sm font-medium leading-6 rounded-sm py-2 px-4 text-center transition-colors"
+              >
+                Result ready →
+              </Link>
+            </article>
+          ) : (
+            <FeaturedSkeleton />
+          )}
 
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-medium text-slate-900">Active Hives</h2>
-            <span className="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">
-              {rows.length}
+          <button className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-[#D7E0F0] p-10 min-h-[300px] bg-white/60 text-[#566888] hover:border-[#b8c7e6] hover:text-[#3A1DC8] transition-colors">
+            <span className="w-14 h-14 rounded-lg bg-[#DADDE1] flex items-center justify-center">
+              <PlusIcon size={24} className="text-[#566888]" />
             </span>
-          </div>
+            <span className="text-sm font-medium">Create New Session</span>
+          </button>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
-            <Suspense fallback={<DashboardSkeleton />}>
-              {rows.map((session) => {
-                const tab = phaseToTab(session.phase);
-                const href = `/hives/${DEFAULT_HIVE_ID}/conversations/${session.id}/${tab}`;
-                return (
-                  <Link
-                    key={session.id}
-                    href={href}
-                    className="bg-white border border-slate-200 rounded-2xl p-6 transition-all relative overflow-hidden flex flex-col h-64 cursor-pointer hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wide bg-red-50 text-red-600">
-                        {session.type === "decide"
-                          ? "Solution Space"
-                          : "Problem Space"}
-                      </span>
-                      <span className="text-slate-400 text-xs font-medium">
-                        {new Date(session.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <h3 className="text-xl font-medium text-slate-900 mb-2">
-                      {session.title}
-                    </h3>
-                    <p className="text-slate-500 text-sm mb-6 leading-relaxed line-clamp-3">
-                      {session.type === "decide"
-                        ? "Decide track conversation."
-                        : "Understand track conversation."}
-                    </p>
-
-                    <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
-                      <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                        <UsersThreeIcon size={16} className="text-slate-400" />
-                        <span>1</span>
-                      </div>
-                      <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
-                        {session.type === "decide" && <GlobeIcon size={12} />}
-                        {session.phase.replace("_", " ")}
-                        <span className="text-indigo-300">→</span>
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </Suspense>
-
-            <button className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all text-slate-400 hover:text-indigo-600 h-64 w-full">
-              <div className="w-14 h-14 rounded-full bg-slate-100 hover:bg-indigo-100 flex items-center justify-center transition-all duration-300 text-slate-400 hover:text-indigo-600">
-                <PlusIcon size={28} />
-              </div>
-              <span className="font-medium text-sm">Create New Session</span>
-            </button>
-          </div>
-        </section>
-      </div>
-    </main>
+          <div className="hidden lg:block opacity-0 pointer-events-none rounded-2xl border-2 border-dashed border-[#D7E0F0]" />
+        </div>
+      </section>
+    </div>
   );
 }

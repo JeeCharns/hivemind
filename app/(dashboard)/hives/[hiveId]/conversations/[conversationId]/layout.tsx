@@ -23,7 +23,7 @@ export default async function ConversationLayout({
   ]);
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden">
+    <div className="overflow-hidden">
       <ConversationHeader
         hiveId={hiveId}
         conversationId={conversationId}
