@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type ResponsePoint = {
   id: number;
@@ -49,7 +49,10 @@ const tagColors: Record<string, string> = {
   proposal: "bg-indigo-50 text-indigo-700 border-indigo-100",
 };
 
-const scalePoints = (points: ResponsePoint[], size = 480) => {
+const CANVAS_SIZE = 520;
+const PAN_PADDING = 120;
+
+const scalePoints = (points: ResponsePoint[], size = CANVAS_SIZE) => {
   const xs = points.map((p) => p.x_umap);
   const ys = points.map((p) => p.y_umap);
   const minX = Math.min(...xs);
@@ -81,12 +84,17 @@ export default function UnderstandView({
   const [hoveredCluster, setHoveredCluster] = useState<number | null>(null);
   const [items, setItems] = useState<FeedbackItem[]>(feedbackItems);
   const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
   const originalItems = useRef<Record<number, FeedbackItem>>(
     feedbackItems.reduce(
       (acc, item) => ({ ...acc, [item.id]: item }),
       {} as Record<number, FeedbackItem>
     )
   );
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const panStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const points = useMemo(() => scalePoints(responses), [responses]);
 
@@ -186,117 +194,164 @@ export default function UnderstandView({
     setLoadingId(null);
   };
 
+  const onPanStart = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragging(true);
+    dragStart.current = { x: event.clientX, y: event.clientY };
+    panStart.current = pan;
+  };
+
+  const onPanMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragging) return;
+    const dx = event.clientX - dragStart.current.x;
+    const dy = event.clientY - dragStart.current.y;
+    setPan({ x: panStart.current.x + dx, y: panStart.current.y + dy });
+  };
+
+  const onPanEnd = () => {
+    setDragging(false);
+  };
+
+  const panStyle = { transform: `translate(${pan.x}px, ${pan.y}px)` };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)] overflow-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start flex-1 overflow-hidden">
-        <div className="bg-white rounded-2xl h-full overflow-hidden">
-          <div className="relative bg-slate-50 rounded-xl h-full overflow-hidden">
-            <svg viewBox="0 0 520 520" className="w-full h-full">
-              {clusterMeta.map((meta) => {
-                const active =
-                  selectedCluster === null || selectedCluster === meta.idx;
-                const hover = hoveredCluster === meta.idx;
-                const borderOpacity = active ? (hover ? 0.4 : 0.3) : 0.2;
-                const fillOpacity = active ? 0.08 : 0.05;
-                return (
-                  <g
-                    key={meta.idx}
-                    className="cursor-pointer"
-                    onMouseEnter={() => setHoveredCluster(meta.idx)}
-                    onMouseLeave={() => setHoveredCluster(null)}
-                    onClick={() =>
-                      setSelectedCluster((prev) =>
-                        prev === meta.idx ? null : meta.idx
-                      )
-                    }
-                  >
-                    <circle
-                      cx={meta.cx}
-                      cy={meta.cy}
-                      r={meta.radius}
-                      fill={meta.color}
-                      fillOpacity={fillOpacity}
-                      stroke={meta.color}
-                      strokeOpacity={borderOpacity}
-                      strokeWidth={active ? 2 : 1}
-                    />
-                  </g>
-                );
-              })}
-              {points.map((p) => {
-                const active =
-                  selectedCluster === null ||
-                  p.cluster_index === selectedCluster;
-                return (
-                  <circle
-                    key={p.id}
-                    cx={p.sx}
-                    cy={p.sy}
-                    r={6}
-                    fill={palette[p.cluster_index % palette.length]}
-                    opacity={active ? 0.9 : 0.15}
-                  >
-                    <title>
-                      {p.response_text.slice(0, 80)}
-                      {p.response_text.length > 80 ? "…" : ""}{" "}
-                      {p.tag ? `(${p.tag})` : ""}
-                    </title>
-                  </circle>
-                );
-              })}
-            </svg>
-            {filteredPoints.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center text-slate-500">
-                No points for this theme.
-              </div>
-            )}
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{ zIndex: 10 }}
-            >
-              {clusterMeta.map((meta) => {
-                const clamp = (val: number, min: number, max: number) =>
-                  Math.min(Math.max(val, min), max);
-                const x = clamp(meta.cx, 8, 512);
-                const y = clamp(meta.cy, 8, 512);
-                const active =
-                  selectedCluster === null || selectedCluster === meta.idx;
-                return (
-                  <div
-                    key={meta.idx}
-                    style={{
-                      position: "absolute",
-                      left: x,
-                      top: y,
-                      transform: "translate(-20%, -0%)",
-                      background: "rgba(255,255,255,0.95)",
-                      border: `1px solid ${meta.color}33`,
-                      borderRadius: "9999px",
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      textAlign: "center",
-                      width: "max-content",
-                      color: meta.color,
-                      boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
-                      pointerEvents: "none",
-                      opacity: active ? 1 : 0.6,
-                    }}
-                  >
-                    {meta.themeName}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start flex-1 overflow-hidden">
+        <div className="bg-white rounded-2xl overflow-hidden lg:col-span-2">
+          <div
+            className={`relative bg-slate-50 rounded-xl h-full overflow-hidden ${
+              dragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+            onMouseDown={onPanStart}
+            onMouseMove={onPanMove}
+            onMouseUp={onPanEnd}
+            onMouseLeave={onPanEnd}
+            suppressHydrationWarning
+          >
+            {mounted ? (
+              <>
+                <svg
+                  viewBox={`-${PAN_PADDING} -${PAN_PADDING} ${CANVAS_SIZE + PAN_PADDING * 2} ${CANVAS_SIZE + PAN_PADDING * 2}`}
+                  className="w-full h-full"
+                  style={panStyle}
+                  suppressHydrationWarning
+                >
+                  {clusterMeta.map((meta) => {
+                    const active =
+                      selectedCluster === null || selectedCluster === meta.idx;
+                    const hover = hoveredCluster === meta.idx;
+                    const borderOpacity = active ? (hover ? 0.4 : 0.3) : 0.2;
+                    const fillOpacity = active ? 0.08 : 0.05;
+                    return (
+                      <g
+                        key={meta.idx}
+                        className="cursor-pointer"
+                        onMouseEnter={() => setHoveredCluster(meta.idx)}
+                        onMouseLeave={() => setHoveredCluster(null)}
+                        onClick={() =>
+                          setSelectedCluster((prev) =>
+                            prev === meta.idx ? null : meta.idx
+                          )
+                        }
+                      >
+                        <circle
+                          cx={meta.cx}
+                          cy={meta.cy}
+                          r={meta.radius}
+                          fill={meta.color}
+                          fillOpacity={fillOpacity}
+                          stroke={meta.color}
+                          strokeOpacity={borderOpacity}
+                          strokeWidth={active ? 2 : 1}
+                        />
+                      </g>
+                    );
+                  })}
+                  {points.map((p) => {
+                    const active =
+                      selectedCluster === null ||
+                      p.cluster_index === selectedCluster;
+                    return (
+                      <circle
+                        key={p.id}
+                        cx={p.sx}
+                        cy={p.sy}
+                        r={6}
+                        fill={palette[p.cluster_index % palette.length]}
+                        opacity={active ? 0.9 : 0.15}
+                      >
+                        <title suppressHydrationWarning>
+                          {p.response_text.slice(0, 80)}
+                          {p.response_text.length > 80 ? "…" : ""}{" "}
+                          {p.tag ? `(${p.tag})` : ""}
+                        </title>
+                      </circle>
+                    );
+                  })}
+                </svg>
+                {filteredPoints.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center text-slate-500">
+                    No points for this theme.
                   </div>
-                );
-              })}
-            </div>
+                )}
+                <div
+                  className="pointer-events-none absolute"
+                  style={{
+                    zIndex: 10,
+                    ...panStyle,
+                    left: -PAN_PADDING,
+                    top: -PAN_PADDING,
+                    width: CANVAS_SIZE + PAN_PADDING * 2,
+                    height: CANVAS_SIZE + PAN_PADDING * 2,
+                  }}
+                >
+                  {clusterMeta.map((meta) => {
+                    const active =
+                      selectedCluster === null || selectedCluster === meta.idx;
+                    return (
+                      <div
+                        key={meta.idx}
+                        style={{
+                          position: "absolute",
+                          left: meta.cx + PAN_PADDING,
+                          top: meta.cy + PAN_PADDING,
+                          transform: "translate(-50%, -50%)",
+                          background: "rgba(255,255,255,0.95)",
+                          border: `1px solid ${meta.color}33`,
+                          borderRadius: "9999px",
+                          padding: "4px 10px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          textAlign: "center",
+                          width: "max-content",
+                          color: meta.color,
+                          boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
+                          pointerEvents: "none",
+                          opacity: active ? 1 : 0.6,
+                        }}
+                      >
+                        {meta.themeName}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-slate-100 animate-pulse rounded-xl" />
+            )}
           </div>
         </div>
 
-        <div className="bg-white space-y-4 p-8 rounded-2xl h-full overflow-y-auto">
+        <div className="bg-white space-y-4 p-8 rounded-2xl h-full overflow-y-auto lg:col-span-3">
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedCluster(null)}
-                className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${
+                className={`px-2 py-1 rounded-lg border text-sm font-medium transition ${
                   selectedCluster === null
                     ? "border-indigo-200 bg-indigo-50"
                     : "border-slate-200 hover:border-indigo-200"
@@ -314,7 +369,7 @@ export default function UnderstandView({
                         : theme.cluster_index
                     )
                   }
-                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${
+                  className={`px-2 py-1 rounded-lg border text-sm font-medium transition ${
                     selectedCluster === theme.cluster_index
                       ? "border-indigo-200 bg-indigo-50"
                       : "border-slate-200 hover:border-indigo-200"
