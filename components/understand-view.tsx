@@ -40,13 +40,13 @@ const palette = [
   "#14B8A6",
 ];
 
-const tagColors: Record<string, string> = {
-  data: "bg-blue-50 text-blue-700 border-blue-100",
-  problem: "bg-red-50 text-red-700 border-red-100",
-  need: "bg-amber-50 text-amber-700 border-amber-100",
-  want: "bg-emerald-50 text-emerald-700 border-emerald-100",
-  risk: "bg-orange-50 text-orange-700 border-orange-100",
-  proposal: "bg-indigo-50 text-indigo-700 border-indigo-100",
+export const tagColors: Record<string, string> = {
+  data: "bg-blue-50 text-blue-700 border-blue-100 py-0.5",
+  problem: "bg-red-50 text-red-700 border-red-100 py-0.5",
+  need: "bg-amber-50 text-amber-700 border-amber-100 py-0.5",
+  want: "bg-emerald-50 text-emerald-700 border-emerald-100 py-0.5",
+  risk: "bg-orange-50 text-orange-700 border-orange-100 py-0.5",
+  proposal: "bg-indigo-50 text-indigo-700 border-indigo-100 py-0.5",
 };
 
 const CANVAS_SIZE = 520;
@@ -351,7 +351,7 @@ export default function UnderstandView({
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedCluster(null)}
-                className={`px-2 py-1 rounded-lg border text-sm font-medium transition ${
+                className={`px-2 py-0.5 rounded-lg border text-sm font-medium transition ${
                   selectedCluster === null
                     ? "border-indigo-200 bg-indigo-50"
                     : "border-slate-200 hover:border-indigo-200"
@@ -369,7 +369,7 @@ export default function UnderstandView({
                         : theme.cluster_index
                     )
                   }
-                  className={`px-2 py-1 rounded-lg border text-sm font-medium transition ${
+                  className={`px-2 py-0.5 rounded-lg border text-sm font-medium transition ${
                     selectedCluster === theme.cluster_index
                       ? "border-indigo-200 bg-indigo-50"
                       : "border-slate-200 hover:border-indigo-200"
@@ -391,9 +391,9 @@ export default function UnderstandView({
                 <div key={resp.id} className=" rounded-2xl space-y-3">
                   <div className="flex items-center justify-between">
                     <span
-                      className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full border ${
+                      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border ${
                         resp.tag && tagColors[resp.tag]
-                          ? tagColors[resp.tag]
+                          ? tagColors[resp.tag].replace("py-1", "py-0.5")
                           : "bg-slate-100 text-slate-600 border-slate-200"
                       }`}
                     >

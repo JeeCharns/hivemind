@@ -2,6 +2,7 @@
 
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import ListenView from "@/components/listen-view";
+import { DEFAULT_USER_ID } from "@/lib/config";
 
 type ConversationRow = {
   id: string;
@@ -32,6 +33,11 @@ export default async function ListenPage({
     .select("id,hive_id,type,phase,analysis_status,analysis_error")
     .eq("id", conversationId)
     .maybeSingle<ConversationRow>();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", DEFAULT_USER_ID)
+    .maybeSingle();
 
   if (convoError || !conversation) {
     return (
@@ -55,6 +61,7 @@ export default async function ListenPage({
     <ListenView
       conversationId={conversation.id}
       hiveId={hiveId}
+      currentUserName={profile?.display_name ?? "User"}
       initialAnalysisStatus={
         (["not_started", "embedding", "analyzing", "ready", "error"].includes(
           conversation.analysis_status,
