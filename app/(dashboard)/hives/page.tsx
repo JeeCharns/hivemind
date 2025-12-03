@@ -14,16 +14,6 @@ type Conversation = {
   description: string | null;
 };
 
-const phaseToTab = (phase: string) => {
-  const normalized = phase.toLowerCase();
-  if (normalized.includes("vote")) return "vote";
-  if (normalized.includes("respond")) return "respond";
-  if (normalized.includes("report") || normalized.includes("result"))
-    return "result";
-  if (normalized.includes("understand")) return "understand";
-  return "listen";
-};
-
 const formatDate = (dateString?: string) => {
   if (!dateString) return "26 Nov 25";
   const date = new Date(dateString);
@@ -48,7 +38,9 @@ export default async function HivesPage() {
       .maybeSingle(),
     supabase
       .from("conversations")
-      .select("id,title,phase,type,created_at,analysis_status,report_json,description")
+      .select(
+        "id,title,phase,type,created_at,analysis_status,report_json,description"
+      )
       .eq("hive_id", DEFAULT_HIVE_ID)
       .order("created_at", { ascending: false }),
   ]);

@@ -1,29 +1,9 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-  useCallback,
-} from "react";
-import { useRouter } from "next/navigation";
-import {
-  UploadSimple,
-  FileCsv,
-  ThumbsUp,
-  PaperPlaneTilt,
-  CaretDown,
-} from "@phosphor-icons/react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { ThumbsUp, PaperPlaneTilt, CaretDown } from "@phosphor-icons/react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { tagColors } from "./understand-view";
-
-type UploadState =
-  | "idle"
-  | "file_selected"
-  | "uploading"
-  | "uploaded_success"
-  | "upload_error";
 
 type AnalysisStatus =
   | "not_started"
@@ -47,23 +27,15 @@ const MAX_LEN = 200;
 
 export default function ListenView({
   conversationId,
-  hiveId,
   currentUserName = "User",
   initialAnalysisStatus,
 }: {
   conversationId: string;
-  hiveId: string;
   currentUserName?: string;
   initialAnalysisStatus: AnalysisStatus;
 }) {
-  const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<UploadState>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>(
-    initialAnalysisStatus
-  );
-  const [isPending, startTransition] = useTransition();
+  const [analysisStatus] = useState<AnalysisStatus>(initialAnalysisStatus);
 
   const [text, setText] = useState("");
   const [tag, setTag] = useState<string | null>(null);
@@ -73,59 +45,6 @@ export default function ListenView({
   const [mounted, setMounted] = useState(false);
   const [postAs, setPostAs] = useState<"self" | "anon">("self");
   const [postAsOpen, setPostAsOpen] = useState(false);
-
-  const handleFile = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const selected = files[0];
-    if (!selected.name.toLowerCase().endsWith(".csv")) {
-      setError("Only .csv files are supported");
-      setFile(null);
-      setStatus("idle");
-      return;
-    }
-    setFile(selected);
-    setError(null);
-    setStatus("file_selected");
-  };
-
-  const onDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    handleFile(e.dataTransfer.files);
-  };
-
-  const upload = async () => {
-    if (!file) return;
-    setStatus("uploading");
-    setError(null);
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch(`/api/conversations/${conversationId}/upload`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Upload failed");
-      setStatus("upload_error");
-      return;
-    }
-
-    setStatus("uploaded_success");
-    setAnalysisStatus("embedding");
-
-    startTransition(async () => {
-      await fetch(`/api/conversations/${conversationId}/analyze`, {
-        method: "POST",
-      }).catch(() => null);
-      setAnalysisStatus("analyzing");
-      router.push(
-        `/hives/${hiveId}/conversations/${conversationId}/understand`
-      );
-    });
-  };
-
-  const disabled = status === "uploading" || isPending;
 
   const showSpinner =
     analysisStatus === "embedding" || analysisStatus === "analyzing";
