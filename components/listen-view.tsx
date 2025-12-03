@@ -27,10 +27,12 @@ const MAX_LEN = 200;
 
 export default function ListenView({
   conversationId,
+  hiveId: _hiveId,
   currentUserName = "User",
   initialAnalysisStatus,
 }: {
   conversationId: string;
+  hiveId?: string;
   currentUserName?: string;
   initialAnalysisStatus: AnalysisStatus;
 }) {
