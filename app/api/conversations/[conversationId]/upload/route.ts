@@ -192,7 +192,7 @@ export async function POST(
 
   const { error: updateError } = await supabase
     .from("conversations")
-    .update({ analysis_status: "embedding", analysis_error: null })
+    .update({ analysis_status: "not_started", analysis_error: null })
     .eq("id", conversationId);
 
   if (updateError) {

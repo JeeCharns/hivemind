@@ -190,9 +190,15 @@ export async function POST(
     const allEmbeddings: number[][] = [];
 
     for (const batch of batches) {
+      console.log(
+        `[analyze] embedding batch of size ${batch.length} for conversation ${conversationId}`
+      );
       const embeds = await embedBatch(batch);
       allEmbeddings.push(...embeds);
     }
+    console.log(
+      `[analyze] embedding complete for ${allEmbeddings.length} responses in conversation ${conversationId}`
+    );
 
     const updates = responses.map((r, idx) => ({
       id: r.id,
@@ -218,12 +224,16 @@ export async function POST(
     await updateStatus("analyzing");
 
     // Step B: UMAP
+    console.log(`[analyze] starting UMAP for conversation ${conversationId}`);
     const umap = new UMAP({ nComponents: 2, nNeighbors: 15, minDist: 0.1 });
     const coords = umap.fit(allEmbeddings) as number[][];
+    console.log(`[analyze] UMAP complete for conversation ${conversationId}`);
 
     // Step C: KMeans
     const k = Math.min(K, coords.length);
+    console.log(`[analyze] starting kmeans (k=${k}) for conversation ${conversationId}`);
     const km = kmeans(coords, k);
+    console.log(`[analyze] kmeans complete for conversation ${conversationId}`);
 
     // Cluster stats
     const clusterStats: Record<

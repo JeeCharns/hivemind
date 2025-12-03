@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import UnderstandView from "@/components/understand-view";
 import { DEFAULT_USER_ID } from "@/lib/config";
+import { Exclude } from "@phosphor-icons/react/dist/ssr";
+import ConversationAnalysisWatcher from "@/components/conversation-analysis-watcher";
 
 type ConversationRow = {
   id: string;
@@ -34,6 +36,42 @@ type FeedbackRow = {
   response_id: number;
   feedback: "agree" | "pass" | "disagree";
 };
+
+const MIN_RESPONSES = 30;
+
+const renderPlaceholder = (message?: string, showSpinner?: boolean) => (
+  <div className="w-full">
+    <div className="mx-auto max-w-[1440px] flex flex-col lg:flex-row justify-center items-start gap-4 px-4 lg:px-6 py-10">
+      <div className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center px-10 py-16 gap-4 w-full shadow-sm">
+        <Exclude size={56} weight="fill" className="text-[#9498B0]" />
+        <p className="text-center text-[#566888] text-base leading-6 max-w-xs">
+          {message ??
+            "30 more responses required to generate a topic visualisation map"}
+        </p>
+        {showSpinner && (
+          <div className="flex items-center gap-2 text-[#3A1DC8] text-sm font-medium">
+            <span className="inline-block w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+            <span>Analysing data…</span>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl flex flex-col gap-3 px-8 py-8 w-full shadow-sm">
+        <div className="text-base font-medium text-[#172847]">
+          30 more responses required!
+        </div>
+        <div className="space-y-2">
+          <div className="text-sm text-[#172847] font-normal leading-6">
+            Major themes will appear here
+          </div>
+          <div className="text-sm text-[#566888] leading-6">
+            Upload responses on the Listen tab to unlock the visualisation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const phaseOrder = [
   "listen_open",
@@ -81,27 +119,28 @@ export default async function UnderstandPage({
 
   if (comparePhase(conversation.phase, "understand_open") < 0) {
     return (
-      <div className="space-y-3 text-slate-700 p-8">
-        <h2 className="text-xl font-medium text-slate-900">Understand</h2>
-        <p>Upload your survey resutls in the listen tab to unlock this!</p>
-      </div>
+      <>
+        <ConversationAnalysisWatcher
+          conversationId={conversation.id}
+          currentStatus={conversation.analysis_status}
+        />
+        {renderPlaceholder("Upload your survey results in the Listen tab to unlock this.")}
+      </>
     );
   }
 
   if (conversation.analysis_status !== "ready") {
-    const stateCopy: Record<string, string> = {
-      not_started: "Analysis has not been run yet.",
-      embedding: "Processing responses (embedding)…",
-      analyzing: "Processing responses (clustering)…",
-      error: conversation.analysis_error
-        ? `Analysis failed: ${conversation.analysis_error}`
-        : "Analysis failed.",
-    };
     return (
-      <div className="space-y-3 text-slate-700">
-        <h2 className="text-xl font-medium text-slate-900">Understand</h2>
-        <p>{stateCopy[conversation.analysis_status] ?? "Processing…"}</p>
-      </div>
+      <>
+        <ConversationAnalysisWatcher
+          conversationId={conversation.id}
+          currentStatus={conversation.analysis_status}
+        />
+        {renderPlaceholder(
+          "Processing responses… check back soon.",
+          conversation.analysis_status === "embedding"
+        )}
+      </>
     );
   }
 
@@ -136,10 +175,24 @@ export default async function UnderstandPage({
 
   if (!responses || responses.length === 0) {
     return (
-      <div className="space-y-3 text-slate-700">
-        <h2 className="text-xl font-medium text-slate-900">Understand</h2>
-        <p>No responses yet. Upload your survey results on the Listen tab.</p>
-      </div>
+      <>
+        <ConversationAnalysisWatcher
+          conversationId={conversation.id}
+          currentStatus={conversation.analysis_status}
+        />
+        {renderPlaceholder()}
+      </>
+    );
+  }
+  if (responses.length < MIN_RESPONSES) {
+    return (
+      <>
+        <ConversationAnalysisWatcher
+          conversationId={conversation.id}
+          currentStatus={conversation.analysis_status}
+        />
+        {renderPlaceholder()}
+      </>
     );
   }
 
