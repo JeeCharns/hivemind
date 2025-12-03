@@ -60,7 +60,6 @@ export default async function ListenPage({
   return (
     <ListenView
       conversationId={conversation.id}
-      hiveId={hiveId}
       currentUserName={profile?.display_name ?? "User"}
       initialAnalysisStatus={
         (["not_started", "embedding", "analyzing", "ready", "error"].includes(
