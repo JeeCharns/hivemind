@@ -1,6 +1,6 @@
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { fetchConversationByKey, fetchHiveByKey } from "@/lib/utils/slug";
-import ReportView from "@/components/report-view";
+import ReportView, { ReportContent } from "@/components/report-view";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -25,11 +25,25 @@ export default async function ReportPage({
     .eq("conversation_id", conversation.id)
     .order("version", { ascending: false });
 
+  const { count: responseCount } = await supabase
+    .from("conversation_responses")
+    .select("id", { count: "exact", head: true })
+    .eq("conversation_id", conversation.id);
+
+  const versionsTyped =
+    versions?.map((v) => ({
+      version: Number(v.version) || 0,
+      html: String(v.html ?? ""),
+      created_at: v.created_at ?? null,
+    })) ?? [];
+
   return (
     <ReportView
-      report={conversation.report_json as any}
+      report={conversation.report_json as ReportContent}
       conversationId={conversation.id}
-      versions={versions ?? []}
+      canGenerate={true}
+      responseCount={responseCount ?? 0}
+      versions={versionsTyped}
     />
   );
 }
