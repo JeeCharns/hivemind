@@ -5,12 +5,19 @@ import { useRouter } from "next/navigation";
 import Avatar from "./avatar";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 
-export default function UserSelector({ displayName }: { displayName?: string }) {
+export default function UserSelector({
+  displayName,
+  avatarPath,
+}: {
+  displayName?: string;
+  avatarPath?: string | null;
+}) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = supabaseBrowserClient;
@@ -19,6 +26,25 @@ export default function UserSelector({ displayName }: { displayName?: string }) 
       if (data?.user?.email) setEmail(data.user.email);
     });
   }, []);
+
+  useEffect(() => {
+    if (!avatarPath) {
+      setAvatarUrl(null);
+      return;
+    }
+    if (avatarPath.startsWith("http")) {
+      setAvatarUrl(avatarPath);
+      return;
+    }
+    const supabase = supabaseBrowserClient;
+    if (!supabase) return;
+    supabase.storage
+      .from("user-avatars")
+      .createSignedUrl(avatarPath, 300)
+      .then(({ data }) => {
+        if (data?.signedUrl) setAvatarUrl(data.signedUrl);
+      });
+  }, [avatarPath]);
 
   useEffect(() => {
     const onClickAway = (e: MouseEvent) => {
@@ -61,7 +87,7 @@ export default function UserSelector({ displayName }: { displayName?: string }) 
         onClick={() => setMenuOpen((o) => !o)}
       >
         <div className="text-lg font-medium text-slate-800">{name}</div>
-        <Avatar initials={initials} size="sm" />
+        <Avatar initials={initials} size="sm" src={avatarUrl ?? undefined} />
       </button>
       {menuOpen && (
         <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg z-50">
@@ -70,6 +96,15 @@ export default function UserSelector({ displayName }: { displayName?: string }) 
               {email}
             </div>
           )}
+          <button
+            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            onClick={() => {
+              router.push("/account");
+              setMenuOpen(false);
+            }}
+          >
+            Account settings
+          </button>
           <button
             className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
             onClick={logout}

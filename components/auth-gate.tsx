@@ -52,11 +52,17 @@ export default function AuthGate() {
         <BrandLogo />
       </div>
       <div className="w-full max-w-md">
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 space-y-4">
+        <div
+          className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 space-y-4"
+          suppressHydrationWarning
+        >
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Sign in</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 pb-3">
+              Sign in / Create Account
+            </h1>
             <p className="text-sm text-slate-600">
-              Use your email to receive a magic link.
+              Use your email to receive a magic link. We&apos;ll figure out the
+              rest.
             </p>
           </div>
           <form className="space-y-3" onSubmit={submit}>
