@@ -15,9 +15,11 @@ type HiveRow = {
 export default function OrgSelector({
   hiveName,
   hiveLogo,
+  hiveId,
 }: {
   hiveName?: string;
   hiveLogo?: string | null;
+  hiveId?: string;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -167,8 +169,7 @@ export default function OrgSelector({
     const hasCurrent =
       (currentId && list.some((h) => h.hive_id === currentId)) ||
       list.some(
-        (h) =>
-          h.hives?.name?.toLowerCase() === (hiveName ?? "").toLowerCase()
+        (h) => h.hives?.name?.toLowerCase() === (hiveName ?? "").toLowerCase()
       );
     if ((hiveName || hiveLogo) && !hasCurrent) {
       list.unshift({
@@ -204,10 +205,10 @@ export default function OrgSelector({
   }
 
   return (
-    <div className="relative flex items-center gap-3" ref={menuRef}>
+    <div className="relative flex items-center" ref={menuRef}>
       <Link
         href={currentHiveId ? `/hives/${currentHiveId}` : "/hives"}
-        className="flex items-center gap-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+        className="flex items-center gap-2 py-2 px-2 rounded-lg hover:bg-slate-50 transition-colors"
       >
         {renderLogo(
           currentHive?.hive_id ?? currentHive?.hives?.name ?? "current",
@@ -222,39 +223,33 @@ export default function OrgSelector({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-8 h-8 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-600 bg-white hover:bg-slate-50"
+        className="w-8 h-12 inline-flex items-center justify-center rounded-md text-slate-600 bg-white hover:bg-slate-50"
         aria-label="Switch hive"
       >
         <CaretUpDown size={16} />
       </button>
-      {open && (
-        <div className="absolute z-50 top-10 right-0 w-64 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
-          <div className="max-h-64 overflow-y-auto">
-            {menuHives.map((row) => (
-              <a
-                key={row.hive_id}
-                href={`/hives/${row.hive_id}`}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
-              >
-                {renderLogo(
-                  row.hive_id,
-                  row.hives?.name,
-                  row.hives?.logo_url,
-                  "xs"
-                )}
-                <span className="truncate">{row.hives?.name ?? "Hive"}</span>
-              </a>
-            ))}
+      {open && hiveId && (
+        <div className="absolute z-50 top-10 right-0 w-56 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="flex flex-col">
+            <a
+              href={`/hives/${hiveId}`}
+              className="px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+            >
+              Home
+            </a>
+            <a
+              href={`/hives/${hiveId}/members`}
+              className="px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+            >
+              Members
+            </a>
+            <a
+              href={`/hives/${hiveId}/settings`}
+              className="px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+            >
+              Settings
+            </a>
           </div>
-          <button
-            className="w-full text-left px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 border-t border-slate-100"
-            onClick={() => {
-              setOpen(false);
-              window.location.href = "/hive-setup";
-            }}
-          >
-            + Create a new Hive
-          </button>
         </div>
       )}
     </div>

@@ -5,7 +5,8 @@ import PageSelector from "@/atoms/page-selector";
 import UserSelector from "@/atoms/user-selector";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 type NavbarProps = {
   profileName?: string;
@@ -22,10 +23,32 @@ export default function Navbar({
   hiveLogo,
   hiveId,
 }: NavbarProps) {
+  const pathname = usePathname();
+  const isHivesHome = pathname === "/hives";
+  const isAccount = pathname === "/account";
+  const isHiveRoot =
+    !!hiveId &&
+    (pathname === `/hives/${hiveId}` || pathname === `/hives/${hiveId}/`);
+
+  // Persist last visited hive for layouts that need a fallback
+  useEffect(() => {
+    if (!hiveId) return;
+    try {
+      localStorage.setItem("last_hive_id", hiveId);
+      fetch("/api/last-hive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hiveId }),
+      }).catch(() => {});
+    } catch {
+      // ignore storage errors
+    }
+  }, [hiveId]);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 h-16 bg-white border-b border-slate-100">
       <div className="h-full mx-auto max-w-[1440px] px-6 lg:px-10 xl:px-12 flex items-center justify-between py-2">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
           <Link href="/hives" className="flex items-center gap-2">
             <Image
               src="/HiveMindLogo.png"
@@ -35,18 +58,20 @@ export default function Navbar({
               priority
             />
           </Link>
-          <span className="text-slate-200 text-xl font-medium">/</span>
-          <Suspense
-            fallback={
-              <div className="flex items-center gap-3 py-1.5">
-                <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
-                <div className="h-4 w-24 rounded bg-slate-200 animate-pulse" />
-              </div>
-            }
-          >
-            <OrgSelector hiveName={hiveName} hiveLogo={hiveLogo} />
-          </Suspense>
+
           {hiveId && (
+            <Suspense
+              fallback={
+                <div className="flex items-center gap-3 py-1.5">
+                  <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
+                  <div className="h-4 w-24 rounded bg-slate-200 animate-pulse" />
+                </div>
+              }
+            >
+              <OrgSelector hiveName={hiveName} hiveLogo={hiveLogo} hiveId={hiveId} />
+            </Suspense>
+          )}
+          {!isAccount && hiveId && !isHivesHome && !isHiveRoot && (
             <>
               <span className="text-slate-200 text-xl font-medium">/</span>
               <Suspense
@@ -63,7 +88,10 @@ export default function Navbar({
           )}
         </div>
 
-        <UserSelector displayName={profileName} avatarPath={profileAvatarPath ?? null} />
+        <UserSelector
+          displayName={profileName}
+          avatarPath={profileAvatarPath ?? null}
+        />
       </div>
     </nav>
   );
