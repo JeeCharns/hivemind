@@ -29,11 +29,15 @@ export default function UserSelector({
 
   useEffect(() => {
     if (!avatarPath) {
-      setAvatarUrl(null);
+      setTimeout(() => {
+        setAvatarUrl((prev) => (prev ? null : prev));
+      }, 0);
       return;
     }
     if (avatarPath.startsWith("http")) {
-      setAvatarUrl(avatarPath);
+      setTimeout(() => {
+        setAvatarUrl(avatarPath);
+      }, 0);
       return;
     }
     const supabase = supabaseBrowserClient;
@@ -42,7 +46,9 @@ export default function UserSelector({
       .from("user-avatars")
       .createSignedUrl(avatarPath, 300)
       .then(({ data }) => {
-        if (data?.signedUrl) setAvatarUrl(data.signedUrl);
+        if (data?.signedUrl) {
+          setTimeout(() => setAvatarUrl(data.signedUrl), 0);
+        }
       });
   }, [avatarPath]);
 

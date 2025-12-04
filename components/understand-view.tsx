@@ -145,8 +145,6 @@ export default function UnderstandView({
       ? items
       : items.filter((r) => r.cluster_index === selectedCluster);
 
-  const selectedTheme = themes.find((t) => t.cluster_index === selectedCluster);
-
   const updateFeedback = async (responseId: number, feedback: Feedback) => {
     setLoadingId(responseId);
     setItems((prev) =>
@@ -215,7 +213,7 @@ export default function UnderstandView({
   const panStyle = { transform: `translate(${pan.x}px, ${pan.y}px)` };
 
   useEffect(() => {
-    setMounted(true);
+    requestAnimationFrame(() => setMounted(true));
   }, []);
 
   return (
@@ -235,7 +233,9 @@ export default function UnderstandView({
             {mounted ? (
               <>
                 <svg
-                  viewBox={`-${PAN_PADDING} -${PAN_PADDING} ${CANVAS_SIZE + PAN_PADDING * 2} ${CANVAS_SIZE + PAN_PADDING * 2}`}
+                  viewBox={`-${PAN_PADDING} -${PAN_PADDING} ${
+                    CANVAS_SIZE + PAN_PADDING * 2
+                  } ${CANVAS_SIZE + PAN_PADDING * 2}`}
                   className="w-full h-full"
                   style={panStyle}
                   suppressHydrationWarning

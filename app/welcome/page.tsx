@@ -17,8 +17,10 @@ export default function WelcomePage() {
   useEffect(() => {
     const supabase = supabaseBrowserClient;
     if (!supabase) {
-      setError("Supabase is not configured.");
-      setLoading(false);
+      setTimeout(() => {
+        setError((prev) => prev ?? "Supabase is not configured.");
+        setLoading(false);
+      }, 0);
       return;
     }
     supabase.auth.getSession().then(({ data }) => {
@@ -34,7 +36,9 @@ export default function WelcomePage() {
     if (!supabase) return;
     const trimmed = term.trim();
     if (!trimmed) {
-      setMatches([]);
+      setTimeout(() => {
+        setMatches((prev) => (prev.length ? [] : prev));
+      }, 0);
       return;
     }
     const timer = setTimeout(async () => {

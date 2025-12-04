@@ -5,6 +5,8 @@ import ListenView from "@/components/listen-view";
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
+type AnalysisStatus = "not_started" | "embedding" | "analyzing" | "ready" | "error";
+
 export default async function RespondPage({
   params,
 }: {
@@ -21,10 +23,11 @@ export default async function RespondPage({
 
   return (
     <ListenView
-      hiveId={hive.id}
       conversationId={conversation.id}
       currentUserName="User"
-      initialAnalysisStatus={(conversation.analysis_status as any) ?? "not_started"}
+      initialAnalysisStatus={
+        (conversation.analysis_status as AnalysisStatus) ?? "not_started"
+      }
     />
   );
 }

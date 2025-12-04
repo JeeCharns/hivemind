@@ -9,7 +9,7 @@ const conversationId = process.env.TEST_CONVERSATION_ID;
 const hasSlugData = Boolean(hiveSlug && conversationSlug);
 
 test.describe("Slug routes", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     if (!hasSlugData) {
       test.skip(true, "TEST_HIVE_SLUG/TEST_CONVERSATION_SLUG not set");
     }

@@ -24,10 +24,7 @@ export default function PageSelector({ hiveId }: PageSelectorProps) {
   const conversationKey = match?.[2] ?? null;
 
   useEffect(() => {
-    if (!conversationKey || !hiveKey) {
-      setConversationTitle(null);
-      return;
-    }
+    if (!conversationKey || !hiveKey) return;
     const supabase = supabaseBrowserClient;
     if (!supabase) return;
     let active = true;

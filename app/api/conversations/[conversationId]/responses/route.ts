@@ -140,7 +140,8 @@ export async function POST(
       user: {
         name: anonymous
           ? "Anonymous"
-          : (data as any)?.profiles?.display_name ?? "Anonymous",
+          : (data as { profiles?: { display_name?: string | null } })?.profiles
+              ?.display_name ?? "Anonymous",
         avatar_url: null,
       },
       like_count: 0,
