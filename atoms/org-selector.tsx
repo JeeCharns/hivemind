@@ -5,20 +5,25 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { CaretUpDown } from "@phosphor-icons/react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 
 type HiveRow = {
   hive_id: string;
-  hives: { name: string | null; logo_url?: string | null } | null;
+  hives: {
+    name: string | null;
+    logo_url?: string | null;
+    slug?: string | null;
+  } | null;
 };
 
 export default function OrgSelector({
   hiveName,
   hiveLogo,
+  hiveSlug,
   hiveId,
 }: {
   hiveName?: string;
   hiveLogo?: string | null;
+  hiveSlug?: string | null;
   hiveId?: string;
 }) {
   const pathname = usePathname();
@@ -51,15 +56,23 @@ export default function OrgSelector({
       }
       const { data: rows } = await supabase
         .from("hive_members")
-        .select("hive_id,hives(name,logo_url)")
+        .select("hive_id,hives(name,logo_url,slug)")
         .eq("user_id", userId);
       const resolved: HiveRow[] =
         (rows ?? []).map(
           (row: {
             hive_id: string;
             hives:
-              | { name: string | null; logo_url?: string | null }
-              | { name: string | null; logo_url?: string | null }[]
+              | {
+                  name: string | null;
+                  logo_url?: string | null;
+                  slug?: string | null;
+                }
+              | {
+                  name: string | null;
+                  logo_url?: string | null;
+                  slug?: string | null;
+                }[]
               | null;
           }) => {
             const hiveRel = Array.isArray(row.hives) ? row.hives[0] : row.hives;
@@ -67,7 +80,13 @@ export default function OrgSelector({
             const logo_url = resolveLogo(rawLogo);
             return {
               ...row,
-              hives: hiveRel ? { name: hiveRel.name ?? null, logo_url } : null,
+              hives: hiveRel
+                ? {
+                    name: hiveRel.name ?? null,
+                    logo_url,
+                    slug: hiveRel.slug ?? null,
+                  }
+                : null,
             } as HiveRow;
           }
         ) ?? [];
@@ -190,10 +209,10 @@ export default function OrgSelector({
     menuHives[0];
 
   const displayName = currentHive?.hives?.name ?? hiveName ?? "Hive";
-  const currentHiveId =
-    currentHive?.hive_id ||
-    pathname?.match(/\/hives\/([^/]+)/)?.[1] ||
-    hives[0]?.hive_id;
+  const currentHiveSlug =
+    currentHive?.hives?.slug ??
+    hiveSlug ??
+    pathname?.match(/\/hives\/([^/]+)/)?.[1];
 
   if (loading && !currentHive && !hiveName) {
     return (
@@ -206,9 +225,11 @@ export default function OrgSelector({
 
   return (
     <div className="relative flex items-center" ref={menuRef}>
-      <Link
-        href={currentHiveId ? `/hives/${currentHiveId}` : "/hives"}
-        className="flex items-center gap-2 py-2 px-2 rounded-lg hover:bg-slate-50 transition-colors"
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent focus:border-slate-200"
+        aria-label="Switch hive"
       >
         {renderLogo(
           currentHive?.hive_id ?? currentHive?.hives?.name ?? "current",
@@ -219,33 +240,38 @@ export default function OrgSelector({
         <div className="text-sm font-medium text-slate-800 truncate max-w-60">
           {displayName}
         </div>
-      </Link>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-8 h-12 inline-flex items-center justify-center rounded-md text-slate-600 bg-white hover:bg-slate-50"
-        aria-label="Switch hive"
-      >
-        <CaretUpDown size={16} />
+        <CaretUpDown size={16} className="text-slate-500" />
       </button>
       {open && hiveId && (
-        <div className="absolute z-50 top-10 right-0 w-56 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-50 top-12 right-0 w-56 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
           <div className="flex flex-col">
             <a
-              href={`/hives/${hiveId}`}
-              className="px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+              href={
+                currentHiveSlug
+                  ? `/hives/${currentHiveSlug}`
+                  : `/hives/${hiveId}`
+              }
+              className="px-6 py-4 text-sm text-slate-800 hover:bg-slate-50"
             >
               Home
             </a>
             <a
-              href={`/hives/${hiveId}/members`}
-              className="px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+              href={
+                currentHiveSlug
+                  ? `/hives/${currentHiveSlug}/members`
+                  : `/hives/${hiveId}/members`
+              }
+              className="px-6 py-4 text-sm text-slate-800 hover:bg-slate-50"
             >
               Members
             </a>
             <a
-              href={`/hives/${hiveId}/settings`}
-              className="px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+              href={
+                currentHiveSlug
+                  ? `/hives/${currentHiveSlug}/settings`
+                  : `/hives/${hiveId}/settings`
+              }
+              className="px-6 py-4 text-sm text-slate-800 hover:bg-slate-50"
             >
               Settings
             </a>

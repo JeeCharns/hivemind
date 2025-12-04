@@ -20,34 +20,46 @@ export default function PageSelector({ hiveId }: PageSelectorProps) {
     null
   );
   const match = pathname?.match(/\/hives\/([^/]+)\/conversations\/([^/]+)/);
-  const conversationId = match?.[2] ?? null;
+  const hiveKey = match?.[1] ?? null;
+  const conversationKey = match?.[2] ?? null;
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationKey || !hiveKey) {
+      setConversationTitle(null);
+      return;
+    }
     const supabase = supabaseBrowserClient;
     if (!supabase) return;
     let active = true;
     supabase
       .from("conversations")
       .select("title")
-      .eq("id", conversationId)
+      .or(
+        `and(id.eq.${conversationKey},hive_id.eq.${hiveKey}),and(slug.eq.${conversationKey},hive_id.eq.${hiveKey})`
+      )
       .maybeSingle()
       .then(({ data }) => {
         if (active) setConversationTitle(data?.title ?? null);
       });
     return () => {
       active = false;
-      setConversationTitle(null);
     };
-  }, [conversationId]);
+  }, [conversationKey, hiveKey]);
 
-  const current = pages.find((p) =>
-    pathname?.endsWith(`/hives/${hiveId}/${p.slug}`.replace(/\/$/, ""))
-  );
+  const pageLabel = (() => {
+    if (conversationTitle) return conversationTitle;
+    if (conversationKey) return conversationKey;
+    if (pathname?.includes("/members")) return "Members";
+    if (pathname?.includes("/settings")) return "Settings";
+    const current = pages.find((p) =>
+      pathname?.endsWith(`/hives/${hiveId}/${p.slug}`.replace(/\/$/, ""))
+    );
+    return current?.label;
+  })();
 
   return (
     <div className="text-sm font-medium text-slate-800 truncate max-w-40">
-      {conversationTitle ?? current?.label ?? "Home"}
+      {pageLabel}
     </div>
   );
 }

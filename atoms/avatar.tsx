@@ -26,7 +26,7 @@ export default function Avatar({
         className={`${dimension} rounded-lg bg-slate-100 flex items-center justify-center`}
         aria-hidden="true"
       >
-        <div className="w-3/4 h-3/4 rounded-full bg-[linear-gradient(165.65deg,_#000000_10.19%,_#5417A9_96.66%)]" />
+        <div className="w-3/4 h-3/4 rounded-full bg-[linear-gradient(165.65deg,#000000_10.19%,#5417A9_96.66%)]" />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import ConversationHeader from "@/components/conversation-header";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { fetchConversationByKey, fetchHiveByKey } from "@/lib/utils/slug";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -13,22 +14,22 @@ export default async function ConversationLayout({
   const { hiveId, conversationId } = await params;
   const supabase = supabaseServerClient();
 
-  const [{ data: conversation }, { data: hive }] = await Promise.all([
-    supabase
-      .from("conversations")
-      .select("title")
-      .eq("id", conversationId)
-      .maybeSingle(),
-    supabase.from("hives").select("name").eq("id", hiveId).maybeSingle(),
-  ]);
+  const hive = await fetchHiveByKey(supabase, hiveId);
+  const conversation = await fetchConversationByKey(
+    supabase,
+    hive.id,
+    conversationId
+  );
 
   return (
     <div className="overflow-hidden">
       <ConversationHeader
-        hiveId={hiveId}
-        conversationId={conversationId}
-        hiveName={hive?.name}
-        title={conversation?.title ?? `Conversation ${conversationId}`}
+        hiveId={hive.id}
+        hiveSlug={hive.slug ?? null}
+        conversationId={conversation.id}
+        conversationSlug={conversation.slug ?? null}
+        hiveName={hive.name}
+        title={conversation.title ?? `Conversation`}
       />
       <div>{children}</div>
     </div>

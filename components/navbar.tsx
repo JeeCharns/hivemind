@@ -14,6 +14,7 @@ type NavbarProps = {
   hiveName?: string;
   hiveLogo?: string | null;
   hiveId?: string;
+  hiveSlug?: string | null;
 };
 
 export default function Navbar({
@@ -22,6 +23,7 @@ export default function Navbar({
   hiveName,
   hiveLogo,
   hiveId,
+  hiveSlug,
 }: NavbarProps) {
   const pathname = usePathname();
   const isHivesHome = pathname === "/hives";
@@ -47,7 +49,7 @@ export default function Navbar({
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 h-16 bg-white border-b border-slate-100">
-      <div className="h-full mx-auto max-w-[1440px] px-6 lg:px-10 xl:px-12 flex items-center justify-between py-2">
+      <div className="h-full mx-auto max-w-[1440px] px-6 lg:px-10 xl:px-12 flex items-center justify-between py-1">
         <div className="flex items-center gap-3">
           <Link href="/hives" className="flex items-center gap-2">
             <Image
@@ -58,6 +60,7 @@ export default function Navbar({
               priority
             />
           </Link>
+          <span className="text-slate-200 text-xl pl-2 font-medium">/</span>
 
           {hiveId && (
             <Suspense
@@ -68,7 +71,12 @@ export default function Navbar({
                 </div>
               }
             >
-              <OrgSelector hiveName={hiveName} hiveLogo={hiveLogo} hiveId={hiveId} />
+              <OrgSelector
+                hiveName={hiveName}
+                hiveLogo={hiveLogo}
+                hiveId={hiveId}
+                hiveSlug={hiveSlug ?? undefined}
+              />
             </Suspense>
           )}
           {!isAccount && hiveId && !isHivesHome && !isHiveRoot && (

@@ -290,7 +290,7 @@ export default function ReportView({
                   <p className="font-medium">Synthesizing insights...</p>
                 </div>
               ) : current ? (
-                <article className="prose prose-slate prose-sm max-w-none">
+                <article className="prose prose-slate prose-sm max-w-none font-sans prose-headings:font-sans prose-headings:font-semibold prose-p:font-sans prose-li:font-sans prose-strong:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg">
                   <div dangerouslySetInnerHTML={{ __html: current }} />
                 </article>
               ) : (

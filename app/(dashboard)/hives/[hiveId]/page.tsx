@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import NewSessionLauncher from "@/components/new-session-launcher";
+import { fetchHiveByKey } from "@/lib/utils/slug";
 
 type Conversation = {
   id: string;
+  slug: string | null;
   title: string;
   phase: string;
   type: "understand" | "decide";
@@ -34,21 +36,21 @@ export default async function HivePage({
 }) {
   const { hiveId } = await params;
   const supabase = supabaseServerClient();
-  const [{ data: hive }, { data: conversations }] = await Promise.all([
-    supabase.from("hives").select("name").eq("id", hiveId).maybeSingle(),
-    supabase
-      .from("conversations")
-      .select(
-        "id,title,phase,type,created_at,analysis_status,report_json,description"
-      )
-      .eq("hive_id", hiveId)
-      .order("created_at", { ascending: false }),
-  ]);
+  const hiveKey = await fetchHiveByKey(supabase, hiveId);
+  const { data: conversations } = await supabase
+    .from("conversations")
+    .select(
+      "id,slug,title,phase,type,created_at,analysis_status,report_json,description"
+    )
+    .eq("hive_id", hiveKey.id)
+    .order("created_at", { ascending: false });
 
   const rows: Conversation[] = (conversations ?? []) as Conversation[];
-  const hiveName = hive?.name ?? "Hive";
+  const hiveName = hiveKey.name ?? "Hive";
   const ctaFor = (row: Conversation) => {
-    const base = `/hives/${hiveId}/conversations/${row.id}`;
+    const hiveHref = hiveKey.slug ?? hiveKey.id;
+    const convoKey = row.slug ?? row.id;
+    const base = `/hives/${hiveHref}/conversations/${convoKey}`;
     if (row.report_json) {
       return { label: "Result ready", href: `${base}/result` };
     }

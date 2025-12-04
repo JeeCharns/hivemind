@@ -12,14 +12,18 @@ import { useEffect, useRef, useState } from "react";
 
 type ConversationHeaderProps = {
   hiveId: string;
+  hiveSlug?: string | null;
   conversationId: string;
+  conversationSlug?: string | null;
   title?: string;
   hiveName?: string;
 };
 
 export default function ConversationHeader({
   hiveId,
+  hiveSlug,
   conversationId,
+  conversationSlug,
   title = "Conversation",
 }: ConversationHeaderProps) {
   const pathname = usePathname();
@@ -36,7 +40,9 @@ export default function ConversationHeader({
     { slug: "result", label: "Result" },
   ];
 
-  const basePath = `/hives/${hiveId}/conversations/${conversationId}`;
+  const hiveKey = hiveSlug || hiveId;
+  const convoKey = conversationSlug || conversationId;
+  const basePath = `/hives/${hiveKey}/conversations/${convoKey}`;
 
   const activeFromPath = () => {
     const match = tabs.find((tab) => pathname?.includes(`/${tab.slug}`));
@@ -83,7 +89,7 @@ export default function ConversationHeader({
     <div className="pt-4">
       <div className="mx-auto max-w-[1440px] flex flex-col">
         <Link
-          href="/hives"
+          href={`/hives/${hiveKey}`}
           className="inline-flex items-center gap-2 text-base leading-[22px] font-normal text-[#172847] hover:text-[#3A1DC8] transition-colors"
         >
           <ArrowLeftIcon size={16} weight="bold" className="text-[#989898]" />
