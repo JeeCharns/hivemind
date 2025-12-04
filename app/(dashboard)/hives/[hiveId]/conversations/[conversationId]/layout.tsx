@@ -28,7 +28,7 @@ export default async function ConversationLayout({
         hiveSlug={hive.slug ?? null}
         conversationId={conversation.id}
         conversationSlug={conversation.slug ?? null}
-        hiveName={hive.name}
+        hiveName={hive.name ?? undefined}
         title={conversation.title ?? `Conversation`}
       />
       <div>{children}</div>
