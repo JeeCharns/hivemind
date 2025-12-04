@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -22,9 +22,22 @@ export default function UserSelector({
   useEffect(() => {
     const supabase = supabaseBrowserClient;
     if (!supabase) return;
+    let active = true;
+
     supabase.auth.getUser().then(({ data }) => {
-      if (data?.user?.email) setEmail(data.user.email);
+      if (!active) return;
+      setEmail(data?.user?.email ?? null);
     });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setEmail(session?.user?.email ?? null);
+    });
+
+    return () => {
+      active = false;
+      sub?.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
