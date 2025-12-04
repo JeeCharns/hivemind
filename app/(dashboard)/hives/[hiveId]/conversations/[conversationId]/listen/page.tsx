@@ -21,7 +21,6 @@ export default async function ListenPage({
 
   return (
     <ListenView
-      hiveId={hive.id}
       conversationId={conversation.id}
       currentUserName="User"
       initialAnalysisStatus={(conversation.analysis_status as any) ?? "not_started"}
