@@ -1,7 +1,7 @@
 import AuthGuard from "@/components/auth-guard";
 import Navbar from "@/components/navbar";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { DEFAULT_HIVE_ID, DEFAULT_USER_ID } from "@/lib/config";
+import { DEFAULT_HIVE_ID } from "@/lib/config";
 import { cookies } from "next/headers";
 import { fetchHiveByKey } from "@/lib/utils/slug";
 
@@ -22,12 +22,17 @@ async function DashboardShell({ children }: { children: React.ReactNode }) {
     supabase,
     lastHiveId || DEFAULT_HIVE_ID
   );
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id ?? null;
+
   const [{ data: profile }, { data: hive }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("display_name,avatar_path")
-      .eq("id", DEFAULT_USER_ID)
-      .maybeSingle(),
+    userId
+      ? supabase
+          .from("profiles")
+          .select("display_name,avatar_path")
+          .eq("id", userId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
     supabase
       .from("hives")
       .select("id,slug,name,logo_url")
