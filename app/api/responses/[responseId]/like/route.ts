@@ -1,7 +1,7 @@
 "use server";
 
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { DEFAULT_USER_ID } from "@/lib/config";
+import { getCurrentUserProfile } from "@/lib/utils/user";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -15,10 +15,15 @@ export async function POST(
   }
 
   const supabase = supabaseServerClient();
+  const currentUser = await getCurrentUserProfile(supabase);
+  const userId = currentUser?.id;
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { error } = await supabase.from("response_likes").upsert(
     {
       response_id: responseId,
-      user_id: DEFAULT_USER_ID,
+      user_id: userId,
     },
     { onConflict: "response_id,user_id" }
   );
@@ -46,11 +51,16 @@ export async function DELETE(
   }
 
   const supabase = supabaseServerClient();
+  const currentUser = await getCurrentUserProfile(supabase);
+  const userId = currentUser?.id;
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { error } = await supabase
     .from("response_likes")
     .delete()
     .eq("response_id", id)
-    .eq("user_id", DEFAULT_USER_ID);
+    .eq("user_id", userId);
 
   if (error) {
     return NextResponse.json({ error: "Failed to unlike" }, { status: 500 });

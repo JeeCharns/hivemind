@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Button from "@/components/button";
 
 type ResponsePoint = {
   id: number;
@@ -349,19 +350,23 @@ export default function UnderstandView({
         <div className="bg-white space-y-4 p-8 rounded-2xl h-full overflow-y-auto lg:col-span-3">
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setSelectedCluster(null)}
-                className={`px-2 py-0.5 rounded-lg border text-sm font-medium transition ${
+                className={`px-3 ${
                   selectedCluster === null
                     ? "border-indigo-200 bg-indigo-50"
                     : "border-slate-200 hover:border-indigo-200"
                 }`}
               >
                 All themes
-              </button>
+              </Button>
               {themes.map((theme) => (
-                <button
+                <Button
                   key={theme.cluster_index}
+                  variant="secondary"
+                  size="sm"
                   onClick={() =>
                     setSelectedCluster(
                       selectedCluster === theme.cluster_index
@@ -369,14 +374,14 @@ export default function UnderstandView({
                         : theme.cluster_index
                     )
                   }
-                  className={`px-2 py-0.5 rounded-lg border text-sm font-medium transition ${
+                  className={`px-3 ${
                     selectedCluster === theme.cluster_index
                       ? "border-indigo-200 bg-indigo-50"
                       : "border-slate-200 hover:border-indigo-200"
                   }`}
                 >
                   {theme.name || `Theme ${theme.cluster_index}`}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -419,20 +424,22 @@ export default function UnderstandView({
                           ? "bg-red-50 text-red-700 border-red-200"
                           : "bg-slate-50 text-slate-700 border-slate-200";
                       return (
-                        <button
+                        <Button
                           key={fb}
+                          variant="secondary"
+                          size="sm"
                           disabled={loadingId === resp.id}
                           onClick={() => updateFeedback(resp.id, fb)}
-                          className={`flex-1 px-3 py-2 text-sm font-medium border rounded-lg transition ${
+                          className={`flex-1 ${
                             active
                               ? base
                               : "bg-white text-slate-700 border-slate-200 hover:border-indigo-200"
-                          } disabled:opacity-50`}
+                          }`}
                         >
                           {fb === "agree" && "Agree"}
                           {fb === "pass" && "Pass"}
                           {fb === "disagree" && "Disagree"}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>

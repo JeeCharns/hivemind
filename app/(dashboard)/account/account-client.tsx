@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { validateImageFile, uploadImageAndReplace } from "@/lib/utils/upload";
+import { getSignedUrl } from "@/lib/utils/storage";
+import Alert from "@/components/alert";
+import ImageUploadTile from "@/components/image-upload-tile";
+import Button from "@/components/button";
 
 type Props = {
   userId: string;
@@ -33,10 +37,9 @@ export default function AccountClient({ userId, initialAvatarPath }: Props) {
       return;
     }
     if (!supabase) return;
-    supabase.storage
-      .from("user-avatars")
-      .createSignedUrl(avatarPath, 300)
-      .then(({ data }) => setSignedUrl(data?.signedUrl ?? null));
+    getSignedUrl(supabase, "user-avatars", avatarPath, 300).then((url) =>
+      setSignedUrl(url)
+    );
   }, [avatarPath, supabase]);
 
   const currentAvatar = useMemo(() => {
@@ -53,12 +56,9 @@ export default function AccountClient({ userId, initialAvatarPath }: Props) {
       setPreviewUrl(null);
       return;
     }
-    if (!["image/png", "image/jpeg"].includes(f.type.toLowerCase())) {
-      setError("Avatar must be a .png or .jpeg image.");
-      return;
-    }
-    if (f.size > 2 * 1024 * 1024) {
-      setError("Avatar must be under 2MB.");
+    const validation = validateImageFile(f, { maxMb: 2 });
+    if (validation) {
+      setError(validation);
       return;
     }
     const url = URL.createObjectURL(f);
@@ -73,27 +73,26 @@ export default function AccountClient({ userId, initialAvatarPath }: Props) {
     setMessage(null);
     const prevPath = avatarPath;
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${userId}/${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from("user-avatars")
-        .upload(path, file, { upsert: true });
-      if (uploadErr) throw uploadErr;
+      const { path, signedUrl } = await uploadImageAndReplace(
+        supabase,
+        "user-avatars",
+        file,
+        userId,
+        prevPath
+      );
       const { error: updateErr } = await supabase
         .from("profiles")
         .update({ avatar_path: path })
         .eq("id", userId);
       if (updateErr) throw updateErr;
       setAvatarPath(path);
+      setSignedUrl(signedUrl);
       setFile(null);
       setMessage("Avatar updated.");
-      if (prevPath && prevPath !== path) {
-        await supabase.storage.from("user-avatars").remove([prevPath]);
-      }
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update avatar.";
-      setError(msg);
+        setError(msg);
     } finally {
       setLoading(false);
     }
@@ -127,66 +126,36 @@ export default function AccountClient({ userId, initialAvatarPath }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      {message && (
-        <div className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-          {error}
-        </div>
-      )}
+      {message && <Alert variant="success">{message}</Alert>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-slate-900">Avatar</h2>
         <div className="flex items-center gap-4">
-          <label className="relative w-16 h-16 bg-[#D7E0F0] rounded-full flex flex-col items-center justify-center gap-1 cursor-pointer overflow-hidden group">
-            {currentAvatar ? (
-              <>
-                <Image
-                  src={currentAvatar}
-                  alt="Avatar preview"
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-medium">
-                  Change
-                </div>
-              </>
-            ) : (
-              <>
-                <span className="text-[#566888] text-lg leading-none">+</span>
-                <span className="text-[12px] text-[#566888] leading-none">
-                  Avatar
-                </span>
-              </>
-            )}
-            <input
-              type="file"
-              accept=".png,.jpeg,.jpg"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
+          <ImageUploadTile
+            label="Avatar"
+            currentUrl={currentAvatar}
+            onFileSelected={handleFile}
+            error={error}
+            setError={setError}
+            accept=".png,.jpeg,.jpg"
+          />
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
               disabled={!file || loading}
-              className="px-4 py-2 rounded-md bg-[#3A1DC8] text-white text-sm font-medium disabled:opacity-60"
               onClick={uploadAvatar}
             >
               {loading && file ? "Saving..." : "Upload new avatar"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               disabled={loading || (!avatarPath && !previewUrl)}
-              className="px-4 py-2 rounded-md border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
               onClick={removeAvatar}
             >
               Remove
-            </button>
+            </Button>
           </div>
         </div>
         <div className="text-xs text-slate-500">

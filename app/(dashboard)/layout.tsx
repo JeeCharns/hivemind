@@ -1,9 +1,9 @@
 import AuthGuard from "@/components/auth-guard";
 import Navbar from "@/components/navbar";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { DEFAULT_HIVE_ID } from "@/lib/config";
 import { cookies } from "next/headers";
 import { fetchHiveByKey } from "@/lib/utils/slug";
+import { redirect } from "next/navigation";
+import { createSupabaseServerComponentClient } from "@/lib/supabase/serverComponentClient";
 
 export default function DashboardLayout({
   children,
@@ -14,37 +14,39 @@ export default function DashboardLayout({
 }
 
 async function DashboardShell({ children }: { children: React.ReactNode }) {
-  const supabase = supabaseServerClient();
+  const supabase = await createSupabaseServerComponentClient();
   const cookieStore = await cookies();
   const entry = cookieStore.get("last_hive_id");
   const lastHiveId = entry?.value;
-  const hiveResolved = await fetchHiveByKey(
-    supabase,
-    lastHiveId || DEFAULT_HIVE_ID
-  );
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData?.user?.id ?? null;
-
-  const [{ data: profile }, { data: hive }] = await Promise.all([
-    userId
-      ? supabase
-          .from("profiles")
-          .select("display_name,avatar_path")
-          .eq("id", userId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from("hives")
-      .select("id,slug,name,logo_url")
-      .eq("id", hiveResolved.id)
-      .maybeSingle(),
-  ]);
+  console.log("[dashboard-layout] last_hive_id cookie", lastHiveId);
+  if (!lastHiveId) {
+    console.error(
+      "[dashboard-layout] no last_hive_id cookie, redirecting to /hives"
+    );
+    redirect("/hives");
+  }
+  let hiveResolved;
+  try {
+    hiveResolved = await fetchHiveByKey(supabase, lastHiveId);
+    console.log("[dashboard-layout] hive resolved", hiveResolved);
+  } catch {
+    console.error(
+      "[dashboard-layout] failed to resolve hive from cookie",
+      lastHiveId
+    );
+    redirect("/hives");
+  }
+  const { data: hive } = await supabase
+    .from("hives")
+    .select("id,slug,name,logo_url")
+    .eq("id", hiveResolved.id)
+    .maybeSingle();
 
   return (
     <AuthGuard>
       <Navbar
-        profileName={profile?.display_name}
-        profileAvatarPath={profile?.avatar_path ?? null}
+        profileName={undefined}
+        profileAvatarPath={null}
         hiveName={hive?.name}
         hiveLogo={hive?.logo_url ?? null}
         hiveId={hive?.id ?? hiveResolved.id}

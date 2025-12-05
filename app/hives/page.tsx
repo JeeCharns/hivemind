@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import HivesClient from "./hives-client";
+import { AvatarSkeleton, Skeleton, TextSkeleton } from "@/components/skeleton";
 
 function HivesSkeleton() {
   return (
@@ -12,13 +13,13 @@ function HivesSkeleton() {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="w-full border border-slate-200 rounded-lg px-4 py-6 flex items-center gap-2 animate-pulse bg-slate-100/60"
+            className="w-full border border-slate-200 rounded-lg px-4 py-6 flex items-center gap-2 bg-slate-100/60"
           >
-            <div className="h-12 w-12 rounded-full bg-slate-200" />
-            <div className="flex-1 h-4 rounded bg-slate-200" />
+            <AvatarSkeleton className="h-12 w-12" />
+            <TextSkeleton className="flex-1 h-4" />
           </div>
         ))}
-        <div className="w-full h-10 rounded-lg bg-slate-200 animate-pulse" />
+        <Skeleton className="w-full h-10 rounded-lg" />
       </div>
     </div>
   );

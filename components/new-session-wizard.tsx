@@ -2,17 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_HIVE_ID } from "@/lib/config";
 import { PlusIcon } from "@phosphor-icons/react";
+import Button from "@/components/button";
 
 type ConversationType = "understand" | "decide";
 
 export default function NewSessionWizard({
   open,
   onClose,
+  hiveId,
+  hiveSlug,
 }: {
   open: boolean;
   onClose: () => void;
+  hiveId: string;
+  hiveSlug?: string | null;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
@@ -56,12 +60,14 @@ export default function NewSessionWizard({
               {step === 1 ? "Create your session" : "Import data (optional)"}
             </h2>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             className="text-sm text-[#566888] hover:text-[#172847]"
             onClick={onClose}
           >
             Close
-          </button>
+          </Button>
         </div>
 
         {wizardError && (
@@ -72,12 +78,12 @@ export default function NewSessionWizard({
 
         {step === 1 && (
           <div className="flex flex-col gap-6">
-                <div className="flex flex-col gap-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      {
-                        key: "understand",
-                        title: "Understand a Problem",
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  {
+                    key: "understand",
+                    title: "Understand a Problem",
                     desc: "Collect signals to clarify a problem space.",
                   },
                   {
@@ -86,91 +92,91 @@ export default function NewSessionWizard({
                     desc: "Gather inputs to choose between options.",
                   },
                 ].map((opt) => (
-                  <button
+                  <Button
                     key={opt.key}
+                    variant="secondary"
+                    size="lg"
                     onClick={() => setType(opt.key as ConversationType)}
-                        className={`flex flex-col items-start gap-2 p-4 border rounded-xl text-left transition ${
-                          type === opt.key
-                            ? "border-[#3A1DC8] bg-[#EDEFFD]"
-                            : "border-slate-200 hover:border-[#cbd5f5]"
-                        }`}
-                      >
+                    className={`w-full h-auto! justify-start items-start gap-2 p-4 border rounded-xl text-left transition ${
+                      type === opt.key
+                        ? "border-[#3A1DC8] bg-[#EDEFFD]"
+                        : "border-slate-200 hover:border-[#cbd5f5]"
+                    }`}
+                  >
                     <span className="text-base font-semibold text-[#172847]">
                       {opt.title}
                     </span>
                     <span className="text-sm text-[#566888]">{opt.desc}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
 
-                  {typeError && (
-                    <div className="text-sm text-red-600">{typeError}</div>
-                  )}
+              {typeError && (
+                <div className="text-sm text-red-600">{typeError}</div>
+              )}
 
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2 w-full">
-                      <label className="text-sm font-medium text-[#172847]">
-                        Session title <span className="text-red-600 text-xs">*</span>
-                      </label>
-                      <input
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-sm font-medium text-[#172847]">
+                    Session title{" "}
+                    <span className="text-red-600 text-xs">*</span>
+                  </label>
+                  <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                        className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full"
-                        placeholder="e.g., Align on Q3 focus"
-                      />
-                      {titleError && (
-                        <span className="text-xs text-red-600">{titleError}</span>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                      <label className="text-sm font-medium text-[#172847]">
-                        Description
-                      </label>
-                      <input
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full"
-                        placeholder="What is this session about?"
-                      />
-                    </div>
-                  </div>
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full"
+                    placeholder="e.g., Align on Q3 focus"
+                  />
+                  {titleError && (
+                    <span className="text-xs text-red-600">{titleError}</span>
+                  )}
                 </div>
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-sm font-medium text-[#172847]">
+                    Description
+                  </label>
+                  <input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full"
+                    placeholder="What is this session about?"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <button
-                    className="px-4 py-2 rounded-md border border-slate-200 text-sm text-[#566888]"
-                    onClick={onClose}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    disabled={!title.trim() || loading}
-                    className="px-4 py-2 rounded-md bg-[#3A1DC8] text-white text-sm font-medium disabled:opacity-60"
-                    onClick={async () => {
-                      setWizardError(null);
-                      setTitleError(null);
-                      setTypeError(null);
-                      setLoading(true);
-                      try {
-                        if (!title.trim()) {
-                          setTitleError("A session title is required.");
-                        }
-                        if (!type) {
-                          setTypeError("Select a session type.");
-                        }
-                        if (!title.trim() || !type) {
-                          setLoading(false);
-                          return;
-                        }
-                        const res = await fetch("/api/conversations", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            type,
-                            title: title.trim(),
-                            description: description.trim(),
-                          }),
-                        });
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                disabled={!title.trim() || loading}
+                onClick={async () => {
+                  setWizardError(null);
+                  setTitleError(null);
+                  setTypeError(null);
+                  setLoading(true);
+                  try {
+                    if (!title.trim()) {
+                      setTitleError("A session title is required.");
+                    }
+                    if (!type) {
+                      setTypeError("Select a session type.");
+                    }
+                    if (!title.trim() || !type) {
+                      setLoading(false);
+                      return;
+                    }
+                    const res = await fetch("/api/conversations", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        hiveId,
+                        type,
+                        title: title.trim(),
+                        description: description.trim(),
+                      }),
+                    });
                     if (!res.ok) {
                       const body = await res.json().catch(() => null);
                       throw new Error(
@@ -192,7 +198,7 @@ export default function NewSessionWizard({
                 }}
               >
                 Continue
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -271,12 +277,13 @@ export default function NewSessionWizard({
               {file && (
                 <div className="flex items-center gap-3 text-sm text-slate-700">
                   <span className="font-medium">{file.name}</span>
-                  <button
-                    className="text-xs text-[#3A1DC8]"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setFile(null)}
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -288,15 +295,17 @@ export default function NewSessionWizard({
             </div>
 
             <div className="flex justify-between items-center pt-4">
-              <button
-                className="text-sm text-[#566888]"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[#566888]"
                 onClick={() => setStep(1)}
               >
                 ← Back
-              </button>
+              </Button>
               <div className="flex gap-3">
-                <button
-                  className="px-4 py-2 rounded-md border border-slate-200 text-sm text-[#566888]"
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     if (!conversationId) {
                       setWizardError("Create the session first.");
@@ -304,22 +313,23 @@ export default function NewSessionWizard({
                     }
                     onClose();
                     router.push(
-                      `/hives/${DEFAULT_HIVE_ID}/conversations/${conversationId}/listen`
+                      `/hives/${
+                        hiveSlug ?? hiveId
+                      }/conversations/${conversationId}/listen`
                     );
                   }}
                 >
                   Skip import
-                </button>
-                <button
+                </Button>
+                <Button
                   disabled={
                     !conversationId || loading || uploadStatus === "uploading"
                   }
-                  className="px-4 py-2 rounded-md bg-[#3A1DC8] text-white text-sm font-medium disabled:opacity-60"
                   onClick={async () => {
                     if (!conversationId || !file) {
                       onClose();
                       router.push(
-                        `/hives/${DEFAULT_HIVE_ID}/conversations/${
+                        `/hives/${hiveSlug ?? hiveId}/conversations/${
                           conversationId ?? ""
                         }/listen`
                       );
@@ -340,14 +350,15 @@ export default function NewSessionWizard({
                         throw new Error(body?.error ?? "Upload failed");
                       }
                       // Kick off analysis immediately after upload
-                      fetch(
-                        `/api/conversations/${conversationId}/analyze`,
-                        { method: "POST" }
-                      ).catch(() => null);
+                      fetch(`/api/conversations/${conversationId}/analyze`, {
+                        method: "POST",
+                      }).catch(() => null);
                       setUploadStatus("uploaded");
                       onClose();
                       router.push(
-                        `/hives/${DEFAULT_HIVE_ID}/conversations/${conversationId}/listen`
+                        `/hives/${
+                          hiveSlug ?? hiveId
+                        }/conversations/${conversationId}/listen`
                       );
                     } catch (err) {
                       const message =
@@ -360,7 +371,7 @@ export default function NewSessionWizard({
                   }}
                 >
                   {uploadStatus === "uploading" ? "Uploading…" : "Finish"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

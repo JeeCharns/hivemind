@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
+import Button from "@/components/button";
 
 export default function DeleteHiveButton({ hiveId }: { hiveId: string }) {
   const router = useRouter();
@@ -54,14 +55,8 @@ export default function DeleteHiveButton({ hiveId }: { hiveId: string }) {
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleDelete}
-      disabled={loading}
-      className="h-10 px-3 inline-flex items-center justify-center rounded-md border border-slate-200 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-60"
-    >
+    <Button type="button" variant="danger" onClick={handleDelete} disabled={loading}>
       {loading ? "Deleting…" : "Delete Hive"}
-    </button>
+    </Button>
   );
 }
-

@@ -5,6 +5,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { CaretUpDown } from "@phosphor-icons/react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { getSignedUrl } from "@/lib/utils/storage";
 
 type HiveRow = {
   hive_id: string;
@@ -32,19 +33,14 @@ export default function OrgSelector({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [failedLogos, setFailedLogos] = useState<Set<string>>(new Set());
   const supabase = supabaseBrowserClient;
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
-  const resolveLogo = useCallback(
-    (logo?: string | null) => {
-      if (!logo) return null;
-      if (logo.startsWith("http")) return logo;
-      if (signedUrls[logo]) return signedUrls[logo];
-      // For private buckets, wait for the signed URL effect to populate; avoid returning a likely 403.
-      return null;
-    },
-    [signedUrls]
-  );
+  const resolveLogo = useCallback((logo?: string | null) => {
+    if (!logo) return null;
+    if (logo.startsWith("http")) return logo;
+    // Signed URLs are injected directly into hives state; fallback remains null until resolved.
+    return null;
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -63,41 +59,24 @@ export default function OrgSelector({
           (row: {
             hive_id: string;
             hives:
-              | {
-                  name: string | null;
-                  logo_url?: string | null;
-                  slug?: string | null;
-                }
-              | {
-                  name: string | null;
-                  logo_url?: string | null;
-                  slug?: string | null;
-                }[]
+              | { name: string | null; logo_url?: string | null; slug?: string | null }
+              | { name: string | null; logo_url?: string | null; slug?: string | null }[]
               | null;
           }) => {
             const hiveRel = Array.isArray(row.hives) ? row.hives[0] : row.hives;
-            const rawLogo = hiveRel?.logo_url ?? null;
-            const logo_url = resolveLogo(rawLogo);
             return {
               ...row,
               hives: hiveRel
                 ? {
                     name: hiveRel.name ?? null,
-                    logo_url,
+                    logo_url: hiveRel.logo_url ?? null,
                     slug: hiveRel.slug ?? null,
                   }
                 : null,
             } as HiveRow;
           }
         ) ?? [];
-      setHives((prev) => {
-        const merged = [...prev, ...resolved];
-        const deduped = new Map<string, HiveRow>();
-        merged.forEach((row) => {
-          deduped.set(row.hive_id, row as HiveRow);
-        });
-        return Array.from(deduped.values());
-      });
+      setHives(resolved);
       setLoading(false);
     });
   }, [resolveLogo, supabase]);
@@ -107,22 +86,29 @@ export default function OrgSelector({
     const logosToSign = new Set<string>();
     hives.forEach((h) => {
       const l = h.hives?.logo_url;
-      if (l && !l.startsWith("http") && !signedUrls[l]) logosToSign.add(l);
+      if (l && !l.startsWith("http")) logosToSign.add(l);
     });
-    if (hiveLogo && !hiveLogo.startsWith("http") && !signedUrls[hiveLogo]) {
+    if (hiveLogo && !hiveLogo.startsWith("http")) {
       logosToSign.add(hiveLogo);
     }
     logosToSign.forEach((logo) => {
-      supabase.storage
-        .from("logos")
-        .createSignedUrl(logo, 300)
-        .then(({ data }) => {
-          if (data?.signedUrl) {
-            setSignedUrls((prev) => ({ ...prev, [logo]: data.signedUrl }));
-          }
-        });
+      getSignedUrl(supabase, "logos", logo).then((url) => {
+        if (!url) return;
+        setHives((prev) =>
+          prev.map((row) => {
+            const rel = Array.isArray(row.hives) ? row.hives[0] : row.hives;
+            if (rel?.logo_url === logo) {
+              return {
+                ...row,
+                hives: rel ? { ...rel, logo_url: url } : rel,
+              } as HiveRow;
+            }
+            return row;
+          })
+        );
+      });
     });
-  }, [hives, hiveLogo, signedUrls, supabase]);
+  }, [hives, hiveLogo, supabase]);
 
   useEffect(() => {
     const onClickAway = (e: MouseEvent) => {

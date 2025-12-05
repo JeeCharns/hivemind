@@ -24,6 +24,7 @@ export async function fetchHiveByKey(
     ? await query.or(`id.eq.${key},slug.eq.${key}`).maybeSingle()
     : await query.eq("slug", key).maybeSingle();
   if (error || !data) {
+    console.error("[fetchHiveByKey] lookup failed", { key, error });
     throw error || new Error("Hive not found");
   }
   return data as HiveRow;

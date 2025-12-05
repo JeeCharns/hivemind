@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { DEFAULT_HIVE_ID } from "@/lib/config";
+import { fetchHiveByKey } from "@/lib/utils/slug";
 
 export async function POST(req: NextRequest) {
   const supabase = supabaseServerClient();
@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   const title = body?.title?.trim?.() ?? "";
   const description = body?.description?.trim?.() ?? "";
   const type = body?.type === "decide" ? "decide" : "understand";
+  const hiveKey = body?.hiveId;
 
   if (!title) {
     return NextResponse.json(
@@ -19,10 +20,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (!hiveKey) {
+    return NextResponse.json({ error: "Hive is required" }, { status: 400 });
+  }
+
+  const hive = await fetchHiveByKey(supabase, hiveKey);
+
   const { data, error } = await supabase
     .from("conversations")
     .insert({
-      hive_id: DEFAULT_HIVE_ID,
+      hive_id: hive.id,
       title,
       description,
       type,

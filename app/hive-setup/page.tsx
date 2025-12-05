@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { PencilSimple, Copy, CheckCircle } from "@phosphor-icons/react";
+import Alert from "@/components/alert";
+import Button from "@/components/button";
 
 export default function HiveSetupPage() {
   const router = useRouter();
@@ -163,11 +165,7 @@ export default function HiveSetupPage() {
           </p>
         </div>
 
-        {error && (
-          <div className="w-full text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-            {error}
-          </div>
-        )}
+      {error && <Alert variant="error">{error}</Alert>}
 
         {step === 1 ? (
           <form
@@ -224,24 +222,25 @@ export default function HiveSetupPage() {
             {logoError && (
               <div className="text-xs text-red-600">{logoError}</div>
             )}
-            <button
+            <Button
               type="submit"
               disabled={!nameValid || loading || !!logoError}
-              className="w-full h-10 bg-[#3A1DC8] text-white text-sm font-medium rounded-lg flex items-center justify-center disabled:opacity-60"
+              className="w-full"
             >
               {loading ? "Creating..." : "Create Hive"}
-            </button>
+            </Button>
           </form>
         ) : (
           <div className="w-full space-y-4">
-            <button
+            <Button
               type="button"
-              className="w-full h-10 text-[#3A1DC8] border border-[#E2E8F0] bg-white hover:bg-slate-50 text-sm font-medium rounded-lg flex items-center justify-center gap-2"
+              variant="secondary"
+              className="w-full flex items-center justify-center gap-2"
               onClick={handleCopyInvite}
             >
               <Copy size={16} />
               Copy invite link
-            </button>
+            </Button>
             <div className="text-sm text-[#9EA3B8] text-center pb-4">or</div>
             <div className="space-y-2">
               <p className="text-sm text-[#566175]">Add email addresses</p>
@@ -265,24 +264,25 @@ export default function HiveSetupPage() {
                   />
                 ))}
               </div>
-              <button
+              <Button
                 type="button"
                 disabled={loading}
-                className="w-full h-10 bg-[#3A1DC8] text-white text-sm font-medium rounded-lg flex items-center justify-center disabled:opacity-60"
+                className="w-full"
                 onClick={sendInvites}
               >
                 {loading ? "Sending…" : "Invite"}
-              </button>
+              </Button>
             </div>
-            <button
+            <Button
               type="button"
-              className="w-full h-10 text-sm font-medium text-[#566175] border border-transparent hover:bg-slate-50 rounded-lg"
+              variant="ghost"
+              className="w-full text-[#566175]"
               onClick={() =>
                 createdHiveId && router.replace(`/hives/${createdHiveId}`)
               }
             >
               Skip
-            </button>
+            </Button>
           </div>
         )}
       </div>

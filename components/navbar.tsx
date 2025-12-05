@@ -7,6 +7,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import Breadcrumb from "./breadcrumb";
+import RouteLogger from "./route-logger";
 
 type NavbarProps = {
   profileName?: string;
@@ -49,6 +51,7 @@ export default function Navbar({
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 h-16 bg-white border-b border-slate-100">
+      <RouteLogger />
       <div className="h-full mx-auto max-w-[1440px] px-6 lg:px-10 xl:px-12 flex items-center justify-between py-1">
         <div className="flex items-center gap-3">
           <Link href="/hives" className="flex items-center gap-2">
@@ -57,43 +60,43 @@ export default function Navbar({
               alt="HiveMind logo"
               width={160}
               height={27}
+              style={{ width: "auto", height: "auto" }}
               priority
             />
           </Link>
-          <span className="text-slate-200 text-xl pl-2 font-medium">/</span>
-
-          {hiveId && (
-            <Suspense
-              fallback={
-                <div className="flex items-center gap-3 py-1.5">
-                  <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
-                  <div className="h-4 w-24 rounded bg-slate-200 animate-pulse" />
-                </div>
-              }
-            >
-              <OrgSelector
-                hiveName={hiveName}
-                hiveLogo={hiveLogo}
-                hiveId={hiveId}
-                hiveSlug={hiveSlug ?? undefined}
-              />
-            </Suspense>
-          )}
-          {!isAccount && hiveId && !isHivesHome && !isHiveRoot && (
-            <>
-              <span className="text-slate-200 text-xl font-medium">/</span>
-              <Suspense
-                fallback={
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-20 rounded bg-slate-200 animate-pulse" />
-                    <div className="h-8 w-8 rounded-md border border-slate-200 bg-slate-50 animate-pulse" />
-                  </div>
-                }
-              >
-                <PageSelector hiveId={hiveId} />
-              </Suspense>
-            </>
-          )}
+          <Breadcrumb
+            segments={[
+              hiveId ? (
+                <Suspense
+                  fallback={
+                    <div className="flex items-center gap-3 py-1.5">
+                      <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
+                      <div className="h-4 w-24 rounded bg-slate-200 animate-pulse" />
+                    </div>
+                  }
+                >
+                  <OrgSelector
+                    hiveName={hiveName}
+                    hiveLogo={hiveLogo}
+                    hiveId={hiveId}
+                    hiveSlug={hiveSlug ?? undefined}
+                  />
+                </Suspense>
+              ) : null,
+              !isAccount && hiveId && !isHivesHome && !isHiveRoot ? (
+                <Suspense
+                  fallback={
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-20 rounded bg-slate-200 animate-pulse" />
+                      <div className="h-8 w-8 rounded-md border border-slate-200 bg-slate-50 animate-pulse" />
+                    </div>
+                  }
+                >
+                  <PageSelector hiveId={hiveId} />
+                </Suspense>
+              ) : null,
+            ]}
+          />
         </div>
 
         <UserSelector

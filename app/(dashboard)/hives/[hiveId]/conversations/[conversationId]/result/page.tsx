@@ -1,6 +1,7 @@
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { fetchConversationByKey, fetchHiveByKey } from "@/lib/utils/slug";
 import ReportView, { ReportContent } from "@/components/report-view";
+import { canOpenReport } from "@/lib/utils/report-rules";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -37,11 +38,13 @@ export default async function ResultPage({
       created_at: v.created_at ?? null,
     })) ?? [];
 
+  const gate = canOpenReport(conversation.phase ?? "", responseCount ?? 0);
+
   return (
     <ReportView
       report={conversation.report_json as ReportContent}
       conversationId={conversation.id}
-      canGenerate={true}
+      canGenerate={gate.allowed}
       responseCount={responseCount ?? 0}
       versions={versionsTyped}
     />

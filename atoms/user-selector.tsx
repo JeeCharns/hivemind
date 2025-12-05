@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Avatar from "./avatar";
+import { useCurrentUser } from "@/lib/utils/use-current-user";
+import { getSignedUrl } from "@/lib/utils/storage";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
+import Button from "@/components/button";
 
 export default function UserSelector({
   displayName,
@@ -14,31 +17,11 @@ export default function UserSelector({
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [email, setEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = supabaseBrowserClient;
-    if (!supabase) return;
-    let active = true;
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (!active) return;
-      setEmail(data?.user?.email ?? null);
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!active) return;
-      setEmail(session?.user?.email ?? null);
-    });
-
-    return () => {
-      active = false;
-      sub?.subscription.unsubscribe();
-    };
-  }, []);
+  const { user } = useCurrentUser();
+  const email = user?.email || undefined;
 
   useEffect(() => {
     if (!avatarPath) {
@@ -55,14 +38,9 @@ export default function UserSelector({
     }
     const supabase = supabaseBrowserClient;
     if (!supabase) return;
-    supabase.storage
-      .from("user-avatars")
-      .createSignedUrl(avatarPath, 300)
-      .then(({ data }) => {
-        if (data?.signedUrl) {
-          setTimeout(() => setAvatarUrl(data.signedUrl), 0);
-        }
-      });
+    getSignedUrl(supabase, "user-avatars", avatarPath, 300).then((url) => {
+      if (url) setTimeout(() => setAvatarUrl(url), 0);
+    });
   }, [avatarPath]);
 
   useEffect(() => {
@@ -77,7 +55,7 @@ export default function UserSelector({
     return () => window.removeEventListener("click", onClickAway);
   }, [menuOpen]);
 
-  const name = displayName || email || "User";
+  const name = displayName || user?.displayName || user?.email || "User";
   const initials =
     name
       ?.split(" ")
@@ -101,13 +79,15 @@ export default function UserSelector({
 
   return (
     <div className="relative" ref={menuRef}>
-      <button
-        className="flex items-center gap-3"
+      <Button
+        variant="ghost"
+        size="sm"
+        className="flex items-center gap-3 px-0"
         onClick={() => setMenuOpen((o) => !o)}
       >
         <div className="text-lg font-medium text-slate-800">{name}</div>
         <Avatar initials={initials} size="sm" src={avatarUrl ?? undefined} />
-      </button>
+      </Button>
       {menuOpen && (
         <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg z-50">
           {email && (
@@ -115,21 +95,25 @@ export default function UserSelector({
               {email}
             </div>
           )}
-          <button
-            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
             onClick={() => {
               router.push("/account");
               setMenuOpen(false);
             }}
           >
             Account settings
-          </button>
-          <button
-            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
             onClick={logout}
           >
             Log out
-          </button>
+          </Button>
           {error && (
             <div className="px-3 py-2 text-xs text-red-600 border-t border-slate-100">
               {error}

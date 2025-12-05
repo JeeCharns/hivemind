@@ -2,14 +2,21 @@
 
 import Image from "next/image";
 
-export default function BrandLogo({ size = 40 }: { size?: number }) {
+export default function BrandLogo({
+  size = 40,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
     <Image
       src="/HiveMindLogo.png"
       alt="HiveMind logo"
       width={size * 4}
       height={size}
-      className="h-10 w-auto"
+      className={className ?? ""}
+      style={{ width: "auto", height: "auto" }}
       priority
     />
   );

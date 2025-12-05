@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
+import { getSignedUrl } from "@/lib/utils/storage";
+import Button from "@/components/button";
 
 type MembershipRow = {
   hive_id: string;
@@ -40,6 +42,7 @@ export default function HivesClient() {
         return;
       }
       const userId = sessionData.session.user.id;
+      console.log("[hives-client] session user", userId);
       const { data: memberships, error: mErr } = await supabase
         .from("hive_members")
         .select("hive_id,hives(name,slug,logo_url)")
@@ -47,6 +50,7 @@ export default function HivesClient() {
       if (mErr) {
         setError(mErr.message);
         setLoading(false);
+        console.error("[hives-client] hive_members query error", mErr);
         return;
       }
       const normalized: {
@@ -66,17 +70,12 @@ export default function HivesClient() {
         }) ?? [];
       const resolved = await Promise.all(
         normalized.map(async (row) => {
-          let logo: string | null = null;
-          if (row.logo_path) {
-            if (row.logo_path.startsWith("http")) {
-              logo = row.logo_path;
-            } else {
-              const { data } = await supabase.storage
-                .from("logos")
-                .createSignedUrl(row.logo_path, 300);
-              logo = data?.signedUrl ?? null;
-            }
-          }
+          const logo = await getSignedUrl(
+            supabase,
+            "logos",
+            row.logo_path,
+            300
+          );
           return {
             hive_id: row.hive_id,
             hive_slug: row.hive_slug,
@@ -85,11 +84,16 @@ export default function HivesClient() {
           };
         })
       );
+      console.log("[hives-client] memberships", normalized);
       setRows(resolved);
       setLoading(false);
     };
 
-    load();
+    load().catch((err) => {
+      console.error("[hives-client] unexpected load error", err);
+      setError(err instanceof Error ? err.message : "Failed to load hives");
+      setLoading(false);
+    });
   }, [router, supabase]);
 
   if (loading) {
@@ -110,10 +114,22 @@ export default function HivesClient() {
       <p className="text-sm text-[#566175] text-center">Select a hive to continue.</p>
       <div className="w-full flex flex-col gap-3">
         {rows.map((row) => (
-          <a
+          <button
             key={row.hive_id}
-            href={`/hives/${row.hive_slug ?? row.hive_id}`}
-            className="w-full border border-slate-200 rounded-lg px-4 py-6 hover:border-indigo-200 transition flex items-center gap-2"
+            onClick={async () => {
+              try {
+                localStorage.setItem("last_hive_id", row.hive_id);
+                await fetch("/api/last-hive", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ hiveId: row.hive_id }),
+                });
+              } catch (err) {
+                console.error("[hives-client] failed to set last_hive_id", err);
+              }
+              router.push(`/hives/${row.hive_slug ?? row.hive_id}`);
+            }}
+            className="w-full border border-slate-200 rounded-lg px-4 py-6 hover:border-indigo-200 transition flex items-center gap-2 text-left"
           >
             {row.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -130,19 +146,16 @@ export default function HivesClient() {
             <div className="text-sm font-medium text-slate-800 truncate">
               {row.name ?? "Hive"}
             </div>
-          </a>
+          </button>
         ))}
         {rows.length === 0 && (
           <div className="text-sm text-slate-500 text-center">
             You are not a member of any hives yet.
           </div>
         )}
-        <a
-          href="/hive-setup"
-          className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg py-4"
-        >
+        <Button className="w-full py-4" onClick={() => router.push("/hive-setup")}>
           Create a new Hive
-        </a>
+        </Button>
       </div>
     </div>
   );

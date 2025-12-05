@@ -9,6 +9,8 @@ import {
   ExportIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
+import Button from "@/components/button";
+import Alert from "@/components/alert";
 
 type ConversationHeaderProps = {
   hiveId: string;
@@ -102,13 +104,15 @@ export default function ConversationHeader({
               {title}
             </h1>
             <div className="relative" ref={menuRef}>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
+                className="w-8 h-8 rounded-full text-[#566888] p-0"
                 onClick={() => {
                   setMenuOpen((o) => !o);
                   setError(null);
                 }}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-slate-100 text-[#566888]"
                 aria-label="Conversation actions"
               >
                 <DotsThreeOutlineVertical
@@ -116,18 +120,20 @@ export default function ConversationHeader({
                   weight="regular"
                   className="rotate-90"
                 />
-              </button>
+              </Button>
               {menuOpen && (
                 <div className="absolute z-50 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg left-0">
-                  <button
-                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
                     onClick={() => {
                       setConfirmOpen(true);
                       setMenuOpen(false);
                     }}
                   >
                     Delete conversation
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -153,20 +159,13 @@ export default function ConversationHeader({
               })}
             </div>
 
-            <button
-              type="button"
-              className="inline-flex h-11 items-center gap-2 rounded-sm bg-white px-3 text-[16px] font-medium leading-5 text-[#9498B0] hover:text-[#3A1DC8] transition-colors"
-            >
+            <Button variant="ghost" size="sm" className="h-11 gap-2 text-[#9498B0] hover:text-[#3A1DC8]">
               <ExportIcon size={16} className="text-inherit" />
               Share
-            </button>
+            </Button>
           </div>
         </div>
-        {error && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <Alert variant="error" className="mt-3">{error}</Alert>}
       </div>
 
       {confirmOpen && (
@@ -179,19 +178,16 @@ export default function ConversationHeader({
               Are you sure you want to delete the session? This is a destructive action and the session will not be recoverable.
             </p>
             <div className="flex justify-end gap-3">
-              <button
-                className="px-4 py-2 rounded-md border border-slate-200 text-sm text-[#566888]"
-                onClick={() => setConfirmOpen(false)}
-              >
+              <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
                 Cancel
-              </button>
-              <button
-                className="px-4 py-2 rounded-md bg-red-600 text-white text-sm font-medium disabled:opacity-60"
+              </Button>
+              <Button
+                variant="danger"
                 onClick={deleteConversation}
                 disabled={deleting}
               >
                 {deleting ? "Deleting…" : "Confirm"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

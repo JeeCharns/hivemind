@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { openai } from "@/lib/openai/client";
-import { DEFAULT_USER_ID } from "@/lib/config";
+import { getCurrentUserProfile } from "@/lib/utils/user";
+import { canOpenReport } from "@/lib/utils/report-rules";
 
 export const runtime = "nodejs";
 
@@ -15,25 +16,18 @@ type ConversationRow = {
   title: string | null;
 };
 
-const phaseOrder = [
-  "listen_open",
-  "understand_open",
-  "respond_open",
-  "vote_open",
-  "report_open",
-] as const;
-
-const comparePhase = (phase: string, target: string) =>
-  phaseOrder.indexOf(phase as (typeof phaseOrder)[number]) -
-  phaseOrder.indexOf(target as (typeof phaseOrder)[number]);
-
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
   const { conversationId } = await params;
   const supabase = supabaseServerClient();
-  const userId = DEFAULT_USER_ID;
+  const currentUser = await getCurrentUserProfile(supabase);
+  const userId = currentUser?.id;
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { data: conversation, error: convoError } = await supabase
     .from("conversations")
@@ -68,27 +62,16 @@ export async function POST(
     );
   }
 
-  if (
-    (responseCount ?? 0) < 30 &&
-    comparePhase(conversation.phase, "report_open") < 0
-  ) {
-    return NextResponse.json(
-      { error: "Report phase not open. At least 30 responses are required." },
-      { status: 409 }
-    );
+  const reportGate = canOpenReport(conversation.phase, responseCount);
+  if (!reportGate.allowed) {
+    return NextResponse.json({ error: reportGate.reason }, { status: 409 });
   }
-
-  if (
-    (responseCount ?? 0) >= 30 &&
-    comparePhase(conversation.phase, "report_open") < 0
-  ) {
+  if (reportGate.reason === "Advance phase to report_open") {
     const { error: phaseError } = await supabase
       .from("conversations")
       .update({ phase: "report_open" })
       .eq("id", conversation.id);
-    if (!phaseError) {
-      conversation.phase = "report_open";
-    }
+    if (!phaseError) conversation.phase = "report_open";
   }
 
   if (conversation.analysis_status !== "ready") {

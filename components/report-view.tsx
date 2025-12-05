@@ -8,6 +8,8 @@ import {
   Handshake,
   SpinnerGap,
 } from "@phosphor-icons/react";
+import { MIN_RESPONSES_FOR_REPORT } from "@/lib/utils/report-rules";
+import Button from "@/components/button";
 
 export type ReportContent =
   | string
@@ -127,8 +129,10 @@ export default function ReportView({
     });
   };
 
-  const MIN_RESPONSES = 30;
-  const hasEnoughResponses = responseCount >= MIN_RESPONSES;
+  const hasEnoughResponses =
+    typeof responseCount === "number"
+      ? responseCount >= MIN_RESPONSES_FOR_REPORT
+      : true;
   const hasFeedbackData =
     (agreementSummaries?.strongAgreement?.length ?? 0) > 0 ||
     (agreementSummaries?.divisive?.length ?? 0) > 0;
@@ -246,26 +250,30 @@ export default function ReportView({
                   </select>
                 )}
                 {canGenerate && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={generate}
                     disabled={loading || !hasEnoughResponses}
-                    className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-[#3A1DC8] transition-colors disabled:opacity-60"
                     title="Regenerate"
+                    className="p-2 h-9 w-9"
                   >
                     <ArrowClockwise
                       size={18}
                       className={loading ? "animate-spin" : ""}
                     />
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={download}
                   disabled={!current}
-                  className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-[#3A1DC8] transition-colors disabled:opacity-60"
                   title="Download"
+                  className="p-2 h-9 w-9"
                 >
                   <DownloadSimple size={18} />
-                </button>
+                </Button>
               </div>
             </div>
             {error && (

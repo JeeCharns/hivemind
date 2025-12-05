@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { DEFAULT_USER_ID } from "@/lib/config";
+import { getCurrentUserProfile } from "@/lib/utils/user";
 
 type ConversationRow = {
   id: string;
@@ -15,7 +15,12 @@ export async function POST(
 ) {
   const { conversationId } = await params;
   const supabase = supabaseServerClient();
-  const userId = DEFAULT_USER_ID;
+  const currentUser = await getCurrentUserProfile(supabase);
+  const userId = currentUser?.id;
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { data: convo, error: convoError } = await supabase
     .from("conversations")

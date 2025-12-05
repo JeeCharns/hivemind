@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { MagnifyingGlass } from "@phosphor-icons/react";
+import Alert from "@/components/alert";
+import Button from "@/components/button";
 
-type HiveRow = { id: string; name: string };
+type HiveRow = { id: string; name: string; slug: string | null };
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -45,7 +47,7 @@ export default function WelcomePage() {
       const pattern = `%${trimmed}%`;
       const { data, error } = await supabase
         .from("hives")
-        .select("id,name")
+        .select("id,name,slug")
         .ilike("name", pattern)
         .limit(5);
       if (error) {
@@ -85,18 +87,11 @@ export default function WelcomePage() {
           </p>
         </div>
 
-        {error && (
-          <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2 w-full text-center">
-            {error}
-          </div>
-        )}
+        {error && <Alert variant="error">{error}</Alert>}
 
-        <button
-          className="w-full h-10 bg-[#3A1DC8] hover:bg-[#2f18a6] text-white text-sm font-medium rounded-lg flex items-center justify-center"
-          onClick={() => router.push("/hive-setup")}
-        >
+        <Button className="w-full" onClick={() => router.push("/hive-setup")}>
           Create a new Hive
-        </button>
+        </Button>
 
         <div className="text-sm text-[#9EA3B8]">or</div>
 
@@ -115,24 +110,38 @@ export default function WelcomePage() {
         {matches.length > 0 && (
           <div className="w-full border border-slate-200 rounded-lg divide-y divide-slate-200">
             {matches.map((m) => (
-              <button
+              <Button
                 key={m.id}
-                className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
-                onClick={() => {
-                  if (!supabaseBrowserClient) return;
-                  supabaseBrowserClient.auth.getSession().then(async ({ data }) => {
-                    const userId = data.session?.user?.id;
-                    if (userId) {
-                      await supabaseBrowserClient
-                        .from("hive_members")
-                        .upsert({ hive_id: m.id, user_id: userId, role: "member" });
-                    }
-                    router.push(`/hives/${m.id}`);
-                  });
+                variant="ghost"
+                className="w-full justify-start text-sm text-slate-800"
+                onClick={async () => {
+                  if (!supabaseBrowserClient) {
+                    setError("Supabase is not configured.");
+                    return;
+                  }
+                  setError(null);
+                  const { data: sessionData, error: sessionErr } =
+                    await supabaseBrowserClient.auth.getSession();
+                  if (sessionErr || !sessionData.session?.user?.id) {
+                    setError(
+                      sessionErr?.message ??
+                        "We could not find your session. Please request a new magic link."
+                    );
+                    return;
+                  }
+                  const userId = sessionData.session.user.id;
+                  const { error: upsertErr } = await supabaseBrowserClient
+                    .from("hive_members")
+                    .upsert({ hive_id: m.id, user_id: userId, role: "member" });
+                  if (upsertErr) {
+                    setError(upsertErr.message);
+                    return;
+                  }
+                  router.push(`/hives/${m.slug ?? m.id}`);
                 }}
               >
                 {m.name}
-              </button>
+              </Button>
             ))}
           </div>
         )}

@@ -1,6 +1,9 @@
 import HiveMembersClient from "@/app/(dashboard)/hives/[hiveId]/members/members-client";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { fetchHiveByKey } from "@/lib/utils/slug";
+import { getCurrentUserProfile } from "@/lib/utils/user";
+import { redirect } from "next/navigation";
+import Card from "@/components/card";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -12,6 +15,8 @@ export default async function HiveMembersPage({
 }) {
   const { hiveId } = await params;
   const supabase = supabaseServerClient();
+  const currentUser = await getCurrentUserProfile(supabase);
+  if (!currentUser) redirect("/");
   const hive = await fetchHiveByKey(supabase, hiveId);
 
   const { data: memberships, error: membershipError } = await supabase
@@ -80,9 +85,9 @@ export default async function HiveMembersPage({
   );
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm w-full">
+    <Card className="w-full" padding="p-8">
       <h1 className="text-2xl font-semibold text-slate-900 mb-6">Members</h1>
       <HiveMembersClient hiveId={hive.id} initialMembers={rows} />
-    </div>
+    </Card>
   );
 }

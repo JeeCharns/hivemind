@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { ThumbsUp, PaperPlaneTilt, CaretDown } from "@phosphor-icons/react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { tagColors } from "./understand-view";
+import Button from "@/components/button";
 
 type AnalysisStatus =
   | "not_started"
@@ -192,13 +193,15 @@ export default function ListenView({
             : "bg-white text-slate-700 border-slate-200 hover:border-indigo-200 py-0.5";
 
         return (
-          <button
+          <Button
             key={t}
+            variant="secondary"
+            size="sm"
             onClick={() => setTag((prev) => (prev === t ? null : t))}
-            className={`px-3 py-0.5 rounded-full text-sm font-medium border transition ${active}`}
+            className={`px-3 rounded-full text-sm font-medium border transition ${active}`}
           >
             {t[0].toUpperCase() + t.slice(1)}
-          </button>
+          </Button>
         );
       }),
     [tag]
@@ -249,10 +252,12 @@ export default function ListenView({
                       Post as...
                     </span>
                     <div className="relative">
-                      <button
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="w-36 px-3 justify-between"
                         onClick={() => setPostAsOpen((o) => !o)}
-                        className="w-36 h-9 px-3 flex items-center justify-between rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-indigo-200"
                       >
                         <span className="flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-[11px] text-slate-600">
@@ -265,7 +270,7 @@ export default function ListenView({
                           </span>
                         </span>
                         <CaretDown size={14} className="text-slate-500" />
-                      </button>
+                      </Button>
                       {postAsOpen && (
                         <div className="absolute mt-1 w-40 rounded-lg border border-slate-200 bg-white shadow-sm z-20">
                           {[
@@ -278,13 +283,15 @@ export default function ListenView({
                             },
                             { key: "anon", label: "Anonymous", badge: "A" },
                           ].map((opt) => (
-                            <button
+                            <Button
                               key={opt.key}
+                              variant="ghost"
+                              size="sm"
                               onClick={() => {
                                 setPostAs(opt.key as "self" | "anon");
                                 setPostAsOpen(false);
                               }}
-                              className={`w-full px-3 py-2 flex items-center gap-2 text-left text-sm hover:bg-slate-50 ${
+                              className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-sm hover:bg-slate-50 ${
                                 postAs === opt.key
                                   ? "text-[#3A1DC8] bg-indigo-50"
                                   : "text-slate-700"
@@ -294,7 +301,7 @@ export default function ListenView({
                                 {opt.badge}
                               </span>
                               <span className="text-[12px]">{opt.label}</span>
-                            </button>
+                            </Button>
                           ))}
                         </div>
                       )}
@@ -304,14 +311,14 @@ export default function ListenView({
               </div>
 
               <div className="flex justify-end">
-                <button
+                <Button
                   disabled={!canSubmit || submitting}
                   onClick={submitResponse}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#3A1DC8] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="gap-2"
                 >
                   <PaperPlaneTilt size={16} />
                   Submit
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -369,9 +376,11 @@ export default function ListenView({
                       </div>
                       <p className="text-sm text-slate-800">{resp.text}</p>
                     </div>
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => toggleLike(resp)}
-                      className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-md border ${
+                      className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-md ${
                         resp.liked_by_me
                           ? "border-green-200 bg-green-50 text-green-700"
                           : "border-slate-200 text-slate-500 hover:border-indigo-200"
@@ -382,7 +391,7 @@ export default function ListenView({
                         weight={resp.liked_by_me ? "fill" : "regular"}
                       />
                       <span>{resp.like_count}</span>
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>

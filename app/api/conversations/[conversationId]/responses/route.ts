@@ -1,8 +1,8 @@
 "use server";
 
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { DEFAULT_USER_ID } from "@/lib/config";
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUserProfile } from "@/lib/utils/user";
 
 const TAGS = ["data", "problem", "need", "want", "risk", "proposal"];
 const MAX_LEN = 200;
@@ -13,6 +13,8 @@ export async function GET(
 ) {
   const { conversationId } = await params;
   const supabase = supabaseServerClient();
+  const currentUser = await getCurrentUserProfile(supabase);
+  const currentUserId = currentUser?.id ?? null;
 
   const { data: responses, error } = await supabase
     .from("conversation_responses")
@@ -65,7 +67,7 @@ export async function GET(
   }, {});
 
   const likedByMe = likes.reduce<Record<number, boolean>>((acc, l) => {
-    if (l.user_id === DEFAULT_USER_ID) acc[l.response_id] = true;
+    if (currentUserId && l.user_id === currentUserId) acc[l.response_id] = true;
     return acc;
   }, {});
 
@@ -89,10 +91,16 @@ export async function POST(
 ) {
   const { conversationId } = await params;
   const supabase = supabaseServerClient();
+  const currentUser = await getCurrentUserProfile(supabase);
   const body = await req.json().catch(() => null);
   const text = (body?.text ?? "").toString().trim();
   const tag = (body?.tag ?? "").toString().toLowerCase();
   const anonymous = Boolean(body?.anonymous);
+  const userId = currentUser?.id;
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (!text || text.length === 0) {
     return NextResponse.json({ error: "Response text is required" }, { status: 400 });
@@ -110,7 +118,7 @@ export async function POST(
       conversation_id: conversationId,
       response_text: text,
       tag,
-      user_id: DEFAULT_USER_ID,
+      user_id: userId,
     })
     .select(
       `

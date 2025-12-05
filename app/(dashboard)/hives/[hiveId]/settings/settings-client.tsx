@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import DeleteHiveButton from "@/components/delete-hive-button";
+import { validateImageFile, uploadImageAndReplace } from "@/lib/utils/upload";
+import { getSignedUrl } from "@/lib/utils/storage";
+import Alert from "@/components/alert";
+import Button from "@/components/button";
 
 type Props = {
   hiveId: string;
@@ -41,12 +45,9 @@ export default function HiveSettingsClient({
       return;
     }
     if (!supabase) return;
-    supabase.storage
-      .from("logos")
-      .createSignedUrl(initialLogo, 300)
-      .then(({ data }) => {
-        setSignedLogo(data?.signedUrl ?? null);
-      });
+    getSignedUrl(supabase, "logos", initialLogo, 300).then((url) =>
+      setSignedLogo(url)
+    );
   }, [initialLogo, supabase]);
 
   const handleLogoChange = (file: File | null) => {
@@ -54,9 +55,9 @@ export default function HiveSettingsClient({
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setLogoFile(file);
     if (file) {
-      const type = file.type.toLowerCase();
-      if (!["image/png", "image/jpeg"].includes(type)) {
-        setLogoError("Logo must be a .png or .jpeg image.");
+      const validation = validateImageFile(file, { maxMb: 2 });
+      if (validation) {
+        setLogoError(validation);
         setPreviewUrl(null);
         return;
       }
@@ -76,25 +77,23 @@ export default function HiveSettingsClient({
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
       if (!userId) throw new Error("Please sign in.");
-      const fileExt = logoFile.name.split(".").pop();
-      const path = `${userId}/${Date.now()}.${fileExt}`;
       const prevPath = logoPathState;
-      const { error: uploadErr, data: uploadData } = await supabase.storage
-        .from("logos")
-        .upload(path, logoFile, { upsert: true });
-      if (uploadErr) throw uploadErr;
-      const logoPath = uploadData.path;
+      const { path, signedUrl } = await uploadImageAndReplace(
+        supabase,
+        "logos",
+        logoFile,
+        userId,
+        prevPath
+      );
       const { error: updateErr } = await supabase
         .from("hives")
-        .update({ logo_url: logoPath })
+        .update({ logo_url: path })
         .eq("id", hiveId);
       if (updateErr) throw updateErr;
       setMessage("Logo updated.");
       setLogoFile(null);
-      setLogoPathState(logoPath);
-      if (prevPath && prevPath !== logoPath) {
-        await supabase.storage.from("logos").remove([prevPath]);
-      }
+      setLogoPathState(path);
+      setSignedLogo(signedUrl ?? null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update logo.";
       setError(msg);
@@ -130,16 +129,8 @@ export default function HiveSettingsClient({
 
   return (
     <div className="flex flex-col gap-6">
-      {message && (
-        <div className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-          {error}
-        </div>
-      )}
+      {message && <Alert variant="success">{message}</Alert>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-slate-900">
@@ -175,14 +166,13 @@ export default function HiveSettingsClient({
               onChange={(e) => handleLogoChange(e.target.files?.[0] ?? null)}
             />
           </label>
-          <button
+          <Button
             type="button"
             disabled={!logoFile || !!logoError || loading}
-            className="px-4 py-2 rounded-md bg-[#3A1DC8] text-white text-sm font-medium disabled:opacity-60"
             onClick={saveLogo}
           >
             {loading && logoFile ? "Saving..." : "Upload new logo"}
-          </button>
+          </Button>
         </div>
         {logoError && <div className="text-xs text-red-600">{logoError}</div>}
       </div>
@@ -198,14 +188,13 @@ export default function HiveSettingsClient({
             className="flex-1 h-10 border border-[#E2E8F0] rounded-md px-3 text-sm text-slate-800 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none max-w-xl"
             placeholder="Enter hive name"
           />
-          <button
+          <Button
             type="button"
             disabled={!name.trim() || loading}
-            className="px-4 py-2 rounded-md bg-[#3A1DC8] text-white text-sm font-medium disabled:opacity-60"
             onClick={saveName}
           >
             Save
-          </button>
+          </Button>
         </div>
       </div>
 
