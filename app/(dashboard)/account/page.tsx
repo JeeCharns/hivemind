@@ -14,14 +14,23 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!user || !supabase) return;
-    setAvatarLoading(true);
-    supabase
-      .from("profiles")
-      .select("avatar_path")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setAvatarPath(data?.avatar_path ?? null))
-      .finally(() => setAvatarLoading(false));
+    let active = true;
+    const loadAvatar = async () => {
+      setAvatarLoading(true);
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_path")
+        .eq("id", user.id)
+        .maybeSingle<{ avatar_path: string | null }>();
+      if (active) {
+        setAvatarPath(data?.avatar_path ?? null);
+        setAvatarLoading(false);
+      }
+    };
+    void loadAvatar();
+    return () => {
+      active = false;
+    };
   }, [user, supabase]);
 
   if (loading || avatarLoading) {
