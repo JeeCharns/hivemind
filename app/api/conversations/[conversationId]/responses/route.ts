@@ -56,18 +56,23 @@ export async function GET(
   });
 
   const normalized =
-    responses?.map((r) => ({
-      id: r.id,
-      text: (r as any).response_text,
-      tag: r.tag,
-      created_at: r.created_at,
-      user: {
-        name: r.profiles?.display_name || "Member",
-        avatar_url: r.profiles?.avatar_path ?? null,
-      },
-      like_count: likeCounts.get(r.id) ?? 0,
-      liked_by_me: false,
-    })) ?? [];
+    responses?.map((r) => {
+      const profile = Array.isArray((r as any).profiles)
+        ? (r as any).profiles[0]
+        : (r as any).profiles;
+      return {
+        id: r.id,
+        text: (r as any).response_text,
+        tag: r.tag,
+        created_at: r.created_at,
+        user: {
+          name: profile?.display_name || "Member",
+          avatar_url: profile?.avatar_path ?? null,
+        },
+        like_count: likeCounts.get(r.id) ?? 0,
+        liked_by_me: false,
+      };
+    }) ?? [];
 
   return NextResponse.json({ responses: normalized });
 }
@@ -116,14 +121,17 @@ export async function POST(
     );
   }
 
+  const profile = Array.isArray((data as any).profiles)
+    ? (data as any).profiles[0]
+    : (data as any).profiles;
   const response = {
     id: data.id,
     text: (data as any).response_text,
     tag: data.tag,
     created_at: data.created_at,
     user: {
-      name: data.profiles?.display_name || "Member",
-      avatar_url: data.profiles?.avatar_path ?? null,
+      name: profile?.display_name || "Member",
+      avatar_url: profile?.avatar_path ?? null,
     },
     like_count: 0,
     liked_by_me: false,
