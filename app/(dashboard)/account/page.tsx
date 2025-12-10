@@ -21,9 +21,11 @@ export default function AccountPage() {
         .from("profiles")
         .select("avatar_path")
         .eq("id", user.id)
-        .maybeSingle<{ avatar_path: string | null }>();
+        .maybeSingle();
       if (active) {
-        setAvatarPath(data?.avatar_path ?? null);
+        const avatar = (data as { avatar_path: string | null } | null)
+          ?.avatar_path;
+        setAvatarPath(avatar ?? null);
         setAvatarLoading(false);
       }
     };
