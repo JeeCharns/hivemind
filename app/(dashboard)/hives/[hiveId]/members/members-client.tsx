@@ -57,7 +57,7 @@ export default function HiveMembersClient({
       supabase.storage
         .from("user-avatars")
         .createSignedUrl(path, 300)
-        .then(({ data }) => {
+        .then(({ data }: { data: { signedUrl: string } | null }) => {
           if (data?.signedUrl) {
             setSigned((prev) => ({ ...prev, [path]: data.signedUrl }));
           }

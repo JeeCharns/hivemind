@@ -11,9 +11,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    console.log("[AuthGuard] mounted");
+    return () => console.log("[AuthGuard] unmounted");
+  }, []);
+
+  useEffect(() => {
     console.log("[auth-guard] user state", { userLoading, user, pathname });
     if (userLoading) {
-      setChecking(true);
+      setTimeout(() => setChecking(true), 0);
       return;
     }
 
@@ -23,7 +28,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     // No user and not loading: render a missing session state (no redirect to avoid race)
-    setChecking(false);
+    setTimeout(() => setChecking(false), 0);
   }, [router, user, userLoading, pathname]);
 
   if (userLoading || checking) {
@@ -35,6 +40,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
+    console.warn("[auth-guard] no user after load; showing session missing");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-sm text-red-600">

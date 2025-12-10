@@ -2,8 +2,6 @@ import AuthGuard from "@/components/auth-guard";
 import Navbar from "@/components/navbar";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { fetchHiveByKey } from "@/lib/utils/slug";
-import { redirect } from "next/navigation";
-import { getCurrentUserProfile } from "@/lib/utils/user";
 
 export default async function HiveLayout({
   children,
@@ -24,8 +22,6 @@ async function HiveShell({
   hiveKey: string;
 }) {
   const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  if (!currentUser) redirect("/");
   const hive = await fetchHiveByKey(supabase, hiveKey);
 
   const { data: hiveDetails } = await supabase
@@ -37,14 +33,14 @@ async function HiveShell({
   return (
     <AuthGuard>
       <Navbar
-        profileName={currentUser.displayName}
-        profileAvatarPath={currentUser.avatarPath}
+        profileName={undefined}
+        profileAvatarPath={null}
         hiveName={hiveDetails?.name ?? hive.name}
         hiveLogo={hiveDetails?.logo_url ?? null}
         hiveId={hive.id}
         hiveSlug={hive.slug ?? hiveDetails?.slug ?? null}
       />
-      <main className="min-h-screen bg-[#E8EAF3] overflow-y-auto no-scrollbar">
+      <main className="min-h-screen overflow-y-auto no-scrollbar">
         <div className="mx-auto max-w-[1440px]">{children}</div>
       </main>
     </AuthGuard>

@@ -8,7 +8,9 @@ function HivesSkeleton() {
   return (
     <div className="w-full max-w-[480px] bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex flex-col items-center gap-4">
       <h1 className="text-2xl font-semibold text-[#172847]">Your Hives</h1>
-      <p className="text-sm text-[#566175] text-center">Select a hive to continue.</p>
+      <p className="text-sm text-[#566175] text-center">
+        Select a hive to continue.
+      </p>
       <div className="w-full flex flex-col gap-3">
         {[1, 2, 3].map((i) => (
           <div
@@ -27,7 +29,7 @@ function HivesSkeleton() {
 
 export default async function HiveListPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 relative">
       <Suspense fallback={<HivesSkeleton />}>
         <HivesClient />
       </Suspense>

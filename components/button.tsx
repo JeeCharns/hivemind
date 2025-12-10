@@ -34,6 +34,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
+      suppressHydrationWarning
       className={`inline-flex items-center justify-center rounded-md font-medium transition ${variantClasses[variant]} ${sizeClasses[size]} ${className}`.trim()}
       {...props}
     >

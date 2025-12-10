@@ -80,7 +80,10 @@ export default function AuthGate() {
               onSubmit={submit}
               suppressHydrationWarning
             >
-              <label className="flex flex-col gap-2 text-sm text-slate-700">
+              <label
+                className="flex flex-col gap-2 text-sm text-slate-700"
+                suppressHydrationWarning
+              >
                 Email
                 <input
                   type="email"
@@ -89,6 +92,7 @@ export default function AuthGate() {
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none"
                   placeholder="you@example.com"
                   required
+                  suppressHydrationWarning
                 />
               </label>
               <Button

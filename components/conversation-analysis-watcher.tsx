@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 export default function ConversationAnalysisWatcher({
   conversationId,
@@ -29,8 +30,8 @@ export default function ConversationAnalysisWatcher({
           table: "conversations",
           filter: `id=eq.${conversationId}`,
         },
-        (payload) => {
-          const nextStatus = (payload.new as { analysis_status?: string })?.analysis_status;
+        (payload: RealtimePostgresChangesPayload<{ analysis_status?: string }>) => {
+          const nextStatus = (payload.new as { analysis_status?: string } | null)?.analysis_status;
           if (nextStatus === "ready") {
             router.refresh();
           }

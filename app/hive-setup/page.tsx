@@ -93,7 +93,7 @@ export default function HiveSetupPage() {
         throw new Error(body?.error ?? "Failed to create hive");
       }
       const body = await res.json();
-      setCreatedHiveId(body.id);
+      setCreatedHiveId(body.slug ?? body.id);
       setStep(2);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to create hive";

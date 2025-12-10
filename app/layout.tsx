@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -19,14 +20,13 @@ export const metadata: Metadata = {
   description: "Understand your organisation from the bottom up",
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
-      <body className="font-sans antialiased">
+    <html
+      lang="en"
+      className={`${spaceGrotesk.variable} ${inter.variable}`}
+    >
+      <body className="font-sans antialiased bg-slate-50 text-slate-900">
         {children}
       </body>
     </html>

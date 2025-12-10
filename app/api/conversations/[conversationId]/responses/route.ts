@@ -1,11 +1,27 @@
 "use server";
 
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserProfile } from "@/lib/utils/user";
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
 
-const TAGS = ["data", "problem", "need", "want", "risk", "proposal"];
-const MAX_LEN = 200;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+function clientForToken(token?: string | null) {
+  if (!url || !anonKey) {
+    throw new Error("Supabase is not configured");
+  }
+  return createClient(url, anonKey, {
+    global: token
+      ? {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      : undefined,
+  });
+}
 
 export async function GET(
   _req: NextRequest,
@@ -13,76 +29,47 @@ export async function GET(
 ) {
   const { conversationId } = await params;
   const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  const currentUserId = currentUser?.id ?? null;
 
   const { data: responses, error } = await supabase
     .from("conversation_responses")
-    .select("id,response_text,tag,created_at,user_id")
+    .select(
+      "id,response_text,tag,created_at,user_id,profiles(display_name,avatar_path)"
+    )
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch responses" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const ids = (responses ?? []).map((r) => r.id);
-  const userIds = Array.from(new Set((responses ?? []).map((r) => r.user_id)));
+  const ids = responses?.map((r) => r.id) ?? [];
+  const { data: likes } = ids.length
+    ? await supabase
+        .from("response_likes")
+        .select("response_id,user_id")
+        .in("response_id", ids)
+    : { data: [] as { response_id: number; user_id: string }[] };
 
-  let likes: { response_id: number; user_id: string }[] = [];
-  if (ids.length > 0) {
-    const { data: likesData } = await supabase
-      .from("response_likes")
-      .select("response_id,user_id")
-      .in("response_id", ids);
-    likes = likesData ?? [];
-  }
+  const likeCounts = new Map<number, number>();
+  likes?.forEach((l) => {
+    likeCounts.set(l.response_id, (likeCounts.get(l.response_id) ?? 0) + 1);
+  });
 
-  let profiles: { id: string; display_name: string | null }[] = [];
-  if (userIds.length > 0) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("id,display_name")
-      .in("id", userIds);
-    profiles = profileData ?? [];
-  }
-
-  const profileMap = profiles.reduce<Record<string, { name: string; avatar_url: string | null }>>(
-    (acc, p) => {
-      acc[p.id] = {
-        name: p.display_name ?? "Anonymous",
-        avatar_url: null,
-      };
-      return acc;
-    },
-    {}
-  );
-
-  const likeCountMap = likes.reduce<Record<number, number>>((acc, l) => {
-    acc[l.response_id] = (acc[l.response_id] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  const likedByMe = likes.reduce<Record<number, boolean>>((acc, l) => {
-    if (currentUserId && l.user_id === currentUserId) acc[l.response_id] = true;
-    return acc;
-  }, {});
-
-  const payload =
+  const normalized =
     responses?.map((r) => ({
       id: r.id,
-      text: r.response_text,
+      text: (r as any).response_text,
       tag: r.tag,
       created_at: r.created_at,
-      user: profileMap[r.user_id] ?? { name: "Anonymous", avatar_url: null },
-      like_count: likeCountMap[r.id] ?? 0,
-      liked_by_me: likedByMe[r.id] ?? false,
+      user: {
+        name: r.profiles?.display_name || "Member",
+        avatar_url: r.profiles?.avatar_path ?? null,
+      },
+      like_count: likeCounts.get(r.id) ?? 0,
+      liked_by_me: false,
     })) ?? [];
 
-  return NextResponse.json({ responses: payload });
+  return NextResponse.json({ responses: normalized });
 }
 
 export async function POST(
@@ -90,28 +77,25 @@ export async function POST(
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
   const { conversationId } = await params;
-  const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  const body = await req.json().catch(() => null);
-  const text = (body?.text ?? "").toString().trim();
-  const tag = (body?.tag ?? "").toString().toLowerCase();
-  const anonymous = Boolean(body?.anonymous);
-  const userId = currentUser?.id;
+  const token =
+    req.headers.get("authorization")?.replace("Bearer ", "") ?? undefined;
+  const authClient = clientForToken(token);
 
-  if (!userId) {
+  const { data: authUser, error: userErr } = await authClient.auth.getUser();
+  if (userErr || !authUser.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = authUser.user.id;
 
-  if (!text || text.length === 0) {
-    return NextResponse.json({ error: "Response text is required" }, { status: 400 });
-  }
-  if (text.length > MAX_LEN) {
-    return NextResponse.json({ error: "Response text exceeds limit" }, { status: 400 });
-  }
-  if (!TAGS.includes(tag)) {
-    return NextResponse.json({ error: "Tag is required" }, { status: 400 });
+  const { text, tag } = await req.json();
+  if (!text || !tag) {
+    return NextResponse.json(
+      { error: "Text and tag are required" },
+      { status: 400 }
+    );
   }
 
+  const supabase = supabaseServerClient();
   const { data, error } = await supabase
     .from("conversation_responses")
     .insert({
@@ -121,39 +105,29 @@ export async function POST(
       user_id: userId,
     })
     .select(
-      `
-        id,
-        response_text,
-        tag,
-        created_at,
-        user_id,
-        profiles:profiles!conversation_responses_user_id_fkey ( display_name )
-      `
+      "id,response_text,tag,created_at,user_id,profiles(display_name,avatar_path)"
     )
     .maybeSingle();
 
   if (error || !data) {
     return NextResponse.json(
-      { error: error?.message ?? "Failed to save response" },
+      { error: error?.message ?? "Failed to submit response" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({
-    response: {
-      id: data.id,
-      text: data.response_text,
-      tag: data.tag,
-      created_at: data.created_at,
-      user: {
-        name: anonymous
-          ? "Anonymous"
-          : (data as { profiles?: { display_name?: string | null } })?.profiles
-              ?.display_name ?? "Anonymous",
-        avatar_url: null,
-      },
-      like_count: 0,
-      liked_by_me: false,
+  const response = {
+    id: data.id,
+    text: (data as any).response_text,
+    tag: data.tag,
+    created_at: data.created_at,
+    user: {
+      name: data.profiles?.display_name || "Member",
+      avatar_url: data.profiles?.avatar_path ?? null,
     },
-  });
+    like_count: 0,
+    liked_by_me: false,
+  };
+
+  return NextResponse.json({ response });
 }

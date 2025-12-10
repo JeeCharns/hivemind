@@ -28,40 +28,63 @@ export default async function HivePage({
     .order("created_at", { ascending: false });
   console.log("[hive-page] conversations count", conversations?.length ?? 0);
   if ((conversations?.length ?? 0) === 0) {
-    console.warn("[hive-page] no conversations found for hive", hiveKey.id);
-  }
-  if (conversations && conversations.length) {
-    console.log("[hive-page] first conversation preview", conversations[0]);
+    console.log("[hive-page] no conversations found for hive", hiveKey.id);
+  } else {
+    console.log("[hive-page] first conversation preview", conversations?.[0]);
   }
 
-  const rows: ConversationCardRow[] = (conversations ?? []) as ConversationCardRow[];
+  const rows: ConversationCardRow[] = (conversations ??
+    []) as ConversationCardRow[];
   const hiveName = hiveKey.name ?? "Hive";
 
   return (
     <HiveClientGuard>
-      <div className="mx-auto max-w-[1440px] relative flex flex-col gap-10">
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex flex-col gap-2">
-              <h1 className="text-[32px] leading-[41px] pt-8 font-medium text-[#172847]">
-                {hiveName}
-              </h1>
-              <p className="text-sm leading-5 font-normal text-[#566888]">
-                Your collective intelligence sessions live here
-              </p>
-            </div>
-            <NewSessionLauncher hiveId={hiveKey.id} hiveSlug={hiveKey.slug ?? null} />
+      <div className="relative mx-auto max-w-[1264px] min-h-[833px] flex flex-col gap-10 rounded-3xl">
+        <header className="flex flex-row items-center justify-between pt-10">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-[32px] leading-[41px] font-medium text-[#172847]">
+              {hiveName}
+            </h1>
+            <p className="text-[14px] leading-5 font-normal tracking-[-0.01em] text-[#566888]">
+              Your organisation’s collective intelligence sessions live here
+            </p>
           </div>
+          <NewSessionLauncher
+            hiveId={hiveKey.id}
+            hiveSlug={hiveKey.slug ?? null}
+          />
         </header>
 
-        <section className="flex flex-col gap-6">
-          <Card className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" padding="p-4" shadow={false}>
+        {rows.length === 0 ? (
+          <div className="mt-4 flex">
+            <div className="w-full md:w-1/2 lg:w-1/3">
+              <NewSessionLauncher
+                asCard
+                hiveId={hiveKey.id}
+                hiveSlug={hiveKey.slug ?? null}
+              />
+            </div>
+          </div>
+        ) : (
+          <Card
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            padding="p-4"
+            shadow={false}
+          >
             {rows.map((row) => (
-              <ConversationCard key={row.id} hive={hiveKey} conversation={row} />
+              <ConversationCard
+                key={row.id}
+                hive={hiveKey}
+                conversation={row}
+              />
             ))}
-            <NewSessionLauncher asCard hiveId={hiveKey.id} hiveSlug={hiveKey.slug ?? null} />
+            <NewSessionLauncher
+              asCard
+              hiveId={hiveKey.id}
+              hiveSlug={hiveKey.slug ?? null}
+            />
           </Card>
-        </section>
+        )}
       </div>
     </HiveClientGuard>
   );

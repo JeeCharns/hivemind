@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { ThumbsUp, PaperPlaneTilt, CaretDown } from "@phosphor-icons/react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { tagColors } from "./understand-view";
 import Button from "@/components/button";
+import { useCurrentUser } from "@/lib/utils/use-current-user";
 
 type AnalysisStatus =
   | "not_started"
@@ -46,6 +47,10 @@ export default function ListenView({
   const [mounted, setMounted] = useState(false);
   const [postAs, setPostAs] = useState<"self" | "anon">("self");
   const [postAsOpen, setPostAsOpen] = useState(false);
+  const postAsRef = useRef<HTMLDivElement | null>(null);
+  const { user } = useCurrentUser();
+  const displayName = user?.displayName || currentUserName || "User";
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
   const showSpinner =
     analysisStatus === "embedding" || analysisStatus === "analyzing";
@@ -53,9 +58,22 @@ export default function ListenView({
   const remaining = MAX_LEN - text.length;
   const canSubmit = text.trim().length > 0 && !!tag && text.length <= MAX_LEN;
 
+  const ensureAuthToken = useCallback(async () => {
+    if (authToken) return authToken;
+    const supabase = supabaseBrowserClient;
+    if (!supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token ?? null;
+    setAuthToken(token);
+    return token;
+  }, [authToken]);
+
   const fetchFeed = useCallback(async () => {
     try {
-      const res = await fetch(`/api/conversations/${conversationId}/responses`);
+      const token = await ensureAuthToken();
+      const res = await fetch(`/api/conversations/${conversationId}/responses`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         setError(body?.error ?? "Failed to load feed");
@@ -66,16 +84,24 @@ export default function ListenView({
     } finally {
       setLoadingFeed(false);
     }
-  }, [conversationId]);
+  }, [conversationId, ensureAuthToken]);
 
   const submitResponse = async () => {
     if (!canSubmit || submitting) return;
+    const token = await ensureAuthToken();
+    if (!token) {
+      setError("Not signed in");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     const payload = { text: text.trim(), tag, anonymous: postAs === "anon" };
     const res = await fetch(`/api/conversations/${conversationId}/responses`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -146,6 +172,18 @@ export default function ListenView({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const onClickAway = (e: MouseEvent) => {
+      if (postAsRef.current && !postAsRef.current.contains(e.target as Node)) {
+        setPostAsOpen(false);
+      }
+    };
+    if (postAsOpen) {
+      window.addEventListener("click", onClickAway);
+    }
+    return () => window.removeEventListener("click", onClickAway);
+  }, [postAsOpen]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -251,7 +289,7 @@ export default function ListenView({
                     <span className="text-[12px] font-medium text-[#172847]">
                       Post as...
                     </span>
-                    <div className="relative">
+                    <div className="relative" ref={postAsRef}>
                       <Button
                         type="button"
                         variant="secondary"
@@ -262,11 +300,11 @@ export default function ListenView({
                         <span className="flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-[11px] text-slate-600">
                             {postAs === "self"
-                              ? (currentUserName[0] ?? "M").toUpperCase()
+                              ? (displayName[0] ?? "M").toUpperCase()
                               : "A"}
                           </span>
                           <span className="text-[12px] max-w-32 truncate text-left">
-                            {postAs === "self" ? currentUserName : "Anonymous"}
+                            {postAs === "self" ? displayName : "Anonymous"}
                           </span>
                         </span>
                         <CaretDown size={14} className="text-slate-500" />
@@ -276,10 +314,9 @@ export default function ListenView({
                           {[
                             {
                               key: "self",
-                              label: currentUserName,
+                              label: displayName,
                               badge:
-                                (currentUserName[0] ?? "M").toUpperCase() ||
-                                "M",
+                                (displayName[0] ?? "M").toUpperCase() || "M",
                             },
                             { key: "anon", label: "Anonymous", badge: "A" },
                           ].map((opt) => (

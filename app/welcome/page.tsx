@@ -6,6 +6,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import Alert from "@/components/alert";
 import Button from "@/components/button";
+import type { Session } from "@supabase/supabase-js";
 
 type HiveRow = { id: string; name: string; slug: string | null };
 
@@ -25,12 +26,14 @@ export default function WelcomePage() {
       }, 0);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        router.replace("/");
-      }
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }: { data: { session: Session | null } }) => {
+        if (!data.session) {
+          router.replace("/");
+        }
+        setLoading(false);
+      });
   }, [router]);
 
   useEffect(() => {

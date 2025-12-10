@@ -1,33 +1,60 @@
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import AccountClient from "./account-client";
-import { redirect } from "next/navigation";
-import { getCurrentUserProfile } from "@/lib/utils/user";
+"use client";
+
+import { useEffect, useState } from "react";
 import Card from "@/components/card";
+import AccountClient from "./account-client";
+import { useCurrentUser } from "@/lib/utils/use-current-user";
+import { supabaseBrowserClient } from "@/lib/supabase/client";
 
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export default function AccountPage() {
+  const { user, loading } = useCurrentUser();
+  const supabase = supabaseBrowserClient;
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
 
-export default async function AccountPage() {
-  const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  if (!currentUser) {
-    redirect("/");
+  useEffect(() => {
+    if (!user || !supabase) return;
+    setAvatarLoading(true);
+    supabase
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setAvatarPath(data?.avatar_path ?? null))
+      .finally(() => setAvatarLoading(false));
+  }, [user, supabase]);
+
+  if (loading || avatarLoading) {
+    return (
+      <Card className="w-full" padding="p-8">
+        <div className="h-6 w-40 rounded bg-slate-200 animate-pulse mb-4" />
+        <div className="space-y-3">
+          <div className="h-4 w-32 rounded bg-slate-200 animate-pulse" />
+          <div className="h-24 w-full rounded bg-slate-200 animate-pulse" />
+        </div>
+      </Card>
+    );
   }
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("avatar_path")
-    .eq("id", currentUser.id)
-    .maybeSingle();
+
+  if (!user) {
+    return (
+      <Card className="w-full" padding="p-8">
+        <h1 className="text-xl font-semibold text-slate-900 mb-2">
+          Account settings
+        </h1>
+        <p className="text-sm text-slate-600">
+          You need to be signed in to manage your account.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full" padding="p-8">
       <h1 className="text-2xl font-semibold text-slate-900 mb-6">
         Account settings
       </h1>
-      <AccountClient
-        userId={currentUser.id}
-        initialAvatarPath={profile?.avatar_path ?? null}
-      />
+      <AccountClient userId={user.id} initialAvatarPath={avatarPath} />
     </Card>
   );
 }

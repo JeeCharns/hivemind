@@ -1,5 +1,7 @@
 "use client";
 
+"use client";
+
 import { useEffect, useState } from "react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import type { CurrentUser } from "./user";
@@ -23,9 +25,7 @@ export function useCurrentUser() {
 
     const loadProfile = async () => {
       const { data: auth, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("[useCurrentUser] getUser error", error);
-      }
+      if (error) console.error("[useCurrentUser] getUser error", error);
       const authUser = auth.user;
       if (!authUser?.id || !authUser.email) {
         if (active) {
@@ -81,27 +81,9 @@ export function useCurrentUser() {
       if (active) setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!active) return;
-      if (!session?.user?.id || !session.user.email) {
-        console.warn("[useCurrentUser] onAuthStateChange: session missing user", { event });
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-      console.log("[useCurrentUser] onAuthStateChange", {
-        event,
-        userId: session.user.id,
-        email: session.user.email,
-      });
-      setLoading(true);
-      await loadProfile();
-      setLoading(false);
-    });
-
+    // IMPORTANT: no onAuthStateChange subscription for this test
     return () => {
       active = false;
-      sub?.subscription.unsubscribe();
     };
   }, [supabase]);
 

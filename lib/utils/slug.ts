@@ -19,10 +19,12 @@ export async function fetchHiveByKey(
   key: string
 ): Promise<HiveRow> {
   const isUuid = /^[0-9a-fA-F-]{36}$/.test(key);
+  console.log("[fetchHiveByKey] incoming key", key, { isUuid });
   const query = supabase.from("hives").select("id,slug,name,logo_url");
   const { data, error } = isUuid
     ? await query.or(`id.eq.${key},slug.eq.${key}`).maybeSingle()
     : await query.eq("slug", key).maybeSingle();
+  console.log("[fetchHiveByKey] query result", { data, error });
   if (error || !data) {
     console.error("[fetchHiveByKey] lookup failed", { key, error });
     throw error || new Error("Hive not found");
@@ -36,6 +38,7 @@ export async function fetchConversationByKey(
   key: string
 ): Promise<ConversationRow> {
   const isUuid = /^[0-9a-fA-F-]{36}$/.test(key);
+  console.log("[fetchConversationByKey] incoming", { hiveId, key, isUuid });
   const base = supabase
     .from("conversations")
     .select(
@@ -45,6 +48,7 @@ export async function fetchConversationByKey(
   const { data, error } = isUuid
     ? await base.or(`id.eq.${key},slug.eq.${key}`).maybeSingle()
     : await base.eq("slug", key).maybeSingle();
+  console.log("[fetchConversationByKey] query result", { data, error });
   if (error || !data) {
     throw error || new Error("Conversation not found");
   }

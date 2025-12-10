@@ -85,7 +85,9 @@ export default function UserSelector({
         className="flex items-center gap-3 px-0"
         onClick={() => setMenuOpen((o) => !o)}
       >
-        <div className="text-lg font-medium text-slate-800">{name}</div>
+        <div className="text-[14px] leading-[18px] font-medium text-[#172847] truncate text-left">
+          {name}
+        </div>
         <Avatar initials={initials} size="sm" src={avatarUrl ?? undefined} />
       </Button>
       {menuOpen && (

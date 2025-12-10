@@ -92,12 +92,11 @@ export default function NewSessionWizard({
                     desc: "Gather inputs to choose between options.",
                   },
                 ].map((opt) => (
-                  <Button
+                  <button
                     key={opt.key}
-                    variant="secondary"
-                    size="lg"
+                    type="button"
                     onClick={() => setType(opt.key as ConversationType)}
-                    className={`w-full h-auto! justify-start items-start gap-2 p-4 border rounded-xl text-left transition ${
+                    className={`w-full rounded-xl border p-4 flex flex-col items-start gap-1 text-left transition ${
                       type === opt.key
                         ? "border-[#3A1DC8] bg-[#EDEFFD]"
                         : "border-slate-200 hover:border-[#cbd5f5]"
@@ -107,7 +106,7 @@ export default function NewSessionWizard({
                       {opt.title}
                     </span>
                     <span className="text-sm text-[#566888]">{opt.desc}</span>
-                  </Button>
+                  </button>
                 ))}
               </div>
 

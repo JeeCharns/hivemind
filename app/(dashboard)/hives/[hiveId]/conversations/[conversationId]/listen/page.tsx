@@ -1,5 +1,6 @@
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { fetchConversationByKey, fetchHiveByKey } from "@/lib/utils/slug";
+import { getCurrentUserProfile } from "@/lib/utils/user";
 import ListenView from "@/components/listen-view";
 
 export const revalidate = 0;
@@ -20,11 +21,14 @@ export default async function ListenPage({
     hive.id,
     conversationId
   );
+  const currentUser = await getCurrentUserProfile(supabase);
+  const currentUserName =
+    currentUser?.displayName || currentUser?.email || "User";
 
   return (
     <ListenView
       conversationId={conversation.id}
-      currentUserName="User"
+      currentUserName={currentUserName}
       initialAnalysisStatus={
         (conversation.analysis_status as AnalysisStatus) ?? "not_started"
       }

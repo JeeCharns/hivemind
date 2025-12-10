@@ -8,6 +8,7 @@ import Card from "@/components/card";
 import ImageUploadTile from "@/components/image-upload-tile";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { validateImageFile, uploadImageAndReplace } from "@/lib/utils/upload";
+import type { Session } from "@supabase/supabase-js";
 
 export default function ProfileSetupPage() {
   const router = useRouter();
@@ -23,11 +24,13 @@ export default function ProfileSetupPage() {
       setError("Supabase is not configured.");
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        router.replace("/");
-      }
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }: { data: { session: Session | null } }) => {
+        if (!data.session) {
+          router.replace("/");
+        }
+      });
   }, [router]);
 
   const onFileChange = (next: File | null) => {

@@ -37,8 +37,12 @@ export default function HivesClient() {
       const { data: sessionData, error: sessionErr } =
         await supabase.auth.getSession();
       if (sessionErr || !sessionData.session?.user?.id) {
-        setError(sessionErr?.message ?? "Please sign in");
-        router.replace("/");
+        console.error("[hives-client] session missing", {
+          sessionErr,
+          sessionData,
+        });
+        setError(sessionErr?.message ?? "No session in hives-client");
+        setLoading(false);
         return;
       }
       const userId = sessionData.session.user.id;
@@ -116,7 +120,9 @@ export default function HivesClient() {
         {rows.map((row) => (
           <button
             key={row.hive_id}
+            type="button"
             onClick={async () => {
+              console.log("[hives-client] click hive", row);
               try {
                 localStorage.setItem("last_hive_id", row.hive_id);
                 await fetch("/api/last-hive", {

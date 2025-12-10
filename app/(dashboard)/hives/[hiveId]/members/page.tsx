@@ -1,8 +1,6 @@
 import HiveMembersClient from "@/app/(dashboard)/hives/[hiveId]/members/members-client";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { fetchHiveByKey } from "@/lib/utils/slug";
-import { getCurrentUserProfile } from "@/lib/utils/user";
-import { redirect } from "next/navigation";
 import Card from "@/components/card";
 
 export const revalidate = 0;
@@ -15,8 +13,6 @@ export default async function HiveMembersPage({
 }) {
   const { hiveId } = await params;
   const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  if (!currentUser) redirect("/");
   const hive = await fetchHiveByKey(supabase, hiveId);
 
   const { data: memberships, error: membershipError } = await supabase

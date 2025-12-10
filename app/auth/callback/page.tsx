@@ -14,7 +14,7 @@ function AuthCallbackInner() {
     console.log("[auth-callback] mounted");
     const supabase = supabaseBrowserClient;
     if (!supabase) {
-      setError("Supabase is not configured.");
+      setTimeout(() => setError("Supabase is not configured."), 0);
       console.error("[auth-callback] supabase not configured");
       return;
     }
@@ -128,17 +128,8 @@ function AuthCallbackInner() {
         console.log("[auth-callback] memberships", memberships);
         if (mErr) {
           console.error("[auth-callback] hive_members lookup failed", mErr);
-          throw mErr;
         }
-
-        if (!memberships || memberships.length === 0) {
-          router.replace("/welcome");
-          return;
-        }
-        if (memberships.length === 1) {
-          router.replace(`/hives/${memberships[0].hive_id}`);
-          return;
-        }
+        // Simplify: always take user to the hives list after auth
         router.replace("/hives");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Sign-in failed";
@@ -147,6 +138,15 @@ function AuthCallbackInner() {
     };
 
     const run = async () => {
+      try {
+        // Clear any stale last_hive_id before resolving memberships
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("last_hive_id");
+        }
+        await fetch("/api/last-hive", { method: "DELETE" }).catch(() => {});
+      } catch {
+        // ignore cleanup errors
+      }
       const didSetFromHash = await setSessionFromHash();
       if (!didSetFromHash) {
         await exchangeCode();
