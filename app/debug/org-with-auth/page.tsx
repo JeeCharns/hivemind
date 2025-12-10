@@ -10,8 +10,6 @@ export default function Page() {
         <h1>OrgSelector + AuthGuard debug</h1>
         <OrgSelector
           orgs={[{ id: "1", slug: "debug-hive", name: "Debug Hive" }]}
-          currentSlug="debug-hive"
-          onChange={(slug) => console.log("[org-with-auth] change", slug)}
         />
       </div>
     </AuthGuard>

@@ -10,8 +10,6 @@ export default function Page() {
         <h1>OrgSelector + HiveClientGuard debug</h1>
         <OrgSelector
           orgs={[{ id: "1", slug: "debug-hive", name: "Debug Hive" }]}
-          currentSlug="debug-hive"
-          onChange={(slug) => console.log("[org-with-hiveguard] change", slug)}
         />
       </div>
     </HiveClientGuard>

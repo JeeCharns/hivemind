@@ -10,8 +10,6 @@ export default function DebugOrgSelectorPage() {
       <h1>Debug OrgSelector</h1>
       <OrgSelector
         orgs={[{ id: "1", slug: "debug-hive", name: "Debug Hive" }]}
-        currentSlug="debug-hive"
-        onChange={(slug) => console.log("[debug-org-selector] change", slug)}
       />
     </div>
   );
