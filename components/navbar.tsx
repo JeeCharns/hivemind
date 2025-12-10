@@ -49,9 +49,13 @@ export default function Navbar({
       return;
     }
     if (!supabase) return;
-    supabase.auth.getSession().then(async ({ data }) => {
+    const loadOrgs = async () => {
+      const { data } = await supabase.auth.getSession();
       const userId = data.session?.user?.id;
-      if (!userId) return;
+      if (!userId) {
+        setOrgLoading(false);
+        return;
+      }
       const { data: memberships, error } = await supabase
         .from("hive_members")
         .select("hives(id, slug, name)")
@@ -76,7 +80,8 @@ export default function Navbar({
           .filter(Boolean) ?? [];
       setOrgOptions(mapped as OrgOption[]);
       setOrgLoading(false);
-    });
+    };
+    void loadOrgs();
   }, [orgs, supabase]);
 
   return (
