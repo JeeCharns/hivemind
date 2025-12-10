@@ -67,7 +67,7 @@ export default function Navbar({
       }
       const mapped =
         memberships
-          ?.map((row) => {
+          ?.map((row: { hives: { id: string; slug?: string | null; name?: string | null } | { id: string; slug?: string | null; name?: string | null }[] | null }) => {
             const hiveRel = Array.isArray(row.hives) ? row.hives[0] : row.hives;
             if (!hiveRel?.id) return null;
             const slug = hiveRel.slug ?? hiveRel.id;
