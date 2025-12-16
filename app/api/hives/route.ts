@@ -1,23 +1,79 @@
-"use server";
-
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { createHiveSchema } from "@/lib/hives/data/hiveSchemas";
 
+/**
+ * GET /api/hives
+ * List all hives where the user is a member
+ */
+export async function GET() {
+  const session = await getServerSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = await supabaseServerClient();
+
+  // Get hives where user is a member
+  const { data: memberships, error: memberError } = await supabase
+    .from("hive_members")
+    .select("hive_id")
+    .eq("user_id", session.user.id);
+
+  if (memberError) {
+    return NextResponse.json(
+      { error: memberError.message },
+      { status: 500 }
+    );
+  }
+
+  const hiveIds = memberships.map((m) => m.hive_id);
+
+  if (hiveIds.length === 0) {
+    return NextResponse.json([]);
+  }
+
+  const { data: hives, error: hiveError } = await supabase
+    .from("hives")
+    .select("*")
+    .in("id", hiveIds)
+    .order("created_at", { ascending: false });
+
+  if (hiveError) {
+    return NextResponse.json({ error: hiveError.message }, { status: 500 });
+  }
+
+  return NextResponse.json(hives);
+}
+
+/**
+ * POST /api/hives
+ * Create a new hive and add the user as admin
+ */
 export async function POST(req: NextRequest) {
-  const supabase = supabaseServerClient();
+  const session = await getServerSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => null);
-  const name = body?.name?.trim?.() ?? "";
-  const logo_url = body?.logo_url ?? null;
-  const user_id = body?.user_id ?? null;
 
-  if (!user_id) {
-    return NextResponse.json({ error: "User ID required" }, { status: 401 });
+  // Validate input
+  const validation = createHiveSchema.safeParse(body);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.issues[0]?.message || "Invalid input" },
+      { status: 400 }
+    );
   }
 
-  if (!name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
+  const { name, logo_url } = validation.data;
+  const supabase = await supabaseServerClient();
 
+  // Generate slug from name
   const slugBase = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -33,33 +89,37 @@ export async function POST(req: NextRequest) {
       .select("id")
       .eq("slug", slug)
       .maybeSingle();
+
     if (slugErr) {
       return NextResponse.json(
         { error: slugErr.message ?? "Failed to check slug" },
         { status: 500 }
       );
     }
+
     if (!existing) break;
     counter += 1;
     slug = `${slugBase}-${counter}`;
   }
 
+  // Create hive
   const { data: hive, error: hiveError } = await supabase
     .from("hives")
     .insert({ name, logo_url, slug })
-    .select("id,slug")
-    .maybeSingle();
+    .select()
+    .single();
 
-  if (hiveError || !hive?.id) {
+  if (hiveError || !hive) {
     return NextResponse.json(
       { error: hiveError?.message ?? "Failed to create hive" },
       { status: 500 }
     );
   }
 
+  // Add user as admin
   const { error: memberError } = await supabase
     .from("hive_members")
-    .upsert({ hive_id: hive.id, user_id, role: "admin" });
+    .insert({ hive_id: hive.id, user_id: session.user.id, role: "admin" });
 
   if (memberError) {
     return NextResponse.json(
@@ -68,5 +128,5 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ id: hive.id, slug: hive.slug ?? null });
+  return NextResponse.json(hive);
 }

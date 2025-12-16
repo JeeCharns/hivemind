@@ -1,16 +1,134 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { updateHiveSchema } from "@/lib/hives/data/hiveSchemas";
 
-export async function DELETE(
-  _req: Request,
+/**
+ * GET /api/hives/[hiveId]
+ * Get a single hive by ID
+ */
+export async function GET(
+  request: Request,
   { params }: { params: Promise<{ hiveId: string }> }
 ) {
-  const { hiveId } = await params;
-  if (!hiveId) {
-    return NextResponse.json({ error: "Hive ID is required" }, { status: 400 });
+  const session = await getServerSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = supabaseServerClient();
+  const { hiveId } = await params;
+  const supabase = await supabaseServerClient();
+
+  // Verify membership
+  const { data: member } = await supabase
+    .from("hive_members")
+    .select("*")
+    .eq("hive_id", hiveId)
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (!member) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Get hive
+  const { data: hive, error } = await supabase
+    .from("hives")
+    .select("*")
+    .eq("id", hiveId)
+    .single();
+
+  if (error || !hive) {
+    return NextResponse.json({ error: "Hive not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(hive);
+}
+
+/**
+ * PATCH /api/hives/[hiveId]
+ * Update a hive (admin only)
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ hiveId: string }> }
+) {
+  const session = await getServerSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { hiveId } = await params;
+  const body = await request.json().catch(() => null);
+
+  // Validate input
+  const validation = updateHiveSchema.safeParse(body);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.issues[0]?.message || "Invalid input" },
+      { status: 400 }
+    );
+  }
+
+  const supabase = await supabaseServerClient();
+
+  // Verify admin membership
+  const { data: member } = await supabase
+    .from("hive_members")
+    .select("*")
+    .eq("hive_id", hiveId)
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (!member || member.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Update hive
+  const { data: hive, error } = await supabase
+    .from("hives")
+    .update(validation.data)
+    .eq("id", hiveId)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(hive);
+}
+
+/**
+ * DELETE /api/hives/[hiveId]
+ * Delete a hive and all related data (admin only)
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ hiveId: string }> }
+) {
+  const session = await getServerSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { hiveId } = await params;
+  const supabase = await supabaseServerClient();
+
+  // Verify admin membership
+  const { data: member } = await supabase
+    .from("hive_members")
+    .select("*")
+    .eq("hive_id", hiveId)
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (!member || member.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     // Gather related conversations so we can clean dependent rows first
@@ -25,9 +143,18 @@ export async function DELETE(
 
     if (conversationIds.length) {
       // Delete dependent data in child tables
-      await supabase.from("conversation_reports").delete().in("conversation_id", conversationIds);
-      await supabase.from("conversation_themes").delete().in("conversation_id", conversationIds);
-      await supabase.from("conversation_responses").delete().in("conversation_id", conversationIds);
+      await supabase
+        .from("conversation_reports")
+        .delete()
+        .in("conversation_id", conversationIds);
+      await supabase
+        .from("conversation_themes")
+        .delete()
+        .in("conversation_id", conversationIds);
+      await supabase
+        .from("conversation_responses")
+        .delete()
+        .in("conversation_id", conversationIds);
     }
 
     // Delete conversations
@@ -37,12 +164,16 @@ export async function DELETE(
     await supabase.from("hive_members").delete().eq("hive_id", hiveId);
 
     // Finally delete the hive record
-    const { error: hiveErr } = await supabase.from("hives").delete().eq("id", hiveId);
+    const { error: hiveErr } = await supabase
+      .from("hives")
+      .delete()
+      .eq("id", hiveId);
     if (hiveErr) throw hiveErr;
 
     return NextResponse.json({ message: "Hive deleted" });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to delete hive";
+    const message =
+      err instanceof Error ? err.message : "Failed to delete hive";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

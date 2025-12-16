@@ -1,11 +1,28 @@
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAccessTokenFromCookies } from "./serverSession";
 
-const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const secretKey = process.env.SUPABASE_SECRET_KEY;
+export async function supabaseServerClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-export const supabaseServerClient = () => {
-  if (!url || !secretKey) {
-    throw new Error("Supabase server client is not configured (URL/secret key)");
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables");
   }
-  return createClient(url, secretKey);
-};
+
+  let accessToken: string | null = null;
+  try {
+    accessToken = await getSupabaseAccessTokenFromCookies();
+  } catch {
+    accessToken = null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
