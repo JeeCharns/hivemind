@@ -1,32 +1,16 @@
 @import "tailwindcss";
 
-/* Map Next Font CSS variables into Tailwind theme variables */
-@theme inline {
-  /* Make Space Grotesk the default "sans" font used by `font-sans` */
-  --font-sans: var(--font-space);
 
-  /* Create a dedicated body text utility: `font-body` */
-  --font-body: var(--font-inter);
+/* Basic global styles */
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background-color: #f7f8fb;
+  color: #0f172a;
 }
 
-/* (Optional) a convenience utility that bundles common body text styles */
-@layer utilities {
-  .body-text {
-    @apply font-body text-base leading-7;
-  }
-}
-
-@layer base {
-  body {
-    background-color: #e8eaf3;
-  }
-
-  .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
-  }
+a {
+  color: inherit;
+  text-decoration: none;
 }

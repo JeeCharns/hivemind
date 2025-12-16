@@ -1,75 +1,166 @@
-"use server";
+/**
+ * Response Likes API Route
+ *
+ * POST - Add a like to a response
+ * DELETE - Remove a like from a response
+ * Requires authentication
+ */
 
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { getCurrentUserProfile } from "@/lib/utils/user";
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ responseId: string }> }
 ) {
-  const { responseId } = await params;
-  const id = Number(responseId);
-  if (!responseId) {
-    return NextResponse.json({ error: "Invalid response id" }, { status: 400 });
+  try {
+    const { responseId } = await params;
+
+    // 1. Verify authentication
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized: Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    const supabase = await supabaseServerClient();
+
+    // 2. Verify response exists
+    const { data: response, error: responseError } = await supabase
+      .from("conversation_responses")
+      .select("id")
+      .eq("id", responseId)
+      .maybeSingle();
+
+    if (responseError || !response) {
+      return NextResponse.json(
+        { error: "Response not found" },
+        { status: 404 }
+      );
+    }
+
+    // 3. Insert like (upsert to handle duplicate likes gracefully)
+    const { error: insertError } = await supabase
+      .from("response_likes")
+      .upsert(
+        {
+          response_id: responseId,
+          user_id: session.user.id,
+        },
+        {
+          onConflict: "response_id,user_id",
+          ignoreDuplicates: true,
+        }
+      );
+
+    if (insertError) {
+      console.error("[POST like] Insert error:", insertError);
+      return NextResponse.json(
+        { error: "Failed to add like" },
+        { status: 500 }
+      );
+    }
+
+    // 4. Fetch updated like count
+    const { data: likes, error: countError } = await supabase
+      .from("response_likes")
+      .select("user_id")
+      .eq("response_id", responseId);
+
+    if (countError) {
+      console.error("[POST like] Count error:", countError);
+      return NextResponse.json(
+        { error: "Failed to fetch like count" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      liked: true,
+      like_count: likes?.length ?? 0,
+    });
+  } catch (error) {
+    console.error("[POST like] Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  const userId = currentUser?.id;
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { error } = await supabase.from("response_likes").upsert(
-    {
-      response_id: responseId,
-      user_id: userId,
-    },
-    { onConflict: "response_id,user_id" }
-  );
-
-  if (error) {
-    return NextResponse.json({ error: "Failed to like" }, { status: 500 });
-  }
-
-  const { count } = await supabase
-    .from("response_likes")
-    .select("*", { count: "exact", head: true })
-    .eq("response_id", id);
-
-  return NextResponse.json({ liked: true, like_count: count ?? 0 });
 }
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ responseId: string }> }
 ) {
-  const { responseId } = await params;
-  const id = Number(responseId);
-  if (!responseId) {
-    return NextResponse.json({ error: "Invalid response id" }, { status: 400 });
+  try {
+    const { responseId } = await params;
+
+    // 1. Verify authentication
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized: Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    const supabase = await supabaseServerClient();
+
+    // 2. Verify response exists
+    const { data: response, error: responseError } = await supabase
+      .from("conversation_responses")
+      .select("id")
+      .eq("id", responseId)
+      .maybeSingle();
+
+    if (responseError || !response) {
+      return NextResponse.json(
+        { error: "Response not found" },
+        { status: 404 }
+      );
+    }
+
+    // 3. Delete like
+    const { error: deleteError } = await supabase
+      .from("response_likes")
+      .delete()
+      .eq("response_id", responseId)
+      .eq("user_id", session.user.id);
+
+    if (deleteError) {
+      console.error("[DELETE like] Delete error:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to remove like" },
+        { status: 500 }
+      );
+    }
+
+    // 4. Fetch updated like count
+    const { data: likes, error: countError } = await supabase
+      .from("response_likes")
+      .select("user_id")
+      .eq("response_id", responseId);
+
+    if (countError) {
+      console.error("[DELETE like] Count error:", countError);
+      return NextResponse.json(
+        { error: "Failed to fetch like count" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      liked: false,
+      like_count: likes?.length ?? 0,
+    });
+  } catch (error) {
+    console.error("[DELETE like] Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  const userId = currentUser?.id;
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { error } = await supabase
-    .from("response_likes")
-    .delete()
-    .eq("response_id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    return NextResponse.json({ error: "Failed to unlike" }, { status: 500 });
-  }
-
-  const { count } = await supabase
-    .from("response_likes")
-    .select("*", { count: "exact", head: true })
-    .eq("response_id", responseId);
-
-  return NextResponse.json({ liked: false, like_count: count ?? 0 });
 }

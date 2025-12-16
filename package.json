@@ -7,28 +7,49 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "worker": "tsx scripts/analysis-worker.ts",
+    "worker:dev": "tsx watch scripts/analysis-worker.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.85.0",
+    "bson": "^6.10.4",
+    "csv-parse": "^6.1.0",
     "ml-kmeans": "^4.2.1",
+    "mongodb": "^7.0.0",
     "next": "^16.0.8",
     "openai": "^6.9.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "umap-js": "^1.4.0"
+    "umap-js": "^1.4.0",
+    "winston": "^3.19.0",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "babel-jest": "^30.2.0",
     "baseline-browser-mapping": "^2.9.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "tailwindcss": "^4",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

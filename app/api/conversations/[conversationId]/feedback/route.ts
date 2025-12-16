@@ -1,96 +1,150 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { getCurrentUserProfile } from "@/lib/utils/user";
+/**
+ * Conversation Feedback API Route
+ *
+ * POST - Submit feedback vote on a response
+ * Requires authentication and hive membership
+ */
 
-type ConversationRow = {
-  id: string;
-  hive_id: string;
-  type: string;
-  phase: string;
-};
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
+import type { Feedback } from "@/types/conversation-understand";
+
+const VALID_FEEDBACK: Feedback[] = ["agree", "pass", "disagree"];
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ conversationId: string }> },
+  req: NextRequest,
+  { params }: { params: Promise<{ conversationId: string }> }
 ) {
-  const { conversationId } = await params;
-  const supabase = supabaseServerClient();
-  const currentUser = await getCurrentUserProfile(supabase);
-  const userId = currentUser?.id;
+  try {
+    const { conversationId } = await params;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    // 1. Verify authentication
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized: Not authenticated" },
+        { status: 401 }
+      );
+    }
 
-  const { data: convo, error: convoError } = await supabase
-    .from("conversations")
-    .select("id,hive_id,type,phase")
-    .eq("id", conversationId)
-    .maybeSingle<ConversationRow>();
+    const supabase = await supabaseServerClient();
 
-  if (convoError || !convo) {
-    return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
-  }
+    // 2. Get conversation to verify hive membership
+    const { data: conversation, error: convError } = await supabase
+      .from("conversations")
+      .select("hive_id")
+      .eq("id", conversationId)
+      .maybeSingle();
 
-  if (convo.type !== "understand") {
+    if (convError || !conversation) {
+      return NextResponse.json(
+        { error: "Conversation not found" },
+        { status: 404 }
+      );
+    }
+
+    // 3. Verify membership
+    try {
+      await requireHiveMember(supabase, session.user.id, conversation.hive_id);
+    } catch (err) {
+      return NextResponse.json(
+        { error: "Unauthorized: Not a member of this hive" },
+        { status: 403 }
+      );
+    }
+
+    // 4. Validate input
+    const body = await req.json();
+    const { responseId, feedback } = body;
+
+    if (!responseId || typeof responseId !== "string") {
+      return NextResponse.json(
+        { error: "Response ID is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!feedback || !VALID_FEEDBACK.includes(feedback as Feedback)) {
+      return NextResponse.json(
+        { error: "Invalid feedback value" },
+        { status: 400 }
+      );
+    }
+
+    // 5. Verify response exists and belongs to this conversation
+    const { data: response, error: responseError } = await supabase
+      .from("conversation_responses")
+      .select("id")
+      .eq("id", responseId)
+      .eq("conversation_id", conversationId)
+      .maybeSingle();
+
+    if (responseError || !response) {
+      return NextResponse.json(
+        { error: "Response not found" },
+        { status: 404 }
+      );
+    }
+
+    // 6. Upsert feedback (handles both insert and update)
+    const { error: upsertError } = await supabase
+      .from("response_feedback")
+      .upsert(
+        {
+          conversation_id: conversationId,
+          response_id: responseId,
+          user_id: session.user.id,
+          feedback: feedback as Feedback,
+        },
+        {
+          onConflict: "conversation_id,response_id,user_id",
+        }
+      );
+
+    if (upsertError) {
+      console.error("[POST feedback] Upsert error:", upsertError);
+      return NextResponse.json(
+        { error: "Failed to submit feedback" },
+        { status: 500 }
+      );
+    }
+
+    // 7. Fetch updated counts for this response
+    const { data: feedbackRows, error: countError } = await supabase
+      .from("response_feedback")
+      .select("feedback")
+      .eq("response_id", responseId);
+
+    if (countError) {
+      console.error("[POST feedback] Count error:", countError);
+      return NextResponse.json(
+        { error: "Failed to fetch feedback counts" },
+        { status: 500 }
+      );
+    }
+
+    // Aggregate counts
+    const counts = {
+      agree: 0,
+      pass: 0,
+      disagree: 0,
+    };
+
+    feedbackRows?.forEach((row) => {
+      const fb = row.feedback as Feedback;
+      if (fb === "agree" || fb === "pass" || fb === "disagree") {
+        counts[fb]++;
+      }
+    });
+
+    return NextResponse.json({ counts });
+  } catch (error) {
+    console.error("[POST feedback] Error:", error);
     return NextResponse.json(
-      { error: "Feedback only for understand conversations" },
-      { status: 400 },
+      { error: "Internal server error" },
+      { status: 500 }
     );
   }
-
-  if (convo.phase === "listen_open" || convo.phase === "understand_open") {
-    return NextResponse.json(
-      { error: "Respond phase not open" },
-      { status: 409 },
-    );
-  }
-
-  const body = await request.json().catch(() => null);
-  const responseId = body?.responseId as number | undefined;
-  const feedback = body?.feedback as "agree" | "pass" | "disagree" | undefined;
-
-  if (!responseId || !feedback) {
-    return NextResponse.json(
-      { error: "responseId and feedback are required" },
-      { status: 400 },
-    );
-  }
-
-  const { error: upsertError } = await supabase.from("response_feedback").upsert(
-    {
-      conversation_id: conversationId,
-      response_id: responseId,
-      user_id: userId,
-      feedback,
-    },
-    {
-      onConflict: "conversation_id,response_id,user_id",
-    },
-  );
-
-  if (upsertError) {
-    return NextResponse.json(
-      { error: "Failed to save feedback" },
-      { status: 500 },
-    );
-  }
-
-  const { data: counts } = await supabase
-    .from("response_feedback")
-    .select("feedback")
-    .eq("conversation_id", conversationId)
-    .eq("response_id", responseId);
-
-  const aggregate: Record<"agree" | "pass" | "disagree", number> = {
-    agree: 0,
-    pass: 0,
-    disagree: 0,
-  };
-  counts?.forEach((c) => {
-    const fb = (c as { feedback: "agree" | "pass" | "disagree" }).feedback;
-    aggregate[fb] = (aggregate[fb] ?? 0) + 1;
-  });
-
-  return NextResponse.json({ counts: aggregate });
 }
