@@ -325,7 +325,7 @@ The middleware makes auth decisions based on **validated** Supabase JWTs, not ju
 
 - Validation lives in `lib/auth/server/sessionValidation.ts`
 - Middleware routing decisions live in `lib/auth/server/middleware.ts`
-- Next.js entrypoint is `middleware.ts`
+- Next.js entrypoint is `proxy.ts` (do not add `middleware.ts`; having both causes a startup error)
 
 Validation is conservative:
 

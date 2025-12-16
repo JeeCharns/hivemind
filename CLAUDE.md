@@ -98,6 +98,7 @@ Before finishing, ensure the right gates were run:
 - Observability: log with consistent prefixes (`[route]` / `[service]`), never log secrets/tokens/cookies.
 - UI baseline: semantic elements, input labels, keyboard support for menus/modals; avoid `alert()` for production UX.
 - Routing hygiene: avoid duplicate route trees unless intentional; document canonical paths in `docs/ARCHITECTURE.md`.
+- Middleware/proxy: Next.js uses `proxy.ts` in this repo; do not create `middleware.ts` (having both triggers a runtime error and the app won’t start).
 - CI note: GitHub Actions runs `lint-staged` on PR diffs for fast, consistent formatting/lint checks (`.github/workflows/quality.yml`).
 - Node version: keep local Node aligned with CI (see `.nvmrc`).
 
