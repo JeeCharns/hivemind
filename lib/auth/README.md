@@ -316,9 +316,28 @@ notifySessionChange();
 
 ### Infinite redirect loop
 
-- Ensure login page NOT in `PROTECTED_PREFIXES`
-- Check `redirectTo` doesn't redirect to itself
-- Validate return URL logic
+- This repo uses local token validation in middleware to avoid middleware/server disagreements (expired cookie loops).
+- If you see loops, verify middleware validation is being used and that the route classification (guest vs protected) is correct.
+
+#### Middleware token validation (prevents auth redirect loops)
+
+The middleware makes auth decisions based on **validated** Supabase JWTs, not just the presence of cookies.
+
+- Validation lives in `lib/auth/server/sessionValidation.ts`
+- Middleware routing decisions live in `lib/auth/server/middleware.ts`
+- Next.js entrypoint is `middleware.ts`
+
+Validation is conservative:
+
+- token must be a JWT with `sub` and `exp`
+- token must not be expired (small clock-skew buffer)
+- anything uncertain is treated as unauthenticated
+
+Debug middleware decisions with:
+
+```bash
+DEBUG_AUTH_MW=true
+```
 
 ### Cross-tab sync not working
 
@@ -424,4 +443,4 @@ MIT
 
 ## Support
 
-See [SESSION_MANAGEMENT_REFACTOR.md](../../../docs/SESSION_MANAGEMENT_REFACTOR.md) for complete documentation.
+Start at `docs/README.md` and `docs/feature-map.md` for repo-level navigation.

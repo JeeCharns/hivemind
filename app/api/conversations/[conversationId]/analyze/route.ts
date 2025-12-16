@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireAuth } from "@/lib/auth/server/requireAuth";
 import { enqueueConversationAnalysis } from "@/lib/conversations/server/enqueueConversationAnalysis";
+import { jsonError } from "@/lib/api/errors";
 
 export async function POST(
   request: NextRequest,
@@ -24,13 +25,7 @@ export async function POST(
     const { conversationId } = await params;
 
     if (!conversationId) {
-      return NextResponse.json(
-        {
-          error: "Conversation ID is required",
-          code: "VALIDATION_ERROR",
-        },
-        { status: 400 }
-      );
+      return jsonError("Conversation ID is required", 400, "VALIDATION_ERROR");
     }
 
     // Get Supabase client
@@ -66,12 +61,14 @@ export async function POST(
       statusCode = 403;
     }
 
-    return NextResponse.json(
-      {
-        error: errorMessage,
-        code: statusCode === 404 ? "NOT_FOUND" : statusCode === 403 ? "UNAUTHORIZED" : "INTERNAL_ERROR",
-      },
-      { status: statusCode }
+    return jsonError(
+      errorMessage,
+      statusCode,
+      statusCode === 404
+        ? "NOT_FOUND"
+        : statusCode === 403
+          ? "UNAUTHORIZED"
+          : "INTERNAL_ERROR"
     );
   }
 }

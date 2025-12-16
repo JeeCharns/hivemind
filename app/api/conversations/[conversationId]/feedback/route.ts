@@ -10,6 +10,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import type { Feedback } from "@/types/conversation-understand";
+import { jsonError } from "@/lib/api/errors";
 
 const VALID_FEEDBACK: Feedback[] = ["agree", "pass", "disagree"];
 
@@ -23,10 +24,7 @@ export async function POST(
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not authenticated" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized: Not authenticated", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -39,20 +37,14 @@ export async function POST(
       .maybeSingle();
 
     if (convError || !conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
-      );
+      return jsonError("Conversation not found", 404);
     }
 
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (err) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not a member of this hive" },
-        { status: 403 }
-      );
+    } catch (_err) {
+      return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
     // 4. Validate input
@@ -60,17 +52,11 @@ export async function POST(
     const { responseId, feedback } = body;
 
     if (!responseId || typeof responseId !== "string") {
-      return NextResponse.json(
-        { error: "Response ID is required" },
-        { status: 400 }
-      );
+      return jsonError("Response ID is required", 400);
     }
 
     if (!feedback || !VALID_FEEDBACK.includes(feedback as Feedback)) {
-      return NextResponse.json(
-        { error: "Invalid feedback value" },
-        { status: 400 }
-      );
+      return jsonError("Invalid feedback value", 400);
     }
 
     // 5. Verify response exists and belongs to this conversation
@@ -82,10 +68,7 @@ export async function POST(
       .maybeSingle();
 
     if (responseError || !response) {
-      return NextResponse.json(
-        { error: "Response not found" },
-        { status: 404 }
-      );
+      return jsonError("Response not found", 404);
     }
 
     // 6. Upsert feedback (handles both insert and update)
@@ -105,10 +88,7 @@ export async function POST(
 
     if (upsertError) {
       console.error("[POST feedback] Upsert error:", upsertError);
-      return NextResponse.json(
-        { error: "Failed to submit feedback" },
-        { status: 500 }
-      );
+      return jsonError("Failed to submit feedback", 500);
     }
 
     // 7. Fetch updated counts for this response
@@ -119,10 +99,7 @@ export async function POST(
 
     if (countError) {
       console.error("[POST feedback] Count error:", countError);
-      return NextResponse.json(
-        { error: "Failed to fetch feedback counts" },
-        { status: 500 }
-      );
+      return jsonError("Failed to fetch feedback counts", 500);
     }
 
     // Aggregate counts
@@ -142,9 +119,6 @@ export async function POST(
     return NextResponse.json({ counts });
   } catch (error) {
     console.error("[POST feedback] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return jsonError("Internal server error", 500);
   }
 }

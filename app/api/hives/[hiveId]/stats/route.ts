@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { jsonError } from "@/lib/api/errors";
 
 /**
  * GET /api/hives/[hiveId]/stats
@@ -13,7 +14,7 @@ export async function GET(
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const { hiveId } = await params;
@@ -28,7 +29,7 @@ export async function GET(
     .maybeSingle();
 
   if (!member) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("Forbidden", 403);
   }
 
   // Get stats in parallel

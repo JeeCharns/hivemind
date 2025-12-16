@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
+import { jsonError } from "@/lib/api/errors";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { createHiveSchema } from "@/lib/hives/data/hiveSchemas";
 
@@ -11,7 +12,7 @@ export async function GET() {
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const supabase = await supabaseServerClient();
@@ -23,10 +24,7 @@ export async function GET() {
     .eq("user_id", session.user.id);
 
   if (memberError) {
-    return NextResponse.json(
-      { error: memberError.message },
-      { status: 500 }
-    );
+    return jsonError(memberError.message, 500);
   }
 
   const hiveIds = memberships.map((m) => m.hive_id);
@@ -42,7 +40,7 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (hiveError) {
-    return NextResponse.json({ error: hiveError.message }, { status: 500 });
+    return jsonError(hiveError.message, 500);
   }
 
   return NextResponse.json(hives);
@@ -56,7 +54,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const body = await req.json().catch(() => null);
@@ -64,9 +62,9 @@ export async function POST(req: NextRequest) {
   // Validate input
   const validation = createHiveSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: validation.error.issues[0]?.message || "Invalid input" },
-      { status: 400 }
+    return jsonError(
+      validation.error.issues[0]?.message || "Invalid input",
+      400
     );
   }
 
@@ -91,10 +89,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (slugErr) {
-      return NextResponse.json(
-        { error: slugErr.message ?? "Failed to check slug" },
-        { status: 500 }
-      );
+      return jsonError(slugErr.message ?? "Failed to check slug", 500);
     }
 
     if (!existing) break;
@@ -110,10 +105,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (hiveError || !hive) {
-    return NextResponse.json(
-      { error: hiveError?.message ?? "Failed to create hive" },
-      { status: 500 }
-    );
+    return jsonError(hiveError?.message ?? "Failed to create hive", 500);
   }
 
   // Add user as admin
@@ -122,10 +114,7 @@ export async function POST(req: NextRequest) {
     .insert({ hive_id: hive.id, user_id: session.user.id, role: "admin" });
 
   if (memberError) {
-    return NextResponse.json(
-      { error: "Hive created but failed to add member" },
-      { status: 500 }
-    );
+    return jsonError("Hive created but failed to add member", 500);
   }
 
   return NextResponse.json(hive);

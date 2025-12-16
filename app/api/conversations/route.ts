@@ -10,6 +10,7 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireAuth } from "@/lib/auth/server/requireAuth";
 import { createConversationSchema } from "@/lib/conversations/schemas";
 import { createConversation } from "@/lib/conversations/server/createConversation";
+import { jsonError } from "@/lib/api/errors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,13 +23,7 @@ export async function POST(request: NextRequest) {
     const parseResult = createConversationSchema.safeParse(body);
 
     if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid request body",
-          code: "VALIDATION_ERROR",
-        },
-        { status: 400 }
-      );
+      return jsonError("Invalid request body", 400, "VALIDATION_ERROR");
     }
 
     const input = parseResult.data;
@@ -46,12 +41,10 @@ export async function POST(request: NextRequest) {
     const message = err instanceof Error ? err.message : "Internal server error";
     const isUnauthorized = message.includes("Unauthorized");
 
-    return NextResponse.json(
-      {
-        error: isUnauthorized ? "Unauthorized" : "Failed to create conversation",
-        code: isUnauthorized ? "UNAUTHORIZED" : "INTERNAL_ERROR",
-      },
-      { status: isUnauthorized ? 403 : 500 }
+    return jsonError(
+      isUnauthorized ? "Unauthorized" : "Failed to create conversation",
+      isUnauthorized ? 403 : 500,
+      isUnauthorized ? "UNAUTHORIZED" : "INTERNAL_ERROR"
     );
   }
 }

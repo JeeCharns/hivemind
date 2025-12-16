@@ -3,6 +3,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { inviteEmailsSchema } from "@/lib/hives/data/hiveSchemas";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
+import { jsonError } from "@/lib/api/errors";
 
 /**
  * POST /api/hives/[hiveId]/invite
@@ -15,7 +16,7 @@ export async function POST(
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const { hiveId: hiveKey } = await params;
@@ -24,9 +25,9 @@ export async function POST(
   // Validate input
   const validation = inviteEmailsSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: validation.error.issues[0]?.message || "Invalid input" },
-      { status: 400 }
+    return jsonError(
+      validation.error.issues[0]?.message || "Invalid input",
+      400
     );
   }
 
@@ -35,7 +36,7 @@ export async function POST(
 
   const hiveId = await resolveHiveId(supabase, hiveKey);
   if (!hiveId) {
-    return NextResponse.json({ error: "Hive not found" }, { status: 404 });
+    return jsonError("Hive not found", 404);
   }
 
   // Verify admin membership
@@ -47,7 +48,7 @@ export async function POST(
     .maybeSingle();
 
   if (!member || member.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("Forbidden", 403);
   }
 
   // Create invite records
@@ -60,7 +61,7 @@ export async function POST(
   const { error } = await supabase.from("hive_invites").insert(inviteRecords);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return jsonError(error.message, 500);
   }
 
   // TODO: Send email invitations in production

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
+import { jsonError } from "@/lib/api/errors";
 
 /**
  * GET /api/hives/[hiveId]/invites
@@ -15,7 +16,7 @@ export async function GET(
     const session = await getServerSession();
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonError("Unauthorized", 401);
     }
 
     const { hiveId: hiveKey } = await params;
@@ -23,7 +24,7 @@ export async function GET(
 
     const hiveId = await resolveHiveId(supabase, hiveKey);
     if (!hiveId) {
-      return NextResponse.json({ error: "Hive not found" }, { status: 404 });
+      return jsonError("Hive not found", 404);
     }
 
     // Verify admin membership
@@ -35,7 +36,7 @@ export async function GET(
       .maybeSingle();
 
     if (!member || member.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return jsonError("Forbidden", 403);
     }
 
     // Get invites
@@ -47,15 +48,15 @@ export async function GET(
 
     if (error) {
       console.error("[GET /api/hives/[hiveId]/invites] Error fetching invites:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return jsonError(error.message, 500);
     }
 
     return NextResponse.json(invites || []);
   } catch (error) {
     console.error("[GET /api/hives/[hiveId]/invites] Unexpected error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+    return jsonError(
+      error instanceof Error ? error.message : "Internal server error",
+      500
     );
   }
 }

@@ -11,6 +11,7 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveAdmin } from "@/lib/conversations/server/requireHiveAdmin";
 import { canOpenReport } from "@/lib/conversations/domain/reportRules";
 import { MIN_RESPONSES_FOR_REPORT } from "@/lib/conversations/domain/reportRules";
+import { jsonError } from "@/lib/api/errors";
 
 export async function POST(
   _req: NextRequest,
@@ -22,10 +23,7 @@ export async function POST(
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not authenticated" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized: Not authenticated", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -38,37 +36,29 @@ export async function POST(
       .maybeSingle();
 
     if (convError || !conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
-      );
+      return jsonError("Conversation not found", 404);
     }
 
     // 3. Verify admin membership
     try {
       await requireHiveAdmin(supabase, session.user.id, conversation.hive_id);
-    } catch (err) {
-      return NextResponse.json(
-        { error: "Unauthorized: Admin access required" },
-        { status: 403 }
-      );
+    } catch (_err) {
+      return jsonError("Unauthorized: Admin access required", 403);
     }
 
     // 4. Validate conversation type
     if (conversation.type !== "understand") {
-      return NextResponse.json(
-        { error: "Reports can only be generated for 'understand' conversations" },
-        { status: 409 }
+      return jsonError(
+        "Reports can only be generated for 'understand' conversations",
+        409
       );
     }
 
     // 5. Validate analysis status
     if (conversation.analysis_status !== "ready") {
-      return NextResponse.json(
-        {
-          error: `Analysis must be ready before generating report (current: ${conversation.analysis_status})`,
-        },
-        { status: 409 }
+      return jsonError(
+        `Analysis must be ready before generating report (current: ${conversation.analysis_status})`,
+        409
       );
     }
 
@@ -79,17 +69,14 @@ export async function POST(
       .eq("conversation_id", conversationId);
 
     if (countError) {
-      return NextResponse.json(
-        { error: "Failed to count responses" },
-        { status: 500 }
-      );
+      return jsonError("Failed to count responses", 500);
     }
 
     const gate = canOpenReport(conversation.phase, responseCount || 0);
     if (!gate.allowed) {
-      return NextResponse.json(
-        { error: gate.reason || `Need at least ${MIN_RESPONSES_FOR_REPORT} responses` },
-        { status: 409 }
+      return jsonError(
+        gate.reason || `Need at least ${MIN_RESPONSES_FOR_REPORT} responses`,
+        409
       );
     }
 
@@ -115,10 +102,7 @@ export async function POST(
     ]);
 
     if (themesResult.error || responsesResult.error || feedbackResult.error) {
-      return NextResponse.json(
-        { error: "Failed to fetch conversation data" },
-        { status: 500 }
-      );
+      return jsonError("Failed to fetch conversation data", 500);
     }
 
     const themes = themesResult.data || [];
@@ -185,10 +169,7 @@ Format the output as clean HTML with proper headings, paragraphs, and lists. Use
     // 10. Call OpenAI (using environment variable for API key)
     const openaiApiKey = process.env.OPENAI_API_KEY;
     if (!openaiApiKey) {
-      return NextResponse.json(
-        { error: "OpenAI API key not configured" },
-        { status: 500 }
-      );
+      return jsonError("OpenAI API key not configured", 500);
     }
 
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -216,20 +197,14 @@ Format the output as clean HTML with proper headings, paragraphs, and lists. Use
 
     if (!openaiResponse.ok) {
       console.error("[POST report] OpenAI error:", await openaiResponse.text());
-      return NextResponse.json(
-        { error: "Failed to generate report with AI" },
-        { status: 500 }
-      );
+      return jsonError("Failed to generate report with AI", 500);
     }
 
     const openaiData = await openaiResponse.json();
     const reportHtml = openaiData.choices?.[0]?.message?.content || "";
 
     if (!reportHtml) {
-      return NextResponse.json(
-        { error: "AI generated empty report" },
-        { status: 500 }
-      );
+      return jsonError("AI generated empty report", 500);
     }
 
     // 11. Determine next version number
@@ -257,10 +232,7 @@ Format the output as clean HTML with proper headings, paragraphs, and lists. Use
 
     if (insertError || !newReport) {
       console.error("[POST report] Insert error:", insertError);
-      return NextResponse.json(
-        { error: "Failed to save report" },
-        { status: 500 }
-      );
+      return jsonError("Failed to save report", 500);
     }
 
     // 13. Update conversation.report_json with latest HTML

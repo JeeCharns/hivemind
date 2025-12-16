@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveAdmin } from "@/lib/conversations/server/requireHiveAdmin";
+import { jsonError } from "@/lib/api/errors";
 
 export async function DELETE(
   _req: NextRequest,
@@ -20,10 +21,7 @@ export async function DELETE(
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not authenticated" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized: Not authenticated", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -36,20 +34,14 @@ export async function DELETE(
       .maybeSingle();
 
     if (fetchError || !conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
-      );
+      return jsonError("Conversation not found", 404);
     }
 
     // 3. Verify admin access
     try {
       await requireHiveAdmin(supabase, session.user.id, conversation.hive_id);
-    } catch (err) {
-      return NextResponse.json(
-        { error: "Unauthorized: Admin access required" },
-        { status: 403 }
-      );
+    } catch (_err) {
+      return jsonError("Unauthorized: Admin access required", 403);
     }
 
     // 4. Delete related data first (cascade)
@@ -87,10 +79,7 @@ export async function DELETE(
 
       if (error) {
         console.error(`[DELETE conversation] Failed to delete ${t.table}:`, error);
-        return NextResponse.json(
-          { error: `Failed to delete ${t.table}` },
-          { status: 500 }
-        );
+        return jsonError(`Failed to delete ${t.table}`, 500);
       }
     }
 
@@ -102,18 +91,12 @@ export async function DELETE(
 
     if (convoError) {
       console.error("[DELETE conversation] Failed to delete conversation:", convoError);
-      return NextResponse.json(
-        { error: "Failed to delete conversation" },
-        { status: 500 }
-      );
+      return jsonError("Failed to delete conversation", 500);
     }
 
     return NextResponse.json({ message: "Deleted" });
   } catch (error) {
     console.error("[DELETE conversation] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return jsonError("Internal server error", 500);
   }
 }

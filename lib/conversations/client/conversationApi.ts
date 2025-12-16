@@ -7,11 +7,11 @@
  */
 
 import type {
-  CreateConversationInput,
+  CreateConversationRequest,
   CreateConversationResponse,
-  UploadCsvResponse,
-  TriggerAnalysisResponse,
-} from "../schemas";
+  TriggerConversationAnalysisResponse,
+  UploadConversationCsvResponse,
+} from "@/types/conversations-api";
 
 /**
  * API Error class for typed error handling
@@ -35,7 +35,7 @@ export class ConversationApiError extends Error {
  * @throws ConversationApiError on failure
  */
 export async function createConversation(
-  input: CreateConversationInput
+  input: CreateConversationRequest
 ): Promise<CreateConversationResponse> {
   const response = await fetch("/api/conversations", {
     method: "POST",
@@ -66,7 +66,7 @@ export async function createConversation(
 export async function uploadConversationCsv(
   conversationId: string,
   file: File
-): Promise<UploadCsvResponse> {
+): Promise<UploadConversationCsvResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
@@ -99,7 +99,7 @@ export async function uploadConversationCsv(
  */
 export async function startConversationAnalysis(
   conversationId: string
-): Promise<TriggerAnalysisResponse> {
+): Promise<TriggerConversationAnalysisResponse> {
   const response = await fetch(
     `/api/conversations/${conversationId}/analyze`,
     {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { updateHiveSchema } from "@/lib/hives/data/hiveSchemas";
+import { jsonError } from "@/lib/api/errors";
 
 /**
  * GET /api/hives/[hiveId]
@@ -14,7 +15,7 @@ export async function GET(
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const { hiveId } = await params;
@@ -29,7 +30,7 @@ export async function GET(
     .maybeSingle();
 
   if (!member) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("Forbidden", 403);
   }
 
   // Get hive
@@ -40,7 +41,7 @@ export async function GET(
     .single();
 
   if (error || !hive) {
-    return NextResponse.json({ error: "Hive not found" }, { status: 404 });
+    return jsonError("Hive not found", 404);
   }
 
   return NextResponse.json(hive);
@@ -57,7 +58,7 @@ export async function PATCH(
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const { hiveId } = await params;
@@ -66,9 +67,9 @@ export async function PATCH(
   // Validate input
   const validation = updateHiveSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: validation.error.issues[0]?.message || "Invalid input" },
-      { status: 400 }
+    return jsonError(
+      validation.error.issues[0]?.message || "Invalid input",
+      400
     );
   }
 
@@ -83,7 +84,7 @@ export async function PATCH(
     .maybeSingle();
 
   if (!member || member.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("Forbidden", 403);
   }
 
   // Update hive
@@ -95,7 +96,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return jsonError(error.message, 500);
   }
 
   return NextResponse.json(hive);
@@ -112,7 +113,7 @@ export async function DELETE(
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const { hiveId } = await params;
@@ -127,7 +128,7 @@ export async function DELETE(
     .maybeSingle();
 
   if (!member || member.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("Forbidden", 403);
   }
 
   try {
@@ -174,6 +175,6 @@ export async function DELETE(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to delete hive";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return jsonError(message, 500);
   }
 }

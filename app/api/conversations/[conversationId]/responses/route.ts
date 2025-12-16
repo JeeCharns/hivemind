@@ -11,6 +11,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { LISTEN_TAGS } from "@/lib/conversations/domain/tags";
+import { jsonError } from "@/lib/api/errors";
 
 const MAX_RESPONSE_LENGTH = 500;
 
@@ -24,10 +25,7 @@ export async function GET(
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not authenticated" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized: Not authenticated", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -40,20 +38,14 @@ export async function GET(
       .maybeSingle();
 
     if (convError || !conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
-      );
+      return jsonError("Conversation not found", 404);
     }
 
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (err) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not a member of this hive" },
-        { status: 403 }
-      );
+    } catch (_err) {
+      return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
     // 4. Fetch responses with profile data and is_anonymous flag
@@ -65,10 +57,7 @@ export async function GET(
 
     if (error) {
       console.error("[GET responses] Query error:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch responses" },
-        { status: 500 }
-      );
+      return jsonError("Failed to fetch responses", 500);
     }
 
     // 5. Fetch like counts and user's likes
@@ -93,29 +82,36 @@ export async function GET(
 
     // 6. Normalize response format, masking identity for anonymous responses
     const normalized =
-      responses?.map((r: any) => {
-        const isAnonymous = r.is_anonymous ?? false;
+      responses?.map((r: unknown) => {
+        const row = r as {
+          id: string;
+          response_text: string;
+          tag: string | null;
+          created_at: string;
+          is_anonymous?: boolean | null;
+          profiles?: { display_name?: string | null; avatar_path?: string | null } | null;
+        };
+        const isAnonymous = row.is_anonymous ?? false;
         return {
-          id: r.id,
-          text: r.response_text,
-          tag: r.tag,
-          createdAt: r.created_at,
+          id: row.id,
+          text: row.response_text,
+          tag: row.tag,
+          createdAt: row.created_at,
           user: {
-            name: isAnonymous ? "Anonymous" : (r.profiles?.display_name || "Member"),
-            avatarUrl: isAnonymous ? null : (r.profiles?.avatar_path || null),
+            name: isAnonymous
+              ? "Anonymous"
+              : (row.profiles?.display_name || "Member"),
+            avatarUrl: isAnonymous ? null : (row.profiles?.avatar_path || null),
           },
-          likeCount: likeCounts.get(r.id) ?? 0,
-          likedByMe: userLikes.has(r.id),
+          likeCount: likeCounts.get(row.id) ?? 0,
+          likedByMe: userLikes.has(row.id),
         };
       }) ?? [];
 
     return NextResponse.json({ responses: normalized });
   } catch (error) {
     console.error("[GET responses] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return jsonError("Internal server error", 500);
   }
 }
 
@@ -129,10 +125,7 @@ export async function POST(
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not authenticated" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized: Not authenticated", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -145,20 +138,14 @@ export async function POST(
       .maybeSingle();
 
     if (convError || !conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
-      );
+      return jsonError("Conversation not found", 404);
     }
 
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (err) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not a member of this hive" },
-        { status: 403 }
-      );
+    } catch (_err) {
+      return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
     // 4. Validate input
@@ -166,24 +153,18 @@ export async function POST(
     const { text, tag, anonymous } = body;
 
     if (!text || typeof text !== "string") {
-      return NextResponse.json(
-        { error: "Text is required" },
-        { status: 400 }
-      );
+      return jsonError("Text is required", 400);
     }
 
     if (text.length > MAX_RESPONSE_LENGTH) {
-      return NextResponse.json(
-        { error: `Text must be ${MAX_RESPONSE_LENGTH} characters or less` },
-        { status: 400 }
+      return jsonError(
+        `Text must be ${MAX_RESPONSE_LENGTH} characters or less`,
+        400
       );
     }
 
     if (tag && !LISTEN_TAGS.includes(tag)) {
-      return NextResponse.json(
-        { error: "Invalid tag" },
-        { status: 400 }
-      );
+      return jsonError("Invalid tag", 400);
     }
 
     // 5. Insert response
@@ -201,14 +182,14 @@ export async function POST(
 
     if (error || !data) {
       console.error("[POST response] Insert error:", error);
-      return NextResponse.json(
-        { error: "Failed to create response" },
-        { status: 500 }
-      );
+      return jsonError("Failed to create response", 500);
     }
 
     // 6. Format response using persisted is_anonymous value
-    const profile: any = data.profiles;
+    const profile = data.profiles as
+      | { display_name?: string | null; avatar_path?: string | null }
+      | null
+      | undefined;
     const isAnonymous = data.is_anonymous ?? false;
     const response = {
       id: data.id,
@@ -226,9 +207,6 @@ export async function POST(
     return NextResponse.json({ response });
   } catch (error) {
     console.error("[POST response] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return jsonError("Internal server error", 500);
   }
 }

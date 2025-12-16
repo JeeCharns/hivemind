@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
+import { jsonError } from "@/lib/api/errors";
 
 /**
  * DELETE /api/hives/[hiveId]/invites/[inviteId]
@@ -14,7 +15,7 @@ export async function DELETE(
   const session = await getServerSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
   const { hiveId: hiveKey, inviteId } = await params;
@@ -22,7 +23,7 @@ export async function DELETE(
 
   const hiveId = await resolveHiveId(supabase, hiveKey);
   if (!hiveId) {
-    return NextResponse.json({ error: "Hive not found" }, { status: 404 });
+    return jsonError("Hive not found", 404);
   }
 
   // Verify admin membership
@@ -34,7 +35,7 @@ export async function DELETE(
     .maybeSingle();
 
   if (!member || member.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("Forbidden", 403);
   }
 
   // Delete invite
@@ -45,7 +46,7 @@ export async function DELETE(
     .eq("hive_id", hiveId); // Ensure invite belongs to this hive
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return jsonError(error.message, 500);
   }
 
   return NextResponse.json({ message: "Invite revoked" });

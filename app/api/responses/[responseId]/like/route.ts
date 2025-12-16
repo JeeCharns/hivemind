@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { jsonError } from "@/lib/api/errors";
 
 export async function POST(
   _req: NextRequest,
@@ -20,10 +21,7 @@ export async function POST(
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not authenticated" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized: Not authenticated", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -36,10 +34,7 @@ export async function POST(
       .maybeSingle();
 
     if (responseError || !response) {
-      return NextResponse.json(
-        { error: "Response not found" },
-        { status: 404 }
-      );
+      return jsonError("Response not found", 404);
     }
 
     // 3. Insert like (upsert to handle duplicate likes gracefully)
@@ -58,10 +53,7 @@ export async function POST(
 
     if (insertError) {
       console.error("[POST like] Insert error:", insertError);
-      return NextResponse.json(
-        { error: "Failed to add like" },
-        { status: 500 }
-      );
+      return jsonError("Failed to add like", 500);
     }
 
     // 4. Fetch updated like count
@@ -72,10 +64,7 @@ export async function POST(
 
     if (countError) {
       console.error("[POST like] Count error:", countError);
-      return NextResponse.json(
-        { error: "Failed to fetch like count" },
-        { status: 500 }
-      );
+      return jsonError("Failed to fetch like count", 500);
     }
 
     return NextResponse.json({
@@ -84,10 +73,7 @@ export async function POST(
     });
   } catch (error) {
     console.error("[POST like] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return jsonError("Internal server error", 500);
   }
 }
 
@@ -101,10 +87,7 @@ export async function DELETE(
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Not authenticated" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized: Not authenticated", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -117,10 +100,7 @@ export async function DELETE(
       .maybeSingle();
 
     if (responseError || !response) {
-      return NextResponse.json(
-        { error: "Response not found" },
-        { status: 404 }
-      );
+      return jsonError("Response not found", 404);
     }
 
     // 3. Delete like
@@ -132,10 +112,7 @@ export async function DELETE(
 
     if (deleteError) {
       console.error("[DELETE like] Delete error:", deleteError);
-      return NextResponse.json(
-        { error: "Failed to remove like" },
-        { status: 500 }
-      );
+      return jsonError("Failed to remove like", 500);
     }
 
     // 4. Fetch updated like count
@@ -146,10 +123,7 @@ export async function DELETE(
 
     if (countError) {
       console.error("[DELETE like] Count error:", countError);
-      return NextResponse.json(
-        { error: "Failed to fetch like count" },
-        { status: 500 }
-      );
+      return jsonError("Failed to fetch like count", 500);
     }
 
     return NextResponse.json({
@@ -158,9 +132,6 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("[DELETE like] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return jsonError("Internal server error", 500);
   }
 }

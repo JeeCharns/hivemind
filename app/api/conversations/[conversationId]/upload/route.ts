@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireAuth } from "@/lib/auth/server/requireAuth";
 import { importResponsesFromCsv } from "@/lib/conversations/server/importResponsesFromCsv";
+import { jsonError } from "@/lib/api/errors";
 
 export async function POST(
   request: NextRequest,
@@ -23,13 +24,7 @@ export async function POST(
     const { conversationId } = await params;
 
     if (!conversationId) {
-      return NextResponse.json(
-        {
-          error: "Conversation ID is required",
-          code: "VALIDATION_ERROR",
-        },
-        { status: 400 }
-      );
+      return jsonError("Conversation ID is required", 400, "VALIDATION_ERROR");
     }
 
     // Parse multipart form data
@@ -37,13 +32,7 @@ export async function POST(
     const file = formData.get("file");
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json(
-        {
-          error: "File is required",
-          code: "VALIDATION_ERROR",
-        },
-        { status: 400 }
-      );
+      return jsonError("File is required", 400, "VALIDATION_ERROR");
     }
 
     // Get Supabase client
@@ -87,12 +76,10 @@ export async function POST(
       statusCode = 400;
     }
 
-    return NextResponse.json(
-      {
-        error: errorMessage,
-        code: statusCode === 400 ? "VALIDATION_ERROR" : "INTERNAL_ERROR",
-      },
-      { status: statusCode }
+    return jsonError(
+      errorMessage,
+      statusCode,
+      statusCode === 400 ? "VALIDATION_ERROR" : "INTERNAL_ERROR"
     );
   }
 }
