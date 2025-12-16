@@ -11,7 +11,7 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveAndConversation } from "@/lib/conversations/server/resolveHiveAndConversation";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { getUnderstandViewModel } from "@/lib/conversations/server/getUnderstandViewModel";
-import UnderstandView from "@/app/components/conversation/UnderstandView";
+import UnderstandViewContainer from "@/app/components/conversation/UnderstandViewContainer";
 
 interface UnderstandPageProps {
   params: Promise<{
@@ -41,17 +41,38 @@ export default async function UnderstandPage({ params }: UnderstandPageProps) {
   // 3. Verify membership (throws if not a member)
   await requireHiveMember(supabase, session.user.id, hive.id);
 
-  // 4. Build complete view model
+  // 4. Get conversation analysis metadata
+  const { data: convData } = await supabase
+    .from("conversations")
+    .select("analysis_status, analysis_error")
+    .eq("id", conversation.id)
+    .single();
+
+  // 5. Count responses
+  const { count } = await supabase
+    .from("conversation_responses")
+    .select("id", { count: "exact", head: true })
+    .eq("conversation_id", conversation.id);
+
+  // 6. Build complete view model
   const viewModel = await getUnderstandViewModel(
     supabase,
     conversation.id,
     session.user.id
   );
 
-  // 5. Render client component with view model
+  // 7. Render client container with enhanced view model
   return (
     <div className="mx-auto w-full max-w-7xl px-6">
-      <UnderstandView viewModel={viewModel} />
+      <UnderstandViewContainer
+        initialViewModel={{
+          ...viewModel,
+          analysisStatus: convData?.analysis_status ?? null,
+          analysisError: convData?.analysis_error ?? null,
+          responseCount: count ?? 0,
+          threshold: 20,
+        }}
+      />
     </div>
   );
 }

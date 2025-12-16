@@ -42,7 +42,7 @@ export async function POST(
     // 3. Verify admin membership
     try {
       await requireHiveAdmin(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       return jsonError("Unauthorized: Admin access required", 403);
     }
 
@@ -148,7 +148,7 @@ export async function POST(
       })
       .join("\n\n");
 
-    const prompt = `You are generating an executive summary report for a conversation titled "${conversation.title || "Untitled Conversation"}".
+    const prompt = `Generate an executive summary report for the conversation titled "${conversation.title || "Untitled Conversation"}".
 
 The conversation has ${responseCount} total responses organized into ${themes.length} themes.
 
@@ -158,13 +158,32 @@ ${themesText}
 **Sample Responses with Feedback:**
 ${responsesText}
 
-Generate a comprehensive HTML executive summary report that:
-1. Summarizes the key themes and insights
-2. Highlights areas of strong agreement
-3. Identifies divisive or contentious points
-4. Provides actionable recommendations
+Your task is to analyze this data and produce a comprehensive executive summary report.
 
-Format the output as clean HTML with proper headings, paragraphs, and lists. Use semantic HTML5 tags. Make it professional and easy to read.`;
+The report MUST be formatted as valid HTML using these sections:
+
+<h1>Executive Summary</h1>
+<p>[Opening paragraph summarizing the conversation]</p>
+
+<h2>Key Themes</h2>
+<p>[Analysis of the ${themes.length} main themes]</p>
+<ul>
+  <li>[Theme details]</li>
+</ul>
+
+<h2>Areas of Agreement</h2>
+<p>[Identify responses with strong agreement based on feedback counts]</p>
+
+<h2>Divisive or Contentious Points</h2>
+<p>[Identify responses with disagreement or mixed feedback]</p>
+
+<h2>Recommendations</h2>
+<ol>
+  <li>[Actionable recommendation 1]</li>
+  <li>[Actionable recommendation 2]</li>
+</ol>
+
+Output ONLY the HTML content. Do not include markdown code fences, explanations, or apologies. Start directly with the HTML tags.`;
 
     // 10. Call OpenAI (using environment variable for API key)
     const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -183,7 +202,7 @@ Format the output as clean HTML with proper headings, paragraphs, and lists. Use
         messages: [
           {
             role: "system",
-            content: "You are an expert at synthesizing conversation data into executive summaries.",
+            content: "You are an expert at synthesizing conversation data into executive summaries. You always output valid HTML without any markdown formatting, code fences, or explanations. You respond only with the requested HTML content.",
           },
           {
             role: "user",
@@ -191,7 +210,7 @@ Format the output as clean HTML with proper headings, paragraphs, and lists. Use
           },
         ],
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     });
 
@@ -201,10 +220,79 @@ Format the output as clean HTML with proper headings, paragraphs, and lists. Use
     }
 
     const openaiData = await openaiResponse.json();
-    const reportHtml = openaiData.choices?.[0]?.message?.content || "";
+    let reportHtml = openaiData.choices?.[0]?.message?.content || "";
 
     if (!reportHtml) {
       return jsonError("AI generated empty report", 500);
+    }
+
+    // Clean up the response: remove markdown code fences and trim whitespace
+    reportHtml = reportHtml
+      .replace(/^```html\s*/i, "") // Remove opening ```html
+      .replace(/^```\s*/m, "") // Remove opening ```
+      .replace(/\s*```\s*$/m, "") // Remove closing ```
+      .trim();
+
+    // If the response doesn't contain HTML tags, convert plain text to HTML
+    if (!reportHtml.includes("<h1>") && !reportHtml.includes("<h2>")) {
+      // Split into lines and convert to HTML
+      const lines = reportHtml.split("\n");
+      const htmlLines: string[] = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (!line) {
+          continue; // Skip empty lines
+        }
+
+        // Detect section headers based on content
+        if (line.toLowerCase().includes("executive summary") && i === 0) {
+          htmlLines.push(`<h1>${line}</h1>`);
+        } else if (
+          line.toLowerCase().includes("key themes") ||
+          line.toLowerCase().includes("areas of agreement") ||
+          line.toLowerCase().includes("divisive") ||
+          line.toLowerCase().includes("contentious") ||
+          line.toLowerCase().includes("recommendations")
+        ) {
+          htmlLines.push(`<h2>${line}</h2>`);
+        } else if (line.match(/^\d+\./)) {
+          // Numbered list item
+          const content = line.replace(/^\d+\.\s*/, "");
+          if (!htmlLines[htmlLines.length - 1]?.startsWith("<ol>")) {
+            htmlLines.push("<ol>");
+          }
+          htmlLines.push(`<li>${content}</li>`);
+        } else if (line.startsWith("- ") || line.startsWith("• ")) {
+          // Bullet list item
+          const content = line.replace(/^[-•]\s*/, "");
+          if (!htmlLines[htmlLines.length - 1]?.startsWith("<ul>")) {
+            htmlLines.push("<ul>");
+          }
+          htmlLines.push(`<li>${content}</li>`);
+        } else {
+          // Close any open lists
+          if (htmlLines[htmlLines.length - 1] === "</li>") {
+            const lastTag = htmlLines[htmlLines.length - 2];
+            if (lastTag?.includes("<ol>") || lastTag?.includes("<ul>")) {
+              htmlLines.push(lastTag.includes("<ol>") ? "</ol>" : "</ul>");
+            }
+          }
+          // Regular paragraph
+          htmlLines.push(`<p>${line}</p>`);
+        }
+      }
+
+      // Close any unclosed lists
+      if (htmlLines[htmlLines.length - 1] === "</li>") {
+        const listType = htmlLines.find((l) => l.startsWith("<ol>") || l.startsWith("<ul>"));
+        if (listType) {
+          htmlLines.push(listType.includes("<ol>") ? "</ol>" : "</ul>");
+        }
+      }
+
+      reportHtml = htmlLines.join("\n");
     }
 
     // 11. Determine next version number

@@ -6,6 +6,8 @@
  */
 
 import { z } from "zod";
+import { LISTEN_TAGS } from "@/lib/conversations/domain/tags";
+import type { ListenTag } from "@/lib/conversations/domain/listen.types";
 
 /**
  * Schema for creating a new conversation
@@ -49,6 +51,39 @@ export const triggerAnalysisResponseSchema = z.object({
 export type TriggerAnalysisResponse = z.infer<
   typeof triggerAnalysisResponseSchema
 >;
+
+/**
+ * Schema for creating a new response
+ */
+export const createResponseSchema = z.object({
+  text: z.string().min(1).max(500),
+  tag: z.enum(LISTEN_TAGS as [ListenTag, ...ListenTag[]]).nullable().optional(),
+  anonymous: z.boolean().optional(),
+});
+
+export type CreateResponseInput = z.infer<typeof createResponseSchema>;
+
+/**
+ * Schema for analysis status in response
+ */
+export const analysisStatusSchema = z.object({
+  triggered: z.boolean(),
+  status: z.enum(["queued", "already_running", "already_complete", "skipped"]),
+});
+
+export type AnalysisStatusResponse = z.infer<typeof analysisStatusSchema>;
+
+/**
+ * Schema for analysis status endpoint response
+ */
+export const getAnalysisStatusResponseSchema = z.object({
+  analysisStatus: z.enum(["not_started", "embedding", "analyzing", "ready", "error"]).nullable(),
+  analysisError: z.string().nullable(),
+  responseCount: z.number().int().nonnegative(),
+  threshold: z.number().int().positive(),
+});
+
+export type GetAnalysisStatusResponse = z.infer<typeof getAnalysisStatusResponseSchema>;
 
 /**
  * Standard API error response

@@ -28,6 +28,28 @@ Notes:
 - Imports are idempotent via `import_batch_id`.
 - Analysis runs asynchronously via the worker (`scripts/analysis-worker.ts`).
 
+## Auto-analysis (Understand sessions)
+
+Understand sessions auto-trigger analysis once the conversation reaches **20 responses**.
+
+- Trigger points:
+  - After creating a response: `app/api/conversations/[conversationId]/responses/route.ts` → `lib/conversations/server/maybeEnqueueAutoAnalysis.ts`
+  - After CSV import completes: `lib/conversations/server/importResponsesFromCsv.ts` → `lib/conversations/server/maybeEnqueueAutoAnalysis.ts`
+- Idempotency/concurrency:
+  - The active-job unique index prevents duplicate queued/running jobs (`conversation_analysis_jobs`).
+  - `maybeEnqueueAutoAnalysis` skips when analysis is already "fresh" (`analysis_status=ready` and `analysis_response_count >= current response count`).
+- UI integration (realtime push-based updates):
+  - **Primary**: Supabase Realtime subscription via `lib/conversations/react/useConversationAnalysisRealtime.ts`
+    - Subscribes to `conversations` table UPDATE events (analysis status changes)
+    - Subscribes to `conversation_themes` table INSERT/UPDATE/DELETE events (theme generation)
+    - Debounces events (500ms default) to collapse burst updates
+    - Returns connection status: `connecting | connected | error | disconnected`
+  - **Fallback**: Polling via `lib/conversations/react/useAnalysisStatus.ts` (deprecated)
+    - Activated automatically when realtime status is `error`
+    - Polls `app/api/conversations/[conversationId]/analysis-status/route.ts` every 5 seconds
+  - Fetch understand model: `app/api/conversations/[conversationId]/understand/route.ts`
+  - **Setup required**: See `docs/realtime-setup.md` for Supabase Realtime configuration (replication, RLS policies)
+
 ## Tabs (Listen / Understand / Result)
 
 Server components assemble data and render client views:
@@ -42,4 +64,3 @@ Server components assemble data and render client views:
 - Responses API + anonymity: `app/tests/api/responses.test.ts`
 - CSV import: `lib/conversations/server/__tests__/importResponsesFromCsv.test.ts`
 - Wizard hook: `lib/conversations/react/__tests__/useNewSessionWizard.test.tsx`
-

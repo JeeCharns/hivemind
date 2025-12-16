@@ -65,4 +65,8 @@ export interface UnderstandViewModel {
   responses: ResponsePoint[];
   themes: ThemeRow[];
   feedbackItems: FeedbackItem[];
+  analysisStatus?: "not_started" | "embedding" | "analyzing" | "ready" | "error" | null;
+  analysisError?: string | null;
+  responseCount?: number;
+  threshold?: number;
 }

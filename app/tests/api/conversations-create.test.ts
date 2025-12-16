@@ -1,3 +1,4 @@
+/** @jest-environment node */
 /**
  * Integration tests for POST /api/conversations
  *
@@ -47,7 +48,7 @@ describe("POST /api/conversations", () => {
     const request = new NextRequest("http://localhost/api/conversations", {
       method: "POST",
       body: JSON.stringify({
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "understand",
         title: "Test Session",
         description: "Test description",
@@ -63,7 +64,7 @@ describe("POST /api/conversations", () => {
       expect.anything(),
       "user-123",
       {
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "understand",
         title: "Test Session",
         description: "Test description",
@@ -75,7 +76,7 @@ describe("POST /api/conversations", () => {
     const request = new NextRequest("http://localhost/api/conversations", {
       method: "POST",
       body: JSON.stringify({
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "invalid_type",
         title: "Test Session",
       }),
@@ -93,7 +94,7 @@ describe("POST /api/conversations", () => {
     const request = new NextRequest("http://localhost/api/conversations", {
       method: "POST",
       body: JSON.stringify({
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "understand",
       }),
     });
@@ -130,7 +131,7 @@ describe("POST /api/conversations", () => {
     const request = new NextRequest("http://localhost/api/conversations", {
       method: "POST",
       body: JSON.stringify({
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "understand",
         title: "Test Session",
       }),
@@ -150,7 +151,7 @@ describe("POST /api/conversations", () => {
     const request = new NextRequest("http://localhost/api/conversations", {
       method: "POST",
       body: JSON.stringify({
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "understand",
         title: "Test Session",
       }),
@@ -173,7 +174,7 @@ describe("POST /api/conversations", () => {
     const request = new NextRequest("http://localhost/api/conversations", {
       method: "POST",
       body: JSON.stringify({
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "decide",
         title: "Test Session",
       }),
@@ -186,7 +187,7 @@ describe("POST /api/conversations", () => {
       expect.anything(),
       "user-123",
       {
-        hiveId: "hive-456",
+        hiveId: "11111111-1111-4111-8111-111111111111",
         type: "decide",
         title: "Test Session",
         description: undefined,

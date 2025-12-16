@@ -10,10 +10,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
-import { LISTEN_TAGS } from "@/lib/conversations/domain/tags";
 import { jsonError } from "@/lib/api/errors";
-
-const MAX_RESPONSE_LENGTH = 500;
+import { createResponseSchema } from "@/lib/conversations/schemas";
+import { maybeEnqueueAutoAnalysis } from "@/lib/conversations/server/maybeEnqueueAutoAnalysis";
 
 export async function GET(
   _req: NextRequest,
@@ -148,24 +147,15 @@ export async function POST(
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
-    // 4. Validate input
+    // 4. Validate input with Zod
     const body = await req.json();
-    const { text, tag, anonymous } = body;
+    const validation = createResponseSchema.safeParse(body);
 
-    if (!text || typeof text !== "string") {
-      return jsonError("Text is required", 400);
+    if (!validation.success) {
+      return jsonError("Invalid request body", 400, "INVALID_INPUT");
     }
 
-    if (text.length > MAX_RESPONSE_LENGTH) {
-      return jsonError(
-        `Text must be ${MAX_RESPONSE_LENGTH} characters or less`,
-        400
-      );
-    }
-
-    if (tag && !LISTEN_TAGS.includes(tag)) {
-      return jsonError("Invalid tag", 400);
-    }
+    const { text, tag, anonymous } = validation.data;
 
     // 5. Insert response
     const { data, error } = await supabase
@@ -204,7 +194,20 @@ export async function POST(
       likedByMe: false,
     };
 
-    return NextResponse.json({ response });
+    // 7. Maybe trigger auto-analysis at 20 responses
+    const analysisResult = await maybeEnqueueAutoAnalysis(
+      supabase,
+      conversationId,
+      session.user.id
+    );
+
+    return NextResponse.json({
+      response,
+      analysis: {
+        triggered: analysisResult.triggered,
+        status: analysisResult.status,
+      },
+    });
   } catch (error) {
     console.error("[POST response] Error:", error);
     return jsonError("Internal server error", 500);

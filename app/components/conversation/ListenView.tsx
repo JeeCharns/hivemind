@@ -15,7 +15,9 @@ import { getTagColors, LISTEN_TAGS, TAG_LABELS } from "@/lib/conversations/domai
 import type { AnalysisStatus } from "@/types/conversations";
 import type { ListenTag, SubmitResponseInput } from "@/lib/conversations/domain/listen.types";
 import { useConversationFeed } from "@/lib/conversations/react/useConversationFeed";
+import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
 import Button from "@/app/components/button";
+import Link from "next/link";
 
 const MAX_LEN = 500;
 
@@ -42,8 +44,18 @@ export default function ListenView({
 
   const displayName = currentUserDisplayName || "User";
 
+  // Poll for analysis status
+  const { data: statusData } = useAnalysisStatus({
+    conversationId,
+    enabled: feed.length >= 20,
+    interval: 5000,
+  });
+
+  const analysisStatus = statusData?.analysisStatus ?? initialAnalysisStatus;
+  const responseCount = statusData?.responseCount ?? feed.length;
+
   const showSpinner =
-    initialAnalysisStatus === "embedding" || initialAnalysisStatus === "analyzing";
+    analysisStatus === "embedding" || analysisStatus === "analyzing";
 
   const remaining = MAX_LEN - text.length;
   const canSubmit = text.trim().length > 0 && !!tag && text.length <= MAX_LEN;
@@ -138,6 +150,45 @@ export default function ListenView({
     [tag]
   );
 
+  // Analysis status pill content
+  const getStatusPill = () => {
+    if (responseCount < 20) return null;
+
+    if (analysisStatus === "ready") {
+      return (
+        <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-700 font-medium text-sm">
+              ✓ Themes ready
+            </span>
+            <span className="text-emerald-600 text-sm">
+              Your responses have been analyzed
+            </span>
+          </div>
+          <Link
+            href={`#understand`}
+            className="text-emerald-700 hover:text-emerald-800 font-medium text-sm underline"
+          >
+            View themes →
+          </Link>
+        </div>
+      );
+    }
+
+    if (analysisStatus === "embedding" || analysisStatus === "analyzing") {
+      return (
+        <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-3 flex items-center gap-2">
+          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+          <span className="text-indigo-700 text-sm">
+            Generating themes... This usually takes 30-60 seconds.
+          </span>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="pt-6" suppressHydrationWarning>
       {!mounted ? (
@@ -150,7 +201,9 @@ export default function ListenView({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <>
+          {getStatusPill()}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column: Composer */}
           <div className="space-y-4">
             <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
@@ -327,6 +380,7 @@ export default function ListenView({
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );
