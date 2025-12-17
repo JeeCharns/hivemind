@@ -41,7 +41,10 @@ export default function NewSessionLauncher({
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} className="h-10 w-[117px]">
+      <Button
+        onClick={() => setOpen(true)}
+        className="h-10 w-[117px] whitespace-nowrap"
+      >
         New Session
       </Button>
       <NewSessionWizard

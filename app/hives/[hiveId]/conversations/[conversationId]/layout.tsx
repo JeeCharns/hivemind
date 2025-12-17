@@ -63,6 +63,7 @@ export default async function ConversationLayout({
           hiveKey={hive.slug || hive.id}
           conversationKey={conversation.slug || conversation.id}
           title={conversation.title || "Conversation"}
+          conversationType={conversation.type as "understand" | "decide"}
         />
         {children}
       </div>

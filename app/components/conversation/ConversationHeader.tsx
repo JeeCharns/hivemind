@@ -23,6 +23,7 @@ interface ConversationHeaderProps {
   hiveKey: string;
   conversationKey: string;
   title: string;
+  conversationType?: "understand" | "decide";
 }
 
 export default function ConversationHeader({
@@ -30,6 +31,7 @@ export default function ConversationHeader({
   hiveKey,
   conversationKey,
   title,
+  conversationType = "understand",
 }: ConversationHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -41,11 +43,20 @@ export default function ConversationHeader({
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const tabs = [
-    { slug: "listen", label: "Listen" },
-    { slug: "understand", label: "Understand" },
-    { slug: "result", label: "Result" },
-  ];
+  // Tab configuration depends on conversation type
+  const tabs =
+    conversationType === "decide"
+      ? [
+          { slug: "listen", label: "Listen" },
+          { slug: "understand", label: "Understand" },
+          { slug: "vote", label: "Vote" },
+          { slug: "result", label: "Result" },
+        ]
+      : [
+          { slug: "listen", label: "Listen" },
+          { slug: "understand", label: "Understand" },
+          { slug: "result", label: "Result" },
+        ];
 
   const basePath = `/hives/${hiveKey}/conversations/${conversationKey}`;
 
@@ -83,7 +94,7 @@ export default function ConversationHeader({
           throw new Error(body?.error ?? "Failed to delete");
         }
 
-        router.push("/hives");
+        router.push(`/hives/${hiveKey}`);
         router.refresh();
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Failed to delete";

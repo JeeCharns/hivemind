@@ -19,10 +19,12 @@ import Button from "@/app/components/button";
 
 export interface UnderstandViewContainerProps {
   initialViewModel: UnderstandViewModel;
+  conversationType?: "understand" | "decide";
 }
 
 export default function UnderstandViewContainer({
   initialViewModel,
+  conversationType = "understand",
 }: UnderstandViewContainerProps) {
   const [viewModel, setViewModel] = useState(initialViewModel);
 
@@ -204,5 +206,5 @@ export default function UnderstandViewContainer({
   }
 
   // Analysis ready: show normal view
-  return <UnderstandView viewModel={viewModel} />;
+  return <UnderstandView viewModel={viewModel} conversationType={conversationType} />;
 }

@@ -17,6 +17,9 @@ export const createConversationSchema = z.object({
   type: z.enum(["understand", "decide"]),
   title: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
+  // Solution space (decision session) fields
+  sourceConversationId: z.string().uuid().optional(),
+  sourceReportVersion: z.number().int().positive().optional(),
 });
 
 export type CreateConversationInput = z.infer<typeof createConversationSchema>;
@@ -94,3 +97,60 @@ export const apiErrorSchema = z.object({
 });
 
 export type ApiError = z.infer<typeof apiErrorSchema>;
+
+/**
+ * Schema for voting on a proposal (quadratic voting)
+ */
+export const voteOnProposalSchema = z.object({
+  responseId: z.string().uuid(),
+  delta: z.union([z.literal(1), z.literal(-1)]),
+});
+
+export type VoteOnProposalInput = z.infer<typeof voteOnProposalSchema>;
+
+/**
+ * Schema for vote response
+ */
+export const voteResponseSchema = z.object({
+  success: z.boolean(),
+  newVotes: z.number().int().nonnegative(),
+  remainingCredits: z.number().int().nonnegative(),
+  errorCode: z.string().optional(),
+});
+
+export type VoteResponse = z.infer<typeof voteResponseSchema>;
+
+/**
+ * Schema for get votes response
+ */
+export const getVotesResponseSchema = z.object({
+  votes: z.record(z.string(), z.number().int().nonnegative()),
+  totalCreditsSpent: z.number().int().nonnegative(),
+  remainingCredits: z.number().int().nonnegative(),
+});
+
+export type GetVotesResponse = z.infer<typeof getVotesResponseSchema>;
+
+/**
+ * Schema for problem report list item
+ */
+export const problemReportListItemSchema = z.object({
+  conversationId: z.string().uuid(),
+  conversationSlug: z.string().nullable(),
+  title: z.string().nullable(),
+  latestReportVersion: z.number().int().positive(),
+  latestReportCreatedAt: z.string().nullable(),
+});
+
+export type ProblemReportListItem = z.infer<typeof problemReportListItemSchema>;
+
+/**
+ * Schema for report preview response
+ */
+export const reportPreviewResponseSchema = z.object({
+  version: z.number().int().positive(),
+  html: z.string(),
+  createdAt: z.string().nullable(),
+});
+
+export type ReportPreviewResponse = z.infer<typeof reportPreviewResponseSchema>;

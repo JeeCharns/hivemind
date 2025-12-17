@@ -37,6 +37,10 @@ export interface UseNewSessionWizardReturn {
   uploadStatus: "idle" | "uploading" | "uploaded" | "error";
   uploadError: string | null;
 
+  // Decision session state
+  selectedReportConversationId: string | null;
+  selectedReportVersion: number | null;
+
   // Handlers
   setType: (type: ConversationType) => void;
   setTitle: (title: string) => void;
@@ -47,6 +51,9 @@ export interface UseNewSessionWizardReturn {
   onFileDropped: (e: React.DragEvent<HTMLLabelElement>) => void;
   onSkipImport: () => void;
   onFinish: () => Promise<void>;
+
+  // Decision session handlers
+  setSelectedReport: (conversationId: string | null, version?: number | null) => void;
 }
 
 const MAX_FILE_SIZE_MB = 10;
@@ -82,11 +89,19 @@ export function useNewSessionWizard({
   >("idle");
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Decision session state
+  const [selectedReportConversationId, setSelectedReportConversationId] =
+    useState<string | null>(null);
+  const [selectedReportVersion, setSelectedReportVersion] = useState<number | null>(
+    null
+  );
+
   // Reset wizard when modal opens/closes
   useEffect(() => {
     if (!open) return;
 
     setStep(1);
+    setType("understand");
     setWizardError(null);
     setTitleError(null);
     setTypeError(null);
@@ -96,6 +111,8 @@ export function useNewSessionWizard({
     setFile(null);
     setUploadStatus("idle");
     setUploadError(null);
+    setSelectedReportConversationId(null);
+    setSelectedReportVersion(null);
   }, [open]);
 
   /**
@@ -176,7 +193,7 @@ export function useNewSessionWizard({
   );
 
   /**
-   * Step 1: Create conversation and advance to step 2
+   * Step 1: Validate and advance to step 2
    */
   const onContinue = useCallback(async () => {
     // Clear previous errors
@@ -201,28 +218,9 @@ export function useNewSessionWizard({
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const result = await createConversation({
-        hiveId,
-        type,
-        title: title.trim(),
-        description: description.trim() || undefined,
-      });
-
-      setConversationId(result.id);
-      setStep(2);
-    } catch (err) {
-      const message =
-        err instanceof ConversationApiError
-          ? err.message
-          : "Failed to create session";
-      setWizardError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [hiveId, type, title, description]);
+    // Just advance to step 2, don't create conversation yet
+    setStep(2);
+  }, [type, title]);
 
   /**
    * Go back to step 1
@@ -232,56 +230,111 @@ export function useNewSessionWizard({
   }, []);
 
   /**
-   * Skip import and navigate to conversation
+   * Skip import and navigate to conversation (creates conversation if not already created)
    */
-  const onSkipImport = useCallback(() => {
-    if (!conversationId) {
-      setWizardError("Create the session first.");
-      return;
-    }
-    navigateToConversation(conversationId);
-  }, [conversationId, navigateToConversation]);
-
-  /**
-   * Step 2: Upload CSV (if provided) and navigate to conversation
-   */
-  const onFinish = useCallback(async () => {
-    if (!conversationId) {
-      setWizardError("Create the session first.");
-      return;
-    }
-
-    // If no file, just navigate
-    if (!file) {
+  const onSkipImport = useCallback(async () => {
+    // If conversation already created, just navigate
+    if (conversationId) {
       navigateToConversation(conversationId);
       return;
     }
 
+    // Create conversation first
     setLoading(true);
-    setUploadStatus("uploading");
-    setUploadError(null);
+    setWizardError(null);
 
     try {
-      // Upload CSV
-      await uploadConversationCsv(conversationId, file);
+      const result = await createConversation({
+        hiveId,
+        type,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        sourceConversationId: type === "decide" ? selectedReportConversationId ?? undefined : undefined,
+        sourceReportVersion: type === "decide" && selectedReportVersion ? selectedReportVersion : undefined,
+      });
+
+      navigateToConversation(result.id);
+    } catch (err) {
+      const message =
+        err instanceof ConversationApiError
+          ? err.message
+          : "Failed to create session";
+      setWizardError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [conversationId, navigateToConversation, hiveId, type, title, description, selectedReportConversationId, selectedReportVersion]);
+
+  /**
+   * Set selected report for decision sessions
+   */
+  const setSelectedReport = useCallback(
+    (convId: string | null, version?: number | null) => {
+      setSelectedReportConversationId(convId);
+      setSelectedReportVersion(version ?? null);
+    },
+    []
+  );
+
+  /**
+   * Step 2: Create conversation, upload CSV (if provided), and navigate
+   */
+  const onFinish = useCallback(async () => {
+    setLoading(true);
+    setWizardError(null);
+
+    let isUploadError = false;
+
+    try {
+      // Create conversation if not already created
+      let finalConversationId = conversationId;
+      if (!finalConversationId) {
+        const result = await createConversation({
+          hiveId,
+          type,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          sourceConversationId: type === "decide" ? selectedReportConversationId ?? undefined : undefined,
+          sourceReportVersion: type === "decide" && selectedReportVersion ? selectedReportVersion : undefined,
+        });
+        finalConversationId = result.id;
+        setConversationId(finalConversationId);
+      }
+
+      // If no file, just navigate
+      if (!file) {
+        navigateToConversation(finalConversationId);
+        return;
+      }
+
+      // Upload CSV (for understand sessions only)
+      setUploadStatus("uploading");
+      setUploadError(null);
+      isUploadError = true; // Mark that we're in upload phase
+
+      await uploadConversationCsv(finalConversationId, file);
       setUploadStatus("uploaded");
 
       // Kick off analysis (fire-and-forget, failures are ok)
-      startConversationAnalysis(conversationId).catch(() => {
+      startConversationAnalysis(finalConversationId).catch(() => {
         // Silently fail - analysis can be triggered later
       });
 
       // Navigate to conversation
-      navigateToConversation(conversationId);
+      navigateToConversation(finalConversationId);
     } catch (err) {
       const message =
-        err instanceof ConversationApiError ? err.message : "Upload failed";
-      setUploadStatus("error");
-      setUploadError(message);
+        err instanceof ConversationApiError ? err.message : "Failed to create session or upload file";
+      if (isUploadError) {
+        setUploadStatus("error");
+        setUploadError(message);
+      } else {
+        setWizardError(message);
+      }
     } finally {
       setLoading(false);
     }
-  }, [conversationId, file, navigateToConversation]);
+  }, [conversationId, file, navigateToConversation, hiveId, type, title, description, selectedReportConversationId, selectedReportVersion]);
 
   return {
     // State
@@ -298,6 +351,10 @@ export function useNewSessionWizard({
     uploadStatus,
     uploadError,
 
+    // Decision session state
+    selectedReportConversationId,
+    selectedReportVersion,
+
     // Handlers
     setType,
     setTitle,
@@ -308,5 +365,8 @@ export function useNewSessionWizard({
     onFileDropped,
     onSkipImport,
     onFinish,
+
+    // Decision session handlers
+    setSelectedReport,
   };
 }

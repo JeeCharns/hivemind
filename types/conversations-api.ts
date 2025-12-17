@@ -7,6 +7,9 @@ export type CreateConversationRequest = {
   type: ConversationType;
   title: string;
   description?: string;
+  // Decision session fields (optional report linking)
+  sourceConversationId?: string;
+  sourceReportVersion?: number;
 };
 
 export type CreateConversationResponse = {

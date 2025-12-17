@@ -72,6 +72,7 @@ export default async function UnderstandPage({ params }: UnderstandPageProps) {
           responseCount: count ?? 0,
           threshold: 20,
         }}
+        conversationType={conversation.type as "understand" | "decide"}
       />
     </div>
   );

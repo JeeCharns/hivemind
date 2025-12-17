@@ -9,9 +9,15 @@
  */
 
 import { useEffect, useMemo, useState, useRef } from "react";
-import { ThumbsUp, PaperPlaneTilt, CaretDown } from "@phosphor-icons/react";
+import { ThumbsUp, PaperPlaneTilt, CaretDown, FileText, DownloadSimple } from "@phosphor-icons/react";
 import { supabase } from "@/lib/supabase/client";
-import { getTagColors, LISTEN_TAGS, TAG_LABELS } from "@/lib/conversations/domain/tags";
+import {
+  getTagColors,
+  getTagHoverClasses,
+  getTagSelectedClasses,
+  LISTEN_TAGS,
+  TAG_LABELS,
+} from "@/lib/conversations/domain/tags";
 import type { AnalysisStatus } from "@/types/conversations";
 import type { ListenTag, SubmitResponseInput } from "@/lib/conversations/domain/listen.types";
 import { useConversationFeed } from "@/lib/conversations/react/useConversationFeed";
@@ -25,12 +31,20 @@ export interface ListenViewProps {
   conversationId: string;
   currentUserDisplayName: string;
   initialAnalysisStatus: AnalysisStatus | null;
+  sourceReportHtml?: string | null;
+  sourceReportConversationTitle?: string | null;
+  conversationType?: "understand" | "decide";
+  sourceConversationId?: string | null;
 }
 
 export default function ListenView({
   conversationId,
   currentUserDisplayName,
   initialAnalysisStatus,
+  sourceReportHtml,
+  sourceReportConversationTitle,
+  conversationType = "understand",
+  sourceConversationId,
 }: ListenViewProps) {
   const { feed, isLoadingFeed, isSubmitting, error, submit, toggleLike, refresh } =
     useConversationFeed({ conversationId });
@@ -58,14 +72,15 @@ export default function ListenView({
     analysisStatus === "embedding" || analysisStatus === "analyzing";
 
   const remaining = MAX_LEN - text.length;
-  const canSubmit = text.trim().length > 0 && !!tag && text.length <= MAX_LEN;
+  const isDecisionSession = conversationType === "decide";
+  const canSubmit = text.trim().length > 0 && (isDecisionSession || !!tag) && text.length <= MAX_LEN;
 
   const submitResponse = async () => {
     if (!canSubmit || isSubmitting) return;
 
     const input: SubmitResponseInput = {
       text: text.trim(),
-      tag,
+      tag: isDecisionSession ? "proposal" : tag,
       anonymous: postAs === "anon",
     };
 
@@ -74,7 +89,9 @@ export default function ListenView({
     // Clear form on success
     if (!error) {
       setText("");
-      setTag(null);
+      if (!isDecisionSession) {
+        setTag(null);
+      }
     }
   };
 
@@ -130,10 +147,12 @@ export default function ListenView({
   const TagButtons = useMemo(
     () =>
       LISTEN_TAGS.map((t) => {
-        const active =
-          tag === t
-            ? getTagColors(t)
-            : "bg-white text-slate-700 border-slate-200 hover:border-indigo-200 py-0.5";
+        const isSelected = tag === t;
+        const active = isSelected
+          ? getTagSelectedClasses(t)
+          : `bg-white text-slate-700 border-slate-200 py-0.5 ${getTagHoverClasses(
+              t
+            )}`;
 
         return (
           <Button
@@ -141,6 +160,7 @@ export default function ListenView({
             variant="secondary"
             size="sm"
             onClick={() => setTag((prev) => (prev === t ? null : t))}
+            aria-pressed={isSelected}
             className={`px-3 rounded-full text-sm font-medium border transition ${active}`}
           >
             {TAG_LABELS[t]}
@@ -206,6 +226,36 @@ export default function ListenView({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column: Composer */}
           <div className="space-y-4">
+            {/* Compact document preview for decision sessions */}
+            {isDecisionSession && sourceConversationId && (
+              <Link
+                href={`#`}
+                className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-3 hover:border-indigo-300 transition group"
+              >
+                <div className="shrink-0 w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
+                  <FileText size={20} className="text-indigo-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#172847] truncate">
+                    {sourceReportConversationTitle || "Problem Space Report"}
+                  </p>
+                  <p className="text-xs text-[#566888]">
+                    Reference document
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 text-indigo-600 hover:text-indigo-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Download logic will be added
+                  }}
+                >
+                  <DownloadSimple size={18} weight="bold" />
+                </Button>
+              </Link>
+            )}
             <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
               <div className="relative">
                 <textarea
@@ -221,16 +271,18 @@ export default function ListenView({
               </div>
 
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-[#172847]">
-                    Tag your response for more clarity
-                  </span>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {TagButtons}
+                {!isDecisionSession && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[12px] font-medium text-[#172847]">
+                      Tag your response for more clarity
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {TagButtons}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-center gap-4">
+                <div className={`flex items-center gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}>
                   <div className="flex flex-col gap-1">
                     <span className="text-[12px] font-medium text-[#172847]">
                       Post as...

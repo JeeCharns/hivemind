@@ -37,6 +37,15 @@ In Supabase Dashboard → Database → Replication, enable publication for these
 -- Enable replication for analysis tables
 ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
 ALTER PUBLICATION supabase_realtime ADD TABLE conversation_themes;
+
+## Profile avatars (Storage)
+
+User profile photos are stored in the Supabase Storage bucket `user-avatars`.
+
+Optional env overrides:
+
+- `SUPABASE_AVATAR_BUCKET`
+- `NEXT_PUBLIC_SUPABASE_AVATAR_BUCKET`
 -- Optional: conversation_responses (can be chatty, usually not needed)
 ```
 

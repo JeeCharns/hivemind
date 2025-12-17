@@ -129,10 +129,10 @@ export async function POST(
 
     const supabase = await supabaseServerClient();
 
-    // 2. Get conversation to verify hive membership
+    // 2. Get conversation to verify hive membership and check type
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
-      .select("hive_id")
+      .select("hive_id, type")
       .eq("id", conversationId)
       .maybeSingle();
 
@@ -155,7 +155,13 @@ export async function POST(
       return jsonError("Invalid request body", 400, "INVALID_INPUT");
     }
 
-    const { text, tag, anonymous } = validation.data;
+    const { text, anonymous } = validation.data;
+    let { tag } = validation.data;
+
+    // For decision sessions, force tag to "proposal" (override client input)
+    if (conversation.type === "decide") {
+      tag = "proposal";
+    }
 
     // 5. Insert response
     const { data, error } = await supabase

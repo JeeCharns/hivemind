@@ -10,12 +10,30 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 | Login / register / callback | `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`, `app/(auth)/callback/page.tsx` | `app/api/auth/session/route.ts` | Canonical module: `lib/auth/*` (server: `lib/auth/server/requireAuth.ts`, react: `lib/auth/react/*`) | `app/tests/hooks/useAuth.test.ts`, `app/tests/hooks/useSession.test.ts`, `lib/auth/server/__tests__/sessionValidation.test.ts` |
 | Logout | `app/(auth)/logout/page.tsx` | `app/api/auth/logout/route.ts` | `lib/auth/server/requireAuth.ts` (session) | `app/tests/supabase-auth-cookie.test.ts` |
 
+## Profile Onboarding
+
+| Flow | UI entry | API | Core logic | Tests |
+| --- | --- | --- | --- | --- |
+| Profile setup (onboarding) | `app/profile-setup/page.tsx`, `app/profile-setup/ProfileSetupForm.tsx` | `app/api/profile/route.ts` (POST multipart/form-data) | Server services: `lib/profile/server/upsertProfile.ts`, `lib/profile/server/uploadAvatar.ts`; validation: `lib/profile/schemas.ts` (displayName 1-60 chars, avatar <2MB); storage: avatars bucket (configurable via `lib/storage/avatarBucket.ts`) | `app/tests/api/profile.test.ts`, `lib/profile/server/__tests__/upsertProfile.test.ts` |
+| Check profile status | `app/(auth)/callback/page.tsx` (routes to /profile-setup if needed) | `app/api/profile/status/route.ts` (GET) | Server service: `lib/profile/server/getProfileStatus.ts`; returns `{ hasProfile, needsSetup }` | `app/tests/api/profile.test.ts` |
+| Avatar upload (reusable) | `app/components/ImageUpload.tsx` (used in profile setup and settings) | (handled by POST /api/profile) | Uploads to avatars bucket with path `userId/uuid.extension`; auto-deletes old avatars | (covered by upsertProfile tests) |
+
+## Account Settings
+
+| Flow | UI entry | API | Core logic | Tests |
+| --- | --- | --- | --- | --- |
+| View account settings | `app/settings/page.tsx`, `app/settings/AccountSettingsForm.tsx` (canonical route: `/settings`; `/account` redirects to `/settings`) | `app/api/account/route.ts` (GET) | Server service: `lib/account/server/getAccountSettings.ts`; returns `{ email, displayName, avatarUrl }` | `app/tests/api/account.test.ts`, `lib/account/server/__tests__/getAccountSettings.test.ts` |
+| Update account profile | `app/settings/AccountSettingsForm.tsx` (wraps shared `ProfileForm`) | `app/api/account/profile/route.ts` (POST multipart/form-data) | Server service: `lib/account/server/updateAccountProfile.ts` (thin wrapper around `upsertProfile`); validation: reuses `lib/profile/schemas.ts` (displayName 1-60 chars, avatar <2MB) | `app/tests/api/account.test.ts`, `lib/account/server/__tests__/updateAccountProfile.test.ts` |
+| Shared profile form | `app/components/profile/ProfileForm.tsx` (reusable form for both profile setup and account settings) | (uses different endpoints via `apiEndpoint` prop: `/api/profile` for onboarding, `/api/account/profile` for settings) | Supports callback props for different routing needs: `onSuccess`, `showSuccessMessage` | (covered by profile and account API tests) |
+
 ## Hives
 
 | Flow | UI entry | API | Core logic | Tests |
 | --- | --- | --- | --- | --- |
 | List my hives | `app/hives/page.tsx`, `app/hives/HivesHome.tsx` | `app/api/hives/route.ts` (GET) | Server list: `lib/hives/server/getHivesWithSignedUrls.ts` | (coverage lives mostly in server tests; add feature tests in `app/tests` when changing behavior) |
 | Create hive | `app/hives/HivesHome.tsx` | `app/api/hives/route.ts` (POST) | Validation: `lib/hives/data/hiveSchemas.ts` | (add integration tests in `app/tests/api` if you touch this) |
+| Search hives | `app/hives/components/JoinHiveSearch.tsx` | `app/api/hives/search/route.ts` (GET) | Server service: `lib/hives/server/searchJoinableHives.ts`; validation: Zod schema in route (term 1-80 chars, limit 1-10) | `app/tests/api/hives-search.test.ts` |
+| Join a hive | `app/hives/components/JoinHiveSearch.tsx` | `app/api/hives/[hiveId]/join/route.ts` (POST) | Server service: `lib/hives/server/joinHive.ts` (idempotent upsert); validation: Zod UUID check | `app/tests/api/hives-join.test.ts` |
 | Hive details + conversations | `app/hives/[hiveId]/page.tsx` | `app/api/hives/[hiveId]/route.ts` (GET) | Hive resolution: `lib/hives/data/hiveResolver.ts`; conversations list: `lib/conversations/server/listHiveConversations.ts` | (see conversation tests below) |
 | Hive stats | (consumed by client overview) | `app/api/hives/[hiveId]/stats/route.ts` | (route is currently the logic) | (add `app/tests/api` coverage if changing) |
 | Hive settings (view) | `app/hives/[hiveId]/settings/page.tsx` | `app/api/hives/[hiveId]/route.ts` (GET) | View model + authz: `lib/hives/server/getHiveSettings.ts` | `lib/hives/server/authorizeHiveAdmin.test.ts` |
@@ -27,13 +45,16 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 
 | Flow | UI entry | API | Core logic | Tests |
 | --- | --- | --- | --- | --- |
-| Create conversation (session) | `app/components/new-session-wizard.tsx`, `lib/conversations/react/useNewSessionWizard.ts` | `app/api/conversations/route.ts` (POST) | Validation: `lib/conversations/schemas.ts`; service: `lib/conversations/server/createConversation.ts` | `app/tests/api/conversations-create.test.ts` |
+| Create conversation (session) | `app/components/new-session-wizard.tsx`, `lib/conversations/react/useNewSessionWizard.ts` | `app/api/conversations/route.ts` (POST) | Validation: `lib/conversations/schemas.ts` (supports `sourceConversationId` and `sourceReportVersion` for decision sessions); service: `lib/conversations/server/createConversation.ts` (validates source report exists and belongs to same hive) | `app/tests/api/conversations-create.test.ts` |
+| List problem reports for decision session wizard | `app/components/new-session-wizard.tsx` (decision flow) | `app/api/hives/[hiveId]/problem-reports/route.ts` (GET) | Returns list of problem space conversations with reports; schema: `lib/conversations/schemas.ts` (problemReportListItemSchema) | (add test coverage if changing) |
+| Preview problem report for decision session | `app/components/new-session-wizard.tsx` (decision flow) | `app/api/conversations/[conversationId]/report-preview/route.ts` (GET ?version=N) | Returns specific or latest report HTML for preview; schema: `lib/conversations/schemas.ts` (reportPreviewResponseSchema) | (add test coverage if changing) |
 | Conversation routing helpers | (used in UI) | (n/a) | `lib/conversations/routes.ts` | (unit-test if you add complexity) |
 | Conversation base → Listen redirect | `app/hives/[hiveId]/conversations/[conversationId]/page.tsx` | (n/a) | (simple redirect) | (n/a) |
-| Listen tab (render + compose) | `app/hives/[hiveId]/conversations/[conversationId]/listen/page.tsx`, `app/components/conversation/ListenView.tsx` | `app/api/conversations/[conversationId]/responses/route.ts` (GET/POST) | Membership gate: `lib/conversations/server/requireHiveMember.ts`; tags: `lib/conversations/domain/tags.ts`; feed hook: `lib/conversations/react/useConversationFeed.ts` | `app/tests/api/responses.test.ts`, `lib/conversations/react/useConversationFeed.test.tsx` |
+| Listen tab (render + compose) | `app/hives/[hiveId]/conversations/[conversationId]/listen/page.tsx`, `app/components/conversation/ListenView.tsx` | `app/api/conversations/[conversationId]/responses/route.ts` (GET/POST; for decision sessions, tag is forced to "proposal") | Membership gate: `lib/conversations/server/requireHiveMember.ts`; tags: `lib/conversations/domain/tags.ts`; feed hook: `lib/conversations/react/useConversationFeed.ts` | `app/tests/api/responses.test.ts`, `lib/conversations/react/useConversationFeed.test.tsx` |
 | Auto-trigger analysis (≥20 responses) | (triggered on response create / CSV import) | (part of POST responses / upload flow) | Auto-trigger: `lib/conversations/server/maybeEnqueueAutoAnalysis.ts` (uses `lib/conversations/server/enqueueConversationAnalysis.ts`) | `lib/conversations/server/__tests__/maybeEnqueueAutoAnalysis.test.ts`, `app/tests/api/responses.test.ts` |
 | Like a response | (Listen UI) | `app/api/responses/[responseId]/like/route.ts` (POST/DELETE) | Client: `lib/conversations/data/likesClient.ts` | (add `app/tests/api` coverage if changing) |
-| Understand tab (themes + feedback) | `app/hives/[hiveId]/conversations/[conversationId]/understand/page.tsx`, `app/components/conversation/UnderstandViewContainer.tsx`, `app/components/conversation/UnderstandView.tsx` | `app/api/conversations/[conversationId]/feedback/route.ts` (POST), `app/api/conversations/[conversationId]/analysis-status/route.ts` (GET, fallback), `app/api/conversations/[conversationId]/understand/route.ts` (GET) | View model: `lib/conversations/server/getUnderstandViewModel.ts`; feedback hook: `lib/conversations/react/useConversationFeedback.ts`; realtime hook: `lib/conversations/react/useConversationAnalysisRealtime.ts` (push-based updates via Supabase Realtime, with polling fallback); polling hook: `lib/conversations/react/useAnalysisStatus.ts` (deprecated, fallback only). See: `docs/realtime-setup.md` | `lib/conversations/react/useConversationFeedback.test.tsx`, `lib/conversations/react/__tests__/useConversationAnalysisRealtime.test.tsx` |
+| Understand tab (themes + feedback) | `app/hives/[hiveId]/conversations/[conversationId]/understand/page.tsx`, `app/components/conversation/UnderstandViewContainer.tsx`, `app/components/conversation/UnderstandView.tsx` | `app/api/conversations/[conversationId]/feedback/route.ts` (POST; returns 409 FEEDBACK_DISABLED for decision sessions), `app/api/conversations/[conversationId]/analysis-status/route.ts` (GET, fallback), `app/api/conversations/[conversationId]/understand/route.ts` (GET) | View model: `lib/conversations/server/getUnderstandViewModel.ts`; feedback hook: `lib/conversations/react/useConversationFeedback.ts`; realtime hook: `lib/conversations/react/useConversationAnalysisRealtime.ts` (push-based updates via Supabase Realtime, with polling fallback); polling hook: `lib/conversations/react/useAnalysisStatus.ts` (deprecated, fallback only). See: `docs/realtime-setup.md` | `lib/conversations/react/useConversationFeedback.test.tsx`, `lib/conversations/react/__tests__/useConversationAnalysisRealtime.test.tsx` |
+| Vote tab (quadratic voting, decision sessions only) | `app/hives/[hiveId]/conversations/[conversationId]/vote/page.tsx`, `app/components/conversation/VoteView.tsx`, `app/components/conversation/VoteViewContainer.tsx` | `app/api/conversations/[conversationId]/votes/route.ts` (GET/POST) | View model: `lib/conversations/server/getVoteViewModel.ts`; voting service: `lib/conversations/server/voteOnProposal.ts` (calls RPC); fetch votes: `lib/conversations/server/getUserVotes.ts`; RPC function: `vote_on_proposal` (atomic budget enforcement in PostgreSQL, 99 credit budget, cost = votes²); schemas: `lib/conversations/schemas.ts` (voteOnProposalSchema, getVotesResponseSchema); types: `types/conversation-vote.ts` | (add test coverage if changing) |
 | Upload CSV responses | `lib/conversations/react/useNewSessionWizard.ts` | `app/api/conversations/[conversationId]/upload/route.ts` (POST) | Importer: `lib/conversations/server/importResponsesFromCsv.ts` | `lib/conversations/server/__tests__/importResponsesFromCsv.test.ts` |
 | Trigger analysis | `lib/conversations/react/useNewSessionWizard.ts` | `app/api/conversations/[conversationId]/analyze/route.ts` (POST) | Queueing: `lib/conversations/server/enqueueConversationAnalysis.ts`; worker+pipeline: `scripts/README.md`, `scripts/analysis-worker.ts`, `lib/conversations/server/runConversationAnalysis.ts` | (pipeline is covered via unit tests around domain helpers; add integration tests if you change orchestration) |
 | Result/Report tab (view) | `app/hives/[hiveId]/conversations/[conversationId]/result/page.tsx`, `app/components/conversation/ReportView.tsx` | (read via server) | View model: `lib/conversations/server/getReportViewModel.ts`; gating: `lib/conversations/domain/reportRules.ts` | `lib/conversations/domain/__tests__/reportRules.test.ts` |
@@ -42,5 +63,14 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 
 ## Shared Types (Contracts)
 
-- Conversations: `types/conversations.ts`, `types/conversation-understand.ts`, `types/conversation-report.ts`
+- Conversations: `types/conversations.ts`, `types/conversation-understand.ts`, `types/conversation-report.ts`, `types/conversation-vote.ts`
 - Hives/members/settings: `types/members.ts`, `types/hive-settings.ts`, plus domain-ish types in `lib/hives/domain/hive.types.ts`
+- API: `types/api.ts` (shared API contracts)
+
+## Database Schema
+
+- Migrations: `supabase/migrations/` (latest: `006_add_solution_space_fields.sql` adds decision session support)
+- Key additions for decision sessions:
+  - `conversations.source_conversation_id` and `conversations.source_report_version` (link to problem space report)
+  - `conversation_proposal_votes` table (userId, responseId, votes, quadratic voting)
+  - `vote_on_proposal()` RPC function (atomic budget enforcement)

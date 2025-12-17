@@ -14,6 +14,7 @@ import type { NavbarViewModel, NavbarPage } from "@/types/navbar";
 import { getUserHives, getHiveById, checkHiveMembership } from "./data/hiveRepository";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
 import { redirect } from "next/navigation";
+import { getAvatarUrl } from "@/lib/storage/server/getAvatarUrl";
 
 interface GetNavbarViewModelParams {
   hiveKey?: string; // Can be slug or UUID
@@ -44,10 +45,26 @@ export async function getNavbarViewModel(
   const supabase = await supabaseServerClient();
 
   // 2. Build user view model
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, avatar_path")
+    .eq("id", session.user.id)
+    .maybeSingle();
+
+  const profileDisplayName = profile?.display_name?.trim?.() || null;
+  const displayName =
+    profileDisplayName ||
+    session.user.name ||
+    session.user.email.split("@")[0] ||
+    "User";
+
+  const avatarPath = profile?.avatar_path ?? null;
+  const avatarUrl = avatarPath ? await getAvatarUrl(supabase, avatarPath) : null;
+
   const user = {
-    displayName: session.user.name || session.user.email.split("@")[0] || "User",
+    displayName,
     email: session.user.email,
-    avatarUrl: null, // TODO: Add avatar support to session type
+    avatarUrl,
   };
 
   // 3. Fetch user's hives
