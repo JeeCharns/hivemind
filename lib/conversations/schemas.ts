@@ -102,7 +102,7 @@ export type ApiError = z.infer<typeof apiErrorSchema>;
  * Schema for voting on a proposal (quadratic voting)
  */
 export const voteOnProposalSchema = z.object({
-  responseId: z.string().uuid(),
+  responseId: z.string(), // BIGINT as string (not UUID)
   delta: z.union([z.literal(1), z.literal(-1)]),
 });
 

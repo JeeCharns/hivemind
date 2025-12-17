@@ -54,14 +54,14 @@ export async function getVoteViewModel(
     const isAnonymous = r.is_anonymous ?? false;
 
     return {
-      id: r.id,
+      id: String(r.id), // Convert to string for consistent key matching
       text: r.response_text,
       author: {
         name: isAnonymous ? "Anonymous" : (profile?.display_name || "Member"),
         avatarUrl: isAnonymous ? null : (profile?.avatar_path || null),
       },
       createdAt: r.created_at,
-      currentVotes: voteSummary.votes[r.id] || 0,
+      currentVotes: voteSummary.votes[String(r.id)] || 0, // Use string key to match votes object
     };
   });
 
