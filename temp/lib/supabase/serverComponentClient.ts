@@ -7,10 +7,12 @@ import { cookies } from "next/headers";
  */
 export async function createSupabaseServerComponentClient(): Promise<SupabaseClient> {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const serviceRole = process.env.SUPABASE_SECRET_KEY;
-  if (!url || !anon) {
-    throw new Error("Supabase server client is not configured (URL/anon key missing)");
+  if (!url || !publishableKey) {
+    throw new Error(
+      "Supabase server client is not configured (NEXT_PUBLIC_SUPABASE_URL/SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY missing)"
+    );
   }
 
   // Look for the supabase auth token cookie (sb-<project>-auth-token)
@@ -31,7 +33,7 @@ export async function createSupabaseServerComponentClient(): Promise<SupabaseCli
 
   // If we have an access token, use anon + Authorization so RLS applies correctly.
   if (accessToken) {
-    return createClient(url, anon, {
+    return createClient(url, publishableKey, {
       global: {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
@@ -46,7 +48,7 @@ export async function createSupabaseServerComponentClient(): Promise<SupabaseCli
   // but note this bypasses RLS. Suitable only for server-only reads like resolving
   // last_hive_id. For stricter security, add middleware to sync auth cookies.
   if (!serviceRole) {
-    return createClient(url, anon);
+    return createClient(url, publishableKey);
   }
   return createClient(url, serviceRole);
 }

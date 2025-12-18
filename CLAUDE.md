@@ -90,6 +90,9 @@ Before finishing, ensure the right gates were run:
 - Validate external boundaries with Zod (request bodies, uploads): `lib/**/schemas.ts` / `lib/**/data/*`.
 - Put business logic in `lib/` (server services, domain helpers, clients/hooks); keep UI presentational.
 - Prefer updating documentation by linking to real code (files/functions) over duplicating logic in prose.
+- Supabase env var naming convention:
+  - Client/browser: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (do not use `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+  - Server/scripts: `SUPABASE_SECRET_KEY` (legacy alias `SUPABASE_SERVICE_ROLE_KEY` may exist)
 
 ## Additional Guardrails
 

@@ -146,3 +146,8 @@ This repo treats tooling as a quality gate (not optional advice).
 - Avoid duplicating route trees (e.g. `app/hives/*` vs `app/(hives)/*`) unless intentional.
 - If a second route tree is intentional, document the canonical path and rationale in `docs/ARCHITECTURE.md`.
 - Middleware/proxy: this repo uses `proxy.ts` as the Next.js entrypoint. Do not add `middleware.ts` (having both triggers a runtime error and the app won’t start).
+
+## Supabase Environment Variables (Naming Convention)
+
+- Client/browser: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (do not use `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- Server/scripts: `SUPABASE_SECRET_KEY` (service role key; legacy alias `SUPABASE_SERVICE_ROLE_KEY` may exist)

@@ -208,7 +208,7 @@ Location: [app/components/conversation/UnderstandViewContainer.tsx](../app/compo
 
 **Connection errors:**
 
-1. Check Supabase URL/anon key are correct
+1. Check Supabase URL/publishable key are correct
 2. Verify user is authenticated (`auth.uid()` should return user ID)
 3. Check browser network tab for WebSocket connection
 4. Fallback polling should activate if realtime fails
@@ -314,7 +314,7 @@ SELECT * FROM conversations WHERE id = '<conversation-id>';
 
 ### Authentication
 
-- Supabase client uses anon key + user session
+- Supabase client uses publishable key + user session
 - `auth.uid()` in RLS policies checks authenticated user
 - Unauthenticated users receive no events (RLS blocks)
 
