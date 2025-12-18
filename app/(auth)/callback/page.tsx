@@ -27,18 +27,59 @@ export default function AuthCallbackPage() {
         const searchParams = new URLSearchParams(window.location.search);
         const code = searchParams.get("code");
 
-        const errorParam = searchParams.get("error") || searchParams.get("error_code");
-        if (errorParam) {
-          router.push("/login?error=auth_failed");
-          return;
-        }
+        const errorCode =
+          searchParams.get("error_code") || searchParams.get("error");
 
-        // First, check if we already have a valid session
-        // This prevents unnecessary PKCE code exchange attempts when session exists
-        // (e.g., after HMR in development or when code verifier was cleared)
+        // First, check if we already have a valid session.
+        // Important: Some email clients/security scanners will open the magic link
+        // more than once. Supabase will then redirect subsequent opens with
+        // `otp_expired`, but the user may already be authenticated. In that case
+        // we should ignore the error params and continue.
         let {
           data: { session },
         } = await supabase.auth.getSession();
+
+        if (session) {
+          try {
+            window.history.replaceState({}, "", window.location.pathname);
+          } catch {
+            // Ignore history API failures.
+          }
+
+          await refresh();
+          notifySessionChange();
+
+          const returnUrl = sessionStorage.getItem("returnUrl");
+          if (returnUrl) {
+            sessionStorage.removeItem("returnUrl");
+            router.push(returnUrl);
+            return;
+          }
+
+          // Check profile status before routing
+          const profileStatusResponse = await fetch("/api/profile/status");
+          if (profileStatusResponse.ok) {
+            const profileStatus = await profileStatusResponse.json();
+            if (profileStatus.needsSetup) {
+              router.push("/profile-setup");
+              return;
+            }
+          }
+
+          router.push("/hives");
+          return;
+        }
+
+        // If we don't have a session and Supabase redirected with an error,
+        // send the user back to login with a helpful error code.
+        if (errorCode) {
+          if (errorCode === "otp_expired") {
+            router.push("/login?error=session_expired");
+            return;
+          }
+          router.push("/login?error=auth_failed");
+          return;
+        }
 
         // Only attempt code exchange if we don't have a session yet
         if (!session && code) {
@@ -92,6 +133,16 @@ export default function AuthCallbackPage() {
           sessionStorage.removeItem("returnUrl");
           router.push(returnUrl);
           return;
+        }
+
+        // Check profile status before routing
+        const profileStatusResponse = await fetch("/api/profile/status");
+        if (profileStatusResponse.ok) {
+          const profileStatus = await profileStatusResponse.json();
+          if (profileStatus.needsSetup) {
+            router.push("/profile-setup");
+            return;
+          }
         }
 
         // Default redirect to hives page

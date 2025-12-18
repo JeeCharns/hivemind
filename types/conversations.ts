@@ -33,6 +33,8 @@ export interface ConversationRow {
   created_at: string;
   analysis_status: AnalysisStatus | null;
   report_json: unknown | null;
+  source_conversation_id: string | null;
+  source_report_version: number | null;
 }
 
 /**

@@ -15,6 +15,8 @@ export interface CreateConversationParams {
   type: ConversationType;
   title: string;
   description?: string;
+  sourceConversationId?: string;
+  sourceReportVersion?: number;
 }
 
 export interface CreateConversationResult {
@@ -36,23 +38,78 @@ export async function createConversation(
   userId: string,
   params: CreateConversationParams
 ): Promise<CreateConversationResult> {
-  const { hiveId, type, title, description } = params;
+  const {
+    hiveId,
+    type,
+    title,
+    description,
+    sourceConversationId,
+    sourceReportVersion,
+  } = params;
 
   // Authorization: verify user is a member of the hive
   await requireHiveMember(supabase, userId, hiveId);
 
+  // Additional validation for decision sessions with source reports
+  if (type === "decide" && sourceConversationId) {
+    // Verify source conversation exists, is in same hive, and is type "understand"
+    const { data: sourceConv, error: sourceError } = await supabase
+      .from("conversations")
+      .select("id, hive_id, type")
+      .eq("id", sourceConversationId)
+      .maybeSingle();
+
+    if (sourceError || !sourceConv) {
+      throw new Error("Source conversation not found");
+    }
+
+    if (sourceConv.hive_id !== hiveId) {
+      throw new Error("Source conversation must be in the same hive");
+    }
+
+    if (sourceConv.type !== "understand") {
+      throw new Error('Source conversation must be type "understand"');
+    }
+
+    // If specific version requested, verify it exists
+    if (sourceReportVersion !== undefined) {
+      const { data: report, error: reportError } = await supabase
+        .from("conversation_reports")
+        .select("version")
+        .eq("conversation_id", sourceConversationId)
+        .eq("version", sourceReportVersion)
+        .maybeSingle();
+
+      if (reportError || !report) {
+        throw new Error(
+          `Report version ${sourceReportVersion} not found for source conversation`
+        );
+      }
+    }
+  }
+
   // Create conversation with initial state
+  const insertData: Record<string, unknown> = {
+    hive_id: hiveId,
+    type,
+    title,
+    description: description || null,
+    phase: "listen_open",
+    analysis_status: "not_started",
+    created_by: userId,
+  };
+
+  // Add source fields if provided (decision sessions only)
+  if (type === "decide" && sourceConversationId) {
+    insertData.source_conversation_id = sourceConversationId;
+    if (sourceReportVersion !== undefined) {
+      insertData.source_report_version = sourceReportVersion;
+    }
+  }
+
   const { data, error } = await supabase
     .from("conversations")
-    .insert({
-      hive_id: hiveId,
-      type,
-      title,
-      description: description || null,
-      phase: "listen_open",
-      analysis_status: "not_started",
-      created_by: userId,
-    })
+    .insert(insertData)
     .select("id, slug")
     .single();
 

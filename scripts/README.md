@@ -19,7 +19,7 @@ The analysis worker processes conversation analysis jobs asynchronously so the U
 
 - Database migrations applied (see `supabase/README.md`)
 - `OPENAI_API_KEY` configured
-- `SUPABASE_SERVICE_ROLE_KEY` configured (worker runs server-side)
+- `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`) configured (worker runs server-side)
 
 ### Environment Variables
 
@@ -27,6 +27,8 @@ The analysis worker processes conversation analysis jobs asynchronously so the U
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# (alias supported)
+SUPABASE_SECRET_KEY=your_service_role_key
 
 # OpenAI
 OPENAI_API_KEY=your_openai_api_key
@@ -44,4 +46,3 @@ WORKER_ID=worker-1
 npm run worker:dev
 npm run worker
 ```
-

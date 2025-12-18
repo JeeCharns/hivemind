@@ -50,13 +50,53 @@ export default async function ListenPage({ params }: ListenPageProps) {
 
   const currentUserDisplayName = profile?.display_name || "User";
 
-  // 5. Render client component with initial data
+  // 5. Fetch source report preview if this is a decision session with linked report
+  let sourceReportHtml: string | null = null;
+  let sourceReportConversationTitle: string | null = null;
+
+  if (
+    conversation.type === "decide" &&
+    conversation.source_conversation_id &&
+    conversation.source_report_version
+  ) {
+    try {
+      // Fetch the source conversation title
+      const { data: sourceConv } = await supabase
+        .from("conversations")
+        .select("title")
+        .eq("id", conversation.source_conversation_id)
+        .maybeSingle();
+
+      sourceReportConversationTitle = sourceConv?.title || "Problem Space Report";
+
+      // Fetch the report HTML from conversation_reports table
+      const { data: reportData } = await supabase
+        .from("conversation_reports")
+        .select("report_html")
+        .eq("conversation_id", conversation.source_conversation_id)
+        .eq("version", conversation.source_report_version)
+        .maybeSingle();
+
+      if (reportData?.report_html) {
+        sourceReportHtml = reportData.report_html;
+      }
+    } catch (err) {
+      console.error("[ListenPage] Failed to fetch source report:", err);
+      // Continue without report preview
+    }
+  }
+
+  // 6. Render client component with initial data
   return (
     <div className="mx-auto w-full max-w-7xl px-6">
       <ListenView
         conversationId={conversation.id}
         currentUserDisplayName={currentUserDisplayName}
         initialAnalysisStatus={conversation.analysis_status as AnalysisStatus | null}
+        sourceReportHtml={sourceReportHtml}
+        sourceReportConversationTitle={sourceReportConversationTitle}
+        conversationType={conversation.type as "understand" | "decide"}
+        sourceConversationId={conversation.source_conversation_id}
       />
     </div>
   );

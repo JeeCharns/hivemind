@@ -15,6 +15,7 @@ import { generateThemes, type Theme } from "@/lib/analysis/openai/themeGenerator
 interface ResponseData {
   id: string;
   text: string;
+  userId: string;
 }
 
 /**
@@ -48,7 +49,10 @@ export async function runConversationAnalysis(
     // 3. Generate embeddings
     const openai = createOpenAIClient();
     const texts = responses.map((r) => r.text);
-    const embeddings = await generateEmbeddings(openai, texts);
+    const rawEmbeddings = await generateEmbeddings(openai, texts);
+
+    // Normalize embeddings to unit length for better clustering
+    const embeddings = normalizeEmbeddings(rawEmbeddings);
 
     console.log(`[runConversationAnalysis] Generated ${embeddings.length} embeddings`);
 
@@ -61,22 +65,33 @@ export async function runConversationAnalysis(
     console.log(`[runConversationAnalysis] Reduced to 2D coordinates`);
 
     // 6. Cluster embeddings
-    const clusterIndices = clusterEmbeddings(embeddings);
+    const rawClusterIndices = clusterEmbeddings(embeddings);
+
+    // Relabel clusters by size (largest = 0, next = 1, etc.) for stable UX
+    const clusterIndices = relabelClustersBySize(rawClusterIndices);
 
     console.log(`[runConversationAnalysis] Clustered into ${new Set(clusterIndices).size} groups`);
 
-    // 7. Group responses by cluster
-    const responsesByCluster = new Map<number, string[]>();
+    // 7. Group responses by cluster with diverse sampling
+    const responsesByCluster = new Map<number, { texts: string[]; originalIndices: number[] }>();
     for (let i = 0; i < responses.length; i++) {
       const clusterIdx = clusterIndices[i];
       if (!responsesByCluster.has(clusterIdx)) {
-        responsesByCluster.set(clusterIdx, []);
+        responsesByCluster.set(clusterIdx, { texts: [], originalIndices: [] });
       }
-      responsesByCluster.get(clusterIdx)!.push(texts[i]);
+      const cluster = responsesByCluster.get(clusterIdx)!;
+      cluster.texts.push(texts[i]);
+      cluster.originalIndices.push(i);
     }
 
-    // 8. Generate themes
-    const themes = await generateThemes(openai, responsesByCluster);
+    // 8. Generate themes with diverse sampling
+    const themesInput = new Map<number, string[]>();
+    for (const [clusterIdx, { texts, originalIndices }] of responsesByCluster.entries()) {
+      // Sample diverse responses (spread across original order)
+      const sampledTexts = sampleDiverseResponses(texts, originalIndices, 20);
+      themesInput.set(clusterIdx, sampledTexts);
+    }
+    const themes = await generateThemes(openai, themesInput);
 
     console.log(`[runConversationAnalysis] Generated ${themes.length} themes`);
 
@@ -90,8 +105,15 @@ export async function runConversationAnalysis(
       themes
     );
 
-    // 10. Update status to 'ready'
+    // 10. Update status to 'ready' with tracking metadata
     await updateAnalysisStatus(supabase, conversationId, "ready");
+    await supabase
+      .from("conversations")
+      .update({
+        analysis_response_count: responses.length,
+        analysis_updated_at: new Date().toISOString(),
+      })
+      .eq("id", conversationId);
 
     console.log(`[runConversationAnalysis] Analysis complete for ${conversationId}`);
   } catch (error) {
@@ -115,7 +137,7 @@ async function fetchResponses(
 ): Promise<ResponseData[]> {
   const { data, error } = await supabase
     .from("conversation_responses")
-    .select("id, text")
+    .select("id, response_text, user_id")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
 
@@ -123,7 +145,19 @@ async function fetchResponses(
     throw new Error(`Failed to fetch responses: ${error.message}`);
   }
 
-  return data || [];
+  return (
+    (
+      data as
+        | Array<{ id: string; response_text: string; user_id: string }>
+        | null
+    )?.map(
+      (row) => ({
+        id: row.id,
+        text: row.response_text,
+        userId: row.user_id,
+      })
+    ) ?? []
+  );
 }
 
 /**
@@ -135,7 +169,12 @@ async function updateAnalysisStatus(
   status: "embedding" | "analyzing" | "ready" | "error",
   errorMessage?: string
 ): Promise<void> {
-  const update: any = {
+  const update: {
+    analysis_status: string;
+    analysis_error?: string | null;
+    analysis_response_count?: number;
+    analysis_updated_at?: string;
+  } = {
     analysis_status: status,
   };
 
@@ -167,25 +206,39 @@ async function saveAnalysisResults(
   themes: Theme[]
 ): Promise<void> {
   // 1. Update responses with coordinates and cluster indices
-  const responseUpdates = responses.map((response, i) => ({
-    id: response.id,
-    x: coordinates[i][0],
-    y: coordinates[i][1],
-    cluster_index: clusterIndices[i],
-  }));
-
-  // Batch update responses (Supabase upsert)
-  for (let i = 0; i < responseUpdates.length; i += 100) {
-    const batch = responseUpdates.slice(i, i + 100);
-
+  // Use sequential updates to avoid overwhelming Supabase connections
+  // This is more reliable than parallel updates for large batches
+  for (let i = 0; i < responses.length; i++) {
     const { error } = await supabase
       .from("conversation_responses")
-      .upsert(batch, { onConflict: "id" });
+      .update({
+        x_umap: coordinates[i][0],
+        y_umap: coordinates[i][1],
+        cluster_index: clusterIndices[i],
+      })
+      .eq("id", responses[i].id);
 
     if (error) {
-      throw new Error(`Failed to update responses: ${error.message}`);
+      console.error(
+        `[runConversationAnalysis] Failed to update response ${i + 1}/${responses.length}:`,
+        error
+      );
+      throw new Error(
+        `Failed to update response ${responses[i].id}: ${error.message} (code: ${error.code})`
+      );
+    }
+
+    // Log progress every 50 responses
+    if ((i + 1) % 50 === 0) {
+      console.log(
+        `[runConversationAnalysis] Updated ${i + 1}/${responses.length} responses`
+      );
     }
   }
+
+  console.log(
+    `[runConversationAnalysis] Successfully updated all ${responses.length} responses`
+  );
 
   // 2. Delete existing themes
   await supabase
@@ -211,4 +264,86 @@ async function saveAnalysisResults(
       throw new Error(`Failed to insert themes: ${error.message}`);
     }
   }
+}
+
+/**
+ * Normalize embeddings to unit length
+ *
+ * @param embeddings - Array of embedding vectors
+ * @returns Normalized embeddings
+ */
+function normalizeEmbeddings(embeddings: number[][]): number[][] {
+  return embeddings.map((embedding) => {
+    const magnitude = Math.sqrt(
+      embedding.reduce((sum, val) => sum + val * val, 0)
+    );
+    if (magnitude === 0) return embedding;
+    return embedding.map((val) => val / magnitude);
+  });
+}
+
+/**
+ * Relabel clusters by size (largest = 0, next = 1, etc.)
+ *
+ * @param clusterIndices - Original cluster assignments
+ * @returns Relabeled cluster indices
+ */
+function relabelClustersBySize(clusterIndices: number[]): number[] {
+  // Count cluster sizes
+  const clusterSizes = new Map<number, number>();
+  for (const idx of clusterIndices) {
+    clusterSizes.set(idx, (clusterSizes.get(idx) || 0) + 1);
+  }
+
+  // Sort clusters by size (descending)
+  const sortedClusters = Array.from(clusterSizes.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([idx]) => idx);
+
+  // Create mapping from old to new indices
+  const relabelMap = new Map<number, number>();
+  sortedClusters.forEach((oldIdx, newIdx) => {
+    relabelMap.set(oldIdx, newIdx);
+  });
+
+  // Apply relabeling
+  return clusterIndices.map((idx) => relabelMap.get(idx) ?? idx);
+}
+
+/**
+ * Sample diverse responses from a cluster
+ * Spreads samples across the original order for diversity
+ *
+ * @param texts - Response texts in cluster
+ * @param originalIndices - Original response indices
+ * @param maxSamples - Maximum number of samples
+ * @returns Sampled response texts
+ */
+function sampleDiverseResponses(
+  texts: string[],
+  originalIndices: number[],
+  maxSamples: number
+): string[] {
+  if (texts.length <= maxSamples) {
+    return texts;
+  }
+
+  // Create array of [text, originalIndex] pairs
+  const pairs = texts.map((text, i) => ({
+    text,
+    originalIndex: originalIndices[i],
+  }));
+
+  // Sort by original index
+  pairs.sort((a, b) => a.originalIndex - b.originalIndex);
+
+  // Take evenly spaced samples
+  const step = texts.length / maxSamples;
+  const samples: string[] = [];
+  for (let i = 0; i < maxSamples; i++) {
+    const idx = Math.floor(i * step);
+    samples.push(pairs[idx].text);
+  }
+
+  return samples;
 }

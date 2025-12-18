@@ -25,7 +25,7 @@ export default async function HiveLayout({
     <>
       <Navbar viewModel={navbarViewModel} />
       {/* Add top padding to account for fixed navbar */}
-      <div className="pt-4 min-h-screen">{children}</div>
+      <div className="pt-16 min-h-screen">{children}</div>
     </>
   );
 }

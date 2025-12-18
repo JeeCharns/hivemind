@@ -11,6 +11,7 @@ import { parse } from "csv-parse/sync";
 import { randomUUID } from "crypto";
 import type { ListenTag } from "../domain/listen.types";
 import { LISTEN_TAGS } from "../domain/tags";
+import { maybeEnqueueAutoAnalysis } from "./maybeEnqueueAutoAnalysis";
 
 const MAX_ROWS = 1000;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
@@ -174,6 +175,9 @@ export async function importResponsesFromCsv(
       analysis_error: null,
     })
     .eq("id", conversationId);
+
+  // Try to auto-trigger analysis if threshold is met
+  await maybeEnqueueAutoAnalysis(supabase, conversationId, userId);
 
   return {
     importedCount: rows.length,

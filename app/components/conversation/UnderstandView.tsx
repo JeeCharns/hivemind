@@ -59,9 +59,10 @@ const scalePoints = (points: ResponsePoint[], size = CANVAS_SIZE) => {
 
 export interface UnderstandViewProps {
   viewModel: UnderstandViewModel;
+  conversationType?: "understand" | "decide";
 }
 
-export default function UnderstandView({ viewModel }: UnderstandViewProps) {
+export default function UnderstandView({ viewModel, conversationType = "understand" }: UnderstandViewProps) {
   const { conversationId, responses, themes, feedbackItems } = viewModel;
 
   const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
@@ -354,35 +355,43 @@ export default function UnderstandView({ viewModel }: UnderstandViewProps) {
                     {resp.responseText}
                   </p>
 
-                  <div className="flex gap-2">
-                    {(["agree", "pass", "disagree"] as Feedback[]).map((fb) => {
-                      const active = resp.current === fb;
-                      const base =
-                        fb === "agree"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : fb === "disagree"
-                          ? "bg-red-50 text-red-700 border-red-200"
-                          : "bg-slate-50 text-slate-700 border-slate-200";
-                      return (
-                        <Button
-                          key={fb}
-                          variant="secondary"
-                          size="sm"
-                          disabled={loadingId === resp.id}
-                          onClick={() => vote(resp.id, fb)}
-                          className={`flex-1 ${
-                            active
-                              ? base
-                              : "bg-white text-slate-700 border-slate-200 hover:border-indigo-200"
-                          }`}
-                        >
-                          {fb === "agree" && "Agree"}
-                          {fb === "pass" && "Pass"}
-                          {fb === "disagree" && "Disagree"}
-                        </Button>
-                      );
-                    })}
-                  </div>
+                  {conversationType === "understand" && (
+                    <div className="flex gap-2">
+                      {(["agree", "pass", "disagree"] as Feedback[]).map((fb) => {
+                        const active = resp.current === fb;
+                        const base =
+                          fb === "agree"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : fb === "disagree"
+                            ? "bg-red-50 text-red-700 border-red-200"
+                            : "bg-slate-50 text-slate-700 border-slate-200";
+                        return (
+                          <Button
+                            key={fb}
+                            variant="secondary"
+                            size="sm"
+                            disabled={loadingId === resp.id}
+                            onClick={() => vote(resp.id, fb)}
+                            className={`flex-1 ${
+                              active
+                                ? base
+                                : "bg-white text-slate-700 border-slate-200 hover:border-indigo-200"
+                            }`}
+                          >
+                            {fb === "agree" && "Agree"}
+                            {fb === "pass" && "Pass"}
+                            {fb === "disagree" && "Disagree"}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {conversationType === "decide" && (
+                    <p className="text-xs text-slate-500 italic mt-1">
+                      Feedback disabled for decision sessions
+                    </p>
+                  )}
                 </div>
               ))
             )}

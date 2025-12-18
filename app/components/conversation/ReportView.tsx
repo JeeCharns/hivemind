@@ -17,7 +17,10 @@ import {
 } from "@phosphor-icons/react";
 import { MIN_RESPONSES_FOR_REPORT } from "@/lib/conversations/domain/reportRules";
 import { useConversationReport } from "@/lib/conversations/react/useConversationReport";
-import type { ResultViewModel, AgreementSummary } from "@/types/conversation-report";
+import type {
+  ResultViewModel,
+  AgreementSummary,
+} from "@/types/conversation-report";
 import Button from "@/app/components/button";
 
 export interface ReportViewProps {
@@ -25,13 +28,24 @@ export interface ReportViewProps {
 }
 
 export default function ReportView({ viewModel }: ReportViewProps) {
-  const { currentHtml, selectedVersion, versions, loading, error, generate, download, selectVersion } =
-    useConversationReport({ viewModel });
+  const {
+    currentHtml,
+    selectedVersion,
+    versions,
+    loading,
+    error,
+    generate,
+    download,
+    selectVersion,
+  } = useConversationReport({ viewModel });
 
-  const hasEnoughResponses = viewModel.responseCount >= MIN_RESPONSES_FOR_REPORT;
+  const hasEnoughResponses =
+    viewModel.responseCount >= MIN_RESPONSES_FOR_REPORT;
   const hasFeedbackData =
-    (viewModel.agreementSummaries?.filter((s) => s.type === "agreement").length ?? 0) > 0 ||
-    (viewModel.agreementSummaries?.filter((s) => s.type === "divisive").length ?? 0) > 0;
+    (viewModel.agreementSummaries?.filter((s) => s.type === "agreement")
+      .length ?? 0) > 0 ||
+    (viewModel.agreementSummaries?.filter((s) => s.type === "divisive")
+      .length ?? 0) > 0;
 
   const formatTimestamp = (ts: string | null) => {
     if (!ts) return "Unknown time";
@@ -55,10 +69,7 @@ export default function ReportView({ viewModel }: ReportViewProps) {
     selectVersion(parsed);
   };
 
-  const renderResponseList = (
-    title: string,
-    items: AgreementSummary[]
-  ) => (
+  const renderResponseList = (title: string, items: AgreementSummary[]) => (
     <div className="flex flex-col justify-end items-start bg-white rounded-xl border border-slate-200 px-4 md:px-6 py-5 gap-4 shadow-sm">
       <h4 className="text-[#172847] text-base font-medium">{title}</h4>
       {items.length === 0 ? (
@@ -92,8 +103,10 @@ export default function ReportView({ viewModel }: ReportViewProps) {
     </div>
   );
 
-  const agreementItems = viewModel.agreementSummaries?.filter((s) => s.type === "agreement") ?? [];
-  const divisiveItems = viewModel.agreementSummaries?.filter((s) => s.type === "divisive") ?? [];
+  const agreementItems =
+    viewModel.agreementSummaries?.filter((s) => s.type === "agreement") ?? [];
+  const divisiveItems =
+    viewModel.agreementSummaries?.filter((s) => s.type === "divisive") ?? [];
 
   return (
     <div className="pt-10">
@@ -177,7 +190,7 @@ export default function ReportView({ viewModel }: ReportViewProps) {
                 </div>
               </div>
             )}
-            <div className="flex-1 p-6 md:p-8 overflow-y-auto min-h-[320px]">
+            <div className="flex-1 p-6 md:p-8 overflow-y-auto min-h-80">
               {!hasEnoughResponses ? (
                 <p className="text-slate-500 italic">
                   At least 30 responses are required before generating the
@@ -192,8 +205,54 @@ export default function ReportView({ viewModel }: ReportViewProps) {
                   <p className="font-medium">Synthesizing insights...</p>
                 </div>
               ) : currentHtml ? (
-                <article className="prose prose-slate prose-sm max-w-none font-sans prose-headings:font-sans prose-headings:font-semibold prose-p:font-sans prose-li:font-sans prose-strong:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg">
-                  <div dangerouslySetInnerHTML={{ __html: currentHtml }} />
+                <article>
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+                      .report-content h1 {
+                        font-size: 1.5rem;
+                        font-weight: 600;
+                        margin-bottom: 1rem;
+                        margin-top: 0;
+                        color: #1e293b;
+                      }
+                      .report-content h2 {
+                        font-size: 1.25rem;
+                        font-weight: 600;
+                        margin-top: 1.5rem;
+                        margin-bottom: 0.75rem;
+                        color: #334155;
+                      }
+                      .report-content h3 {
+                        font-size: 1.125rem;
+                        font-weight: 600;
+                        margin-top: 1.25rem;
+                        margin-bottom: 0.5rem;
+                        color: #475569;
+                      }
+                      .report-content p {
+                        margin-bottom: 1rem;
+                        line-height: 1.6;
+                        color: #475569;
+                      }
+                      .report-content ul,
+                      .report-content ol {
+                        margin-bottom: 1rem;
+                        padding-left: 1.5rem;
+                      }
+                      .report-content li {
+                        margin-bottom: 0.5rem;
+                        line-height: 1.6;
+                        color: #475569;
+                      }
+                      .report-content ul li {
+                        list-style-type: disc;
+                      }
+                      .report-content ol li {
+                        list-style-type: decimal;
+                      }
+                    `
+                  }} />
+                  <div className="report-content" dangerouslySetInnerHTML={{ __html: currentHtml }} />
                 </article>
               ) : (
                 <p className="text-slate-400 italic text-center mt-10">

@@ -29,10 +29,10 @@ export async function POST(
 
     const supabase = await supabaseServerClient();
 
-    // 2. Get conversation to verify hive membership
+    // 2. Get conversation to verify hive membership and check type
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
-      .select("hive_id")
+      .select("hive_id, type")
       .eq("id", conversationId)
       .maybeSingle();
 
@@ -45,6 +45,11 @@ export async function POST(
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
     } catch (_err) {
       return jsonError("Unauthorized: Not a member of this hive", 403);
+    }
+
+    // 4. Feedback is disabled for decision sessions (read-only Understand tab)
+    if (conversation.type === "decide") {
+      return jsonError("Feedback is disabled for decision sessions", 409, "FEEDBACK_DISABLED");
     }
 
     // 4. Validate input

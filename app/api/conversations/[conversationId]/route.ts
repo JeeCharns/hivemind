@@ -51,6 +51,9 @@ export async function DELETE(
       { table: "conversation_themes", column: "conversation_id" },
       { table: "response_feedback", column: "conversation_id" },
       { table: "response_likes", column: "response_id", joinTable: "conversation_responses" },
+      { table: "quadratic_vote_budgets", column: "conversation_id" },
+      { table: "quadratic_vote_allocations", column: "conversation_id" },
+      { table: "conversation_analysis_jobs", column: "conversation_id" },
       { table: "conversation_responses", column: "conversation_id" },
     ];
 

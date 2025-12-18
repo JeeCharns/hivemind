@@ -11,6 +11,7 @@
 import { useState } from "react";
 import type { HiveWithSignedUrl } from "@/lib/hives/server/getHivesWithSignedUrls";
 import CreateHiveForm from "@/app/(hives)/components/CreateHiveForm";
+import JoinHiveSearch from "@/app/hives/components/JoinHiveSearch";
 import Button from "@/app/components/button";
 import HiveLogo from "@/app/components/hive-logo";
 
@@ -93,12 +94,6 @@ export default function HivesHome({ hives, error }: HivesHomeProps) {
               </button>
             ))}
 
-            {hives.length === 0 && !showCreateForm && (
-              <div className="text-sm text-slate-500 text-center py-4">
-                You are not a member of any hives yet.
-              </div>
-            )}
-
             {showCreateForm ? (
               <div className="space-y-3">
                 <CreateHiveForm
@@ -119,13 +114,18 @@ export default function HivesHome({ hives, error }: HivesHomeProps) {
                 </button>
               </div>
             ) : (
-              <Button
-                className="w-full py-4"
-                onClick={() => setShowCreateForm(true)}
-              >
-                Create a New Hive
-              </Button>
+              <>
+                <Button
+                  className="w-full py-4"
+                  onClick={() => setShowCreateForm(true)}
+                >
+                  Create a New Hive
+                </Button>
+              </>
             )}
+
+            {/* Join search block (matches temp welcome page styling/text) */}
+            <JoinHiveSearch showMembershipStatus={false} disableAlreadyMember={false} />
           </div>
         )}
       </div>
