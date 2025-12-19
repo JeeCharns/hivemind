@@ -30,6 +30,7 @@ Prefer linking to real code (files/functions) over rewriting logic in prose.
 - Golden paths (reference implementations): `docs/examples/golden-path-api.md`
 - ADR index: `docs/decisions/README.md`
 - Record a decision (ADR): `docs/decisions/adr-template.md`
+- Feature specs (when present): `docs/specs/*`
 
 ## Tests (Where They Live)
 

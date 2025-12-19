@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import LoginForm from "../components/LoginForm";
 import { useAuth } from "../hooks/useAuth";
 import AuthError from "../components/AuthError";
@@ -10,6 +11,10 @@ import Spinner from "../../components/spinner";
 import { GuestGuard } from "@/lib/auth/react/GuestGuard";
 
 export default function Page() {
+  const searchParams = useSearchParams();
+  const intent = searchParams?.get("intent");
+  const inviteToken = searchParams?.get("invite");
+
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [prefetching, setPrefetching] = useState(true);
@@ -18,6 +23,7 @@ export default function Page() {
     "sent" | "rate_limit" | null
   >(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [hiveName, setHiveName] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
   const { login, loading } = useAuth();
 
@@ -25,6 +31,22 @@ export default function Page() {
     ? Math.max(0, Math.ceil((cooldownUntilMs - nowMs) / 1000))
     : 0;
   const isCoolingDown = secondsLeft > 0;
+
+  // Fetch hive name if this is a join intent
+  useEffect(() => {
+    if (intent === "join" && inviteToken) {
+      fetch(`/api/invites/${inviteToken}/preview`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.hiveName) {
+            setHiveName(data.hiveName);
+          }
+        })
+        .catch(() => {
+          // Silently fail - will show default header
+        });
+    }
+  }, [intent, inviteToken]);
 
   useEffect(() => {
     // Simulate prefetch/load to show spinner
@@ -118,7 +140,9 @@ export default function Page() {
                 className="text-center text-[#172847] text-2xl font-semibold leading-[31px]"
                 style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}
               >
-                Sign Up or Create Account
+                {intent === "join" && hiveName
+                  ? `Enter your email address to join ${hiveName}`
+                  : "Sign Up or Create Account"}
               </h1>
               <p
                 className="text-center text-[#566175] text-sm leading-[19.6px] max-w-md"

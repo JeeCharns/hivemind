@@ -31,7 +31,7 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 | Flow | UI entry | API | Core logic | Tests |
 | --- | --- | --- | --- | --- |
 | List my hives | `app/hives/page.tsx`, `app/hives/HivesHome.tsx` | `app/api/hives/route.ts` (GET) | Server list: `lib/hives/server/getHivesWithSignedUrls.ts` | (coverage lives mostly in server tests; add feature tests in `app/tests` when changing behavior) |
-| Create hive | `app/hives/HivesHome.tsx` | `app/api/hives/route.ts` (POST) | Validation: `lib/hives/data/hiveSchemas.ts` | (add integration tests in `app/tests/api` if you touch this) |
+| Create hive (3-step wizard) | Entry: `app/hives/HivesHome.tsx` → `/hives/new`; Wizard: `app/hives/new/page.tsx`, `app/hives/new/new-hive-wizard.tsx` (Step 1: name+logo, Step 2: draft invites, Step 3: create+invite orchestration) | `app/api/hives/route.ts` (POST create), `app/api/hives/[hiveId]/invite/route.ts` (POST invites) | Create service: `lib/hives/server/createHive.ts`; invite validation: `lib/hives/data/hiveSchemas.ts`; validation: `lib/hives/schemas.ts`; See: `docs/specs/create-hive-wizard.md` | `app/tests/api/hives-create.test.ts`, `app/tests/api/hives-invite.test.ts` |
 | Search hives | `app/hives/components/JoinHiveSearch.tsx` | `app/api/hives/search/route.ts` (GET) | Server service: `lib/hives/server/searchJoinableHives.ts`; validation: Zod schema in route (term 1-80 chars, limit 1-10) | `app/tests/api/hives-search.test.ts` |
 | Join a hive | `app/hives/components/JoinHiveSearch.tsx` | `app/api/hives/[hiveId]/join/route.ts` (POST) | Server service: `lib/hives/server/joinHive.ts` (idempotent upsert); validation: Zod UUID check | `app/tests/api/hives-join.test.ts` |
 | Hive details + conversations | `app/hives/[hiveId]/page.tsx` | `app/api/hives/[hiveId]/route.ts` (GET) | Hive resolution: `lib/hives/data/hiveResolver.ts`; conversations list: `lib/conversations/server/listHiveConversations.ts` | (see conversation tests below) |
@@ -39,7 +39,10 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 | Hive settings (view) | `app/hives/[hiveId]/settings/page.tsx` | `app/api/hives/[hiveId]/route.ts` (GET) | View model + authz: `lib/hives/server/getHiveSettings.ts` | `lib/hives/server/authorizeHiveAdmin.test.ts` |
 | Hive settings (update) | `app/hives/[hiveId]/settings/SettingsClient.tsx` | `app/api/hives/[hiveId]/route.ts` (PATCH) | Validation: `lib/hives/data/hiveSchemas.ts` | `lib/hives/server/authorizeHiveAdmin.test.ts` |
 | Members list | `app/hives/[hiveId]/members/page.tsx` | (none; server fetch) | `lib/members/server/getMembersWithSignedUrls.ts` | `lib/members/validation/memberValidation.test.ts` |
-| Invite members | `app/hives/[hiveId]/invite/page.tsx` | `app/api/hives/[hiveId]/invite/route.ts` (POST), `app/api/hives/[hiveId]/invites/route.ts` (GET), `app/api/hives/[hiveId]/invites/[inviteId]/route.ts` (DELETE) | Client hook: `lib/hives/react/useInvites.ts`; API client: `lib/hives/data/hiveClient.ts`; validation: `lib/hives/data/hiveSchemas.ts` | (add `app/tests/api` coverage if changing) |
+| Invite members (email-based) | `app/hives/[hiveId]/invite/page.tsx` | `app/api/hives/[hiveId]/invite/route.ts` (POST), `app/api/hives/[hiveId]/invites/route.ts` (GET), `app/api/hives/[hiveId]/invites/[inviteId]/route.ts` (DELETE) | Client hook: `lib/hives/react/useInvites.ts`; API client: `lib/hives/data/hiveClient.ts`; validation: `lib/hives/data/hiveSchemas.ts` | (add `app/tests/api` coverage if changing) |
+| Share hive via invite link | Entry: Conversation "Share" button (`app/components/conversation/ConversationHeader.tsx`), Hive invite page; Modal: `app/hives/components/HiveShareInvitePanel.tsx` | `app/api/hives/[hiveId]/share-link/route.ts` (GET/PATCH), `app/api/invites/[token]/preview/route.ts` (GET, public), `app/api/invites/[token]/accept/route.ts` (POST) | Server service: `lib/hives/server/shareLinkService.ts`; validation: `lib/hives/schemas.ts`; two access modes: 'anyone' (any user with link), 'invited_only' (only invited emails can join); See: `docs/specs/hive-share-invite-links.md` | (add `app/tests/api` coverage if changing) |
+| Accept invite link | `app/invite/[token]/page.tsx` (redirects to login if not authed, then accepts invite) | `app/api/invites/[token]/accept/route.ts` (POST) | Idempotent join; validates email whitelist for 'invited_only' mode; marks invite accepted; See: `docs/specs/hive-share-invite-links.md` | (add `app/tests/api` coverage if changing) |
+| Login with join intent | `app/(auth)/login/page.tsx` (shows "Enter your email to join {HiveName}" header when `?intent=join&invite=<token>`) | `app/api/invites/[token]/preview/route.ts` (GET, public, fetches hive name) | After login, callback returns to `/invite/<token>` which triggers accept flow; See: `docs/specs/hive-share-invite-links.md` | (add `app/tests` coverage if changing) |
 
 ## Conversations (Lifecycle)
 
@@ -69,8 +72,10 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 
 ## Database Schema
 
-- Migrations: `supabase/migrations/` (latest: `006_add_solution_space_fields.sql` adds decision session support)
-- Key additions for decision sessions:
+- Migrations: `supabase/migrations/` (latest: `007_create_hive_invite_links.sql` adds shareable invite link support)
+- Key additions for invite links:
+  - `hive_invite_links` table (one token per hive, 'anyone' or 'invited_only' access modes)
+- Key additions for decision sessions (migration 006):
   - `conversations.source_conversation_id` and `conversations.source_report_version` (link to problem space report)
   - `conversation_proposal_votes` table (userId, responseId, votes, quadratic voting)
   - `vote_on_proposal()` RPC function (atomic budget enforcement)

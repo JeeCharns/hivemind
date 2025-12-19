@@ -6,6 +6,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ensureProfileExists } from "@/lib/profiles/server/ensureProfileExists";
 
 export interface JoinHiveResult {
   hiveId: string;
@@ -15,47 +16,6 @@ export interface JoinHiveResult {
 interface JoinHiveUser {
   id: string;
   email?: string;
-}
-
-function deriveDisplayName(email?: string): string {
-  const trimmed = (email ?? "").trim().toLowerCase();
-  if (!trimmed) return "User";
-  const at = trimmed.indexOf("@");
-  const localPart = at > 0 ? trimmed.slice(0, at) : trimmed;
-  if (!localPart) return "User";
-  return localPart.slice(0, 32);
-}
-
-async function ensureProfileExists(
-  supabase: SupabaseClient,
-  user: JoinHiveUser
-): Promise<void> {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[ensureProfileExists] Query error:", error);
-    throw new Error(`Failed to fetch profile: ${error.message}`);
-  }
-
-  if (profile) return;
-
-  const displayName = deriveDisplayName(user.email);
-
-  // Create a minimal profile row to satisfy foreign key constraints.
-  // This should be allowed by RLS policies for the authenticated user.
-  const { error: insertError } = await supabase.from("profiles").insert({
-    id: user.id,
-    display_name: displayName,
-  });
-
-  if (insertError) {
-    console.error("[ensureProfileExists] Insert error:", insertError);
-    throw new Error(`Failed to initialize profile: ${insertError.message}`);
-  }
 }
 
 /**

@@ -13,10 +13,12 @@ import {
   ArrowLeftIcon,
   DotsThreeOutlineVertical,
   ExportIcon,
+  X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Button from "@/app/components/button";
 import Alert from "@/app/components/alert";
+import HiveShareInvitePanel from "@/app/hives/components/HiveShareInvitePanel";
 
 interface ConversationHeaderProps {
   conversationId: string;
@@ -24,6 +26,7 @@ interface ConversationHeaderProps {
   conversationKey: string;
   title: string;
   conversationType?: "understand" | "decide";
+  isAdmin?: boolean;
 }
 
 export default function ConversationHeader({
@@ -32,6 +35,7 @@ export default function ConversationHeader({
   conversationKey,
   title,
   conversationType = "understand",
+  isAdmin = false,
 }: ConversationHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -39,6 +43,7 @@ export default function ConversationHeader({
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -178,7 +183,12 @@ export default function ConversationHeader({
               })}
             </div>
 
-            <Button variant="ghost" size="sm" className="h-11 gap-2 text-[#9498B0] hover:text-[#3A1DC8]">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-11 gap-2 text-[#9498B0] hover:text-[#3A1DC8]"
+              onClick={() => setShareModalOpen(true)}
+            >
               <ExportIcon size={16} className="text-inherit" />
               Share
             </Button>
@@ -206,6 +216,33 @@ export default function ConversationHeader({
                 disabled={deleting}
               >
                 {deleting ? "Deleting…" : "Confirm"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {shareModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#172847]">
+                Share to {title}
+              </h3>
+              <button
+                onClick={() => setShareModalOpen(false)}
+                className="text-slate-500 hover:text-slate-700 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} weight="bold" />
+              </button>
+            </div>
+
+            <HiveShareInvitePanel hiveKey={hiveKey} isAdmin={isAdmin} />
+
+            <div className="mt-6 flex justify-end">
+              <Button variant="secondary" onClick={() => setShareModalOpen(false)}>
+                Done
               </Button>
             </div>
           </div>

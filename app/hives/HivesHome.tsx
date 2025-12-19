@@ -8,9 +8,8 @@
 
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { HiveWithSignedUrl } from "@/lib/hives/server/getHivesWithSignedUrls";
-import CreateHiveForm from "@/app/(hives)/components/CreateHiveForm";
 import JoinHiveSearch from "@/app/hives/components/JoinHiveSearch";
 import Button from "@/app/components/button";
 import HiveLogo from "@/app/components/hive-logo";
@@ -21,42 +20,7 @@ interface HivesHomeProps {
 }
 
 export default function HivesHome({ hives, error }: HivesHomeProps) {
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  const handleCreateHive = async (name: string) => {
-    setIsCreating(true);
-    setCreateError(null);
-
-    try {
-      // Call the API to create a new hive
-      const response = await fetch("/api/hives", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create hive");
-      }
-
-      const newHive = await response.json();
-      setShowCreateForm(false);
-
-      // Navigate to the new hive using slug (or ID as fallback)
-      const hiveKey = newHive.slug || newHive.id;
-      window.location.href = `/hives/${hiveKey}`;
-    } catch (err) {
-      console.error("Failed to create hive:", err);
-      setCreateError(
-        err instanceof Error ? err.message : "Failed to create hive"
-      );
-    } finally {
-      setIsCreating(false);
-    }
-  };
+  const router = useRouter();
 
   const handleHiveClick = (hive: HiveWithSignedUrl) => {
     // Prefer slug over ID for cleaner URLs
@@ -94,35 +58,9 @@ export default function HivesHome({ hives, error }: HivesHomeProps) {
               </button>
             ))}
 
-            {showCreateForm ? (
-              <div className="space-y-3">
-                <CreateHiveForm
-                  onSubmit={handleCreateHive}
-                  isSubmitting={isCreating}
-                  error={createError}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setCreateError(null);
-                  }}
-                  className="text-sm text-slate-600 hover:text-slate-800 disabled:opacity-50"
-                  disabled={isCreating}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <>
-                <Button
-                  className="w-full py-4"
-                  onClick={() => setShowCreateForm(true)}
-                >
-                  Create a New Hive
-                </Button>
-              </>
-            )}
+            <Button className="w-full py-4" onClick={() => router.push("/hives/new")}>
+              Create a New Hive
+            </Button>
 
             {/* Join search block (matches temp welcome page styling/text) */}
             <JoinHiveSearch showMembershipStatus={false} disableAlreadyMember={false} />

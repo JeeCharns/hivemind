@@ -54,7 +54,17 @@ export default async function ConversationLayout({
     redirect("/hives");
   }
 
-  // 4. Render with header
+  // 4. Check if user is admin
+  const { data: member } = await supabase
+    .from("hive_members")
+    .select("role")
+    .eq("hive_id", hive.id)
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  const isAdmin = member?.role === "admin";
+
+  // 5. Render with header
   return (
     <div className="min-h-screen bg-[#F7F8FB]">
       <div className="w-full">
@@ -64,6 +74,7 @@ export default async function ConversationLayout({
           conversationKey={conversation.slug || conversation.id}
           title={conversation.title || "Conversation"}
           conversationType={conversation.type as "understand" | "decide"}
+          isAdmin={isAdmin}
         />
         {children}
       </div>
