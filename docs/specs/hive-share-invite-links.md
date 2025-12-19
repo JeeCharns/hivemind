@@ -75,6 +75,8 @@ Continues to be used as the whitelist when `access_mode = invited_only`.
 
 **Usage**: Used by login page to display "Enter your email address to join {HiveName}"
 
+**Implementation note**: This endpoint resolves the token server-side using the Supabase service role to avoid requiring public `SELECT` access on `hive_invite_links`.
+
 ### 4. POST /api/invites/[token]/accept
 **Auth**: Requires session
 
@@ -98,6 +100,8 @@ Continues to be used as the whitelist when `access_mode = invited_only`.
 - Idempotent: if already a member, returns success
 - Adds user to `hive_members` with role = 'member'
 - If invited-only and invite exists: marks invite as 'accepted' with `accepted_at`
+
+**Implementation note**: Because non-members cannot pass RLS on `hive_invite_links` and `hive_invites` is admin-gated, the accept flow resolves the token and invited-only checks server-side using the service role, then performs the membership upsert as the authenticated user.
 
 **Error Codes**:
 - `INVITE_NOT_FOUND` (404): Token doesn't exist
@@ -183,6 +187,11 @@ Public invite acceptance page.
 **File**: `supabase/migrations/007_create_hive_invite_links.sql`
 
 Run with: `supabase db push` or manually via Supabase Dashboard SQL Editor
+
+### Follow-up migrations
+
+- `supabase/migrations/008_allow_public_invite_preview.sql` temporarily allowed anonymous preview by making `hive_invite_links` publicly readable.
+- `supabase/migrations/009_remove_public_invite_preview_policy.sql` removes that permissive policy; preview/accept rely on server-side lookups instead.
 
 ## Testing
 

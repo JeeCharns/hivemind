@@ -4,7 +4,7 @@
 
 1. **Database migrations applied** (in order):
    - `007_create_hive_invite_links.sql` - Creates the invite links table
-   - `008_allow_public_invite_preview.sql` - Allows public preview access (required for login flow)
+   - `009_remove_public_invite_preview_policy.sql` - Ensures invite preview is served server-side (no public table access)
 
    Apply via Supabase Dashboard → SQL Editor, or if using local Supabase CLI:
    ```bash

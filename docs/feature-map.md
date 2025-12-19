@@ -72,7 +72,7 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 
 ## Database Schema
 
-- Migrations: `supabase/migrations/` (latest: `007_create_hive_invite_links.sql` adds shareable invite link support)
+- Migrations: `supabase/migrations/` (latest: `009_remove_public_invite_preview_policy.sql` restores safe invite preview behavior)
 - Key additions for invite links:
   - `hive_invite_links` table (one token per hive, 'anyone' or 'invited_only' access modes)
 - Key additions for decision sessions (migration 006):
