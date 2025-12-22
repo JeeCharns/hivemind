@@ -1,15 +1,15 @@
 "use client";
 
-import OrgSelector, { OrgOption, OrgSelectorSkeleton } from "@/components/org-selector";
-import PageSelector from "@/app/components/navbar/pageselector";
-import UserSelector from "@/components/user-selector";
+import OrgSelector, { OrgOption, OrgSelectorSkeleton } from "../atoms/org-selector";
+import PageSelector from "../atoms/page-selector";
+import UserSelector from "../atoms/user-selector";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Breadcrumb from "./breadcrumb";
 import RouteLogger from "./route-logger";
-import { supabaseBrowserClient } from "@/lib/supabase/client";
+import { supabaseBrowserClient } from "../lib/supabase/client";
 
 type NavbarProps = {
   profileName?: string;

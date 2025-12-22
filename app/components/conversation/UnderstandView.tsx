@@ -669,7 +669,7 @@ export default function UnderstandView({
                         setSelectedCluster(null);
                         setDropdownOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
+                      className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
                     >
                       All themes
                     </button>
@@ -691,7 +691,7 @@ export default function UnderstandView({
                           className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
                         >
                           <span
-                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            className="w-2 h-2 rounded-full shrink-0"
                             style={{
                               backgroundColor: getThemeColor(
                                 theme.clusterIndex

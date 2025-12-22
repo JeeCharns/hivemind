@@ -91,7 +91,7 @@ export default function ConversationCard({
         </span>
       </div>
 
-      {conversation.report_json && (
+      {!!conversation.report_json && (
         <div className="absolute top-6 right-6 text-indigo-600 bg-indigo-50 px-2 py-1 text-[10px] font-medium uppercase tracking-wide">
           Ready
         </div>

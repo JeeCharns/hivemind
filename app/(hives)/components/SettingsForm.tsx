@@ -81,7 +81,7 @@ export default function SettingsForm({
       </div>
 
       {error && (
-        <div className="text-sm text-red-600 px-2">{error}</div>
+        <div className="text-body text-red-600 px-2">{error}</div>
       )}
 
       <div className="flex gap-3">
@@ -94,8 +94,8 @@ export default function SettingsForm({
       </div>
 
       <div className="border-t border-slate-200 pt-6">
-        <h3 className="text-sm font-semibold text-[#172847] mb-2">Danger Zone</h3>
-        <p className="text-sm text-[#566175] mb-4">
+        <h3 className="text-subtitle text-text-primary mb-2">Danger Zone</h3>
+        <p className="text-body text-text-secondary mb-4">
           Once you delete a hive, there is no going back. Please be certain.
         </p>
         <Button

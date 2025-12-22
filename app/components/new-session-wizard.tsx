@@ -88,8 +88,8 @@ export default function NewSessionWizard({
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[800px] px-6 md:px-10 py-8 flex flex-col gap-6 mx-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-[#566888]">Step {step} of 2</p>
-            <h2 className="text-2xl font-semibold text-[#172847]">
+            <p className="text-body text-text-secondary">Step {step} of 2</p>
+            <h2 className="text-h2 text-text-primary">
               {step === 1
                 ? "Create your session"
                 : type === "decide"
@@ -100,7 +100,7 @@ export default function NewSessionWizard({
           <Button
             variant="ghost"
             size="sm"
-            className="text-sm text-[#566888] hover:text-[#172847]"
+            className="text-body text-text-secondary hover:text-text-primary"
             onClick={onClose}
           >
             Close
@@ -108,7 +108,7 @@ export default function NewSessionWizard({
         </div>
 
         {wizardError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-body text-red-700">
             {wizardError}
           </div>
         )}
@@ -135,46 +135,46 @@ export default function NewSessionWizard({
                     onClick={() => setType(opt.key as ConversationType)}
                     className={`w-full rounded-xl border p-4 flex flex-col items-start gap-1 text-left transition ${
                       type === opt.key
-                        ? "border-[#3A1DC8] bg-[#EDEFFD]"
+                        ? "border-brand-primary bg-[#EDEFFD]"
                         : "border-slate-200 hover:border-[#cbd5f5]"
                     }`}
                   >
-                    <span className="text-base font-semibold text-[#172847]">
+                    <span className="text-subtitle text-text-primary">
                       {opt.title}
                     </span>
-                    <span className="text-sm text-[#566888]">{opt.desc}</span>
+                    <span className="text-body text-text-secondary">{opt.desc}</span>
                   </button>
                 ))}
               </div>
 
               {typeError && (
-                <div className="text-sm text-red-600">{typeError}</div>
+                <div className="text-body text-red-600">{typeError}</div>
               )}
 
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2 w-full">
-                  <label className="text-sm font-medium text-[#172847]">
+                  <label className="text-subtitle text-text-primary">
                     Session title{" "}
-                    <span className="text-red-600 text-xs">*</span>
+                    <span className="text-red-600 text-info">*</span>
                   </label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
                     placeholder="e.g., Align on Q3 focus"
                   />
                   {titleError && (
-                    <span className="text-xs text-red-600">{titleError}</span>
+                    <span className="text-info text-red-600">{titleError}</span>
                   )}
                 </div>
                 <div className="flex flex-col gap-2 w-full">
-                  <label className="text-sm font-medium text-[#172847]">
+                  <label className="text-subtitle text-text-primary">
                     Description
                   </label>
                   <input
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
                     placeholder="What is this session about?"
                   />
                 </div>
@@ -199,7 +199,7 @@ export default function NewSessionWizard({
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
-                <p className="text-sm text-[#566888]">
+                <p className="text-body text-text-secondary">
                   Optionally import a CSV to pre-populate responses and the live
                   feed.
                 </p>
@@ -214,8 +214,8 @@ export default function NewSessionWizard({
                   <PlusIcon size={24} />
                 </div>
                 <div className="text-center">
-                  <p className="text-slate-900 font-medium">Drag & drop CSV</p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-subtitle text-slate-900">Drag & drop CSV</p>
+                  <p className="text-body text-slate-500">
                     or click to choose a CSV file
                   </p>
                 </div>
@@ -231,7 +231,7 @@ export default function NewSessionWizard({
                 />
               </label>
 
-              <div className="text-sm text-slate-600">
+              <div className="text-body text-slate-600">
                 <p>Requirements:</p>
                 <ul className="list-disc list-inside text-slate-500">
                   <li>Must include a column named &quot;response&quot;</li>
@@ -244,8 +244,8 @@ export default function NewSessionWizard({
               </div>
 
               {file && (
-                <div className="flex items-center gap-3 text-sm text-slate-700">
-                  <span className="font-medium">{file.name}</span>
+                <div className="flex items-center gap-3 text-body text-slate-700">
+                  <span className="text-subtitle">{file.name}</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -257,7 +257,7 @@ export default function NewSessionWizard({
               )}
 
               {uploadError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-body text-red-700">
                   {uploadError}
                 </div>
               )}
@@ -267,7 +267,7 @@ export default function NewSessionWizard({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-[#566888]"
+                className="text-text-secondary"
                 onClick={onBack}
               >
                 ← Back
@@ -291,26 +291,26 @@ export default function NewSessionWizard({
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
-                <p className="text-sm text-[#566888]">
+                <p className="text-body text-text-secondary">
                   Optionally link an executive summary from a problem space
                   conversation to provide context for decision makers.
                 </p>
               </div>
 
               {reportsLoading && (
-                <div className="text-sm text-[#566888] text-center py-8">
+                <div className="text-body text-text-secondary text-center py-8">
                   Loading available reports...
                 </div>
               )}
 
               {reportsError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-body text-red-700">
                   {reportsError}
                 </div>
               )}
 
               {!reportsLoading && !reportsError && reports.length === 0 && (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-600 text-center">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-body text-slate-600 text-center">
                   No problem space reports available yet. Create an
                   &quot;Understand a Problem&quot; session first to generate
                   reports.
@@ -319,7 +319,7 @@ export default function NewSessionWizard({
 
               {!reportsLoading && !reportsError && reports.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm font-medium text-[#172847]">
+                  <p className="text-subtitle text-text-primary">
                     Available problem reports:
                   </p>
                   <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
@@ -337,24 +337,24 @@ export default function NewSessionWizard({
                           selectedReportConversationId ===
                             report.conversationId &&
                           selectedReportVersion === report.latestReportVersion
-                            ? "border-[#3A1DC8] bg-[#EDEFFD]"
+                            ? "border-brand-primary bg-[#EDEFFD]"
                             : "border-slate-200 hover:border-[#cbd5f5]"
                         }`}
                       >
                         <div className="flex items-start justify-between w-full">
-                          <span className="text-base font-semibold text-[#172847]">
+                          <span className="text-subtitle text-text-primary">
                             {report.title || "Untitled"}
                           </span>
                           {selectedReportConversationId ===
                             report.conversationId &&
                             selectedReportVersion ===
                               report.latestReportVersion && (
-                            <span className="text-xs font-medium text-[#3A1DC8] bg-white px-2 py-1 rounded">
+                            <span className="text-label text-brand-primary bg-white px-2 py-1 rounded">
                               Selected
                             </span>
                           )}
                         </div>
-                        <span className="text-sm text-[#566888]">
+                        <span className="text-body text-text-secondary">
                           Version {report.latestReportVersion}
                           {report.latestReportCreatedAt &&
                             ` • ${new Date(report.latestReportCreatedAt).toLocaleDateString()}`}
@@ -380,7 +380,7 @@ export default function NewSessionWizard({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-[#566888]"
+                className="text-text-secondary"
                 onClick={onBack}
               >
                 ← Back

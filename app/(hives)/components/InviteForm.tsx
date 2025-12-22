@@ -56,7 +56,7 @@ export default function InviteForm({
       />
 
       {error && (
-        <div className="text-sm text-red-600 px-2">{error}</div>
+        <div className="text-body text-red-600 px-2">{error}</div>
       )}
 
       <Button

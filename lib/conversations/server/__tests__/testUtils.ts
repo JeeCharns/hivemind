@@ -47,6 +47,7 @@ export type MockSupabaseChainable = {
   update: jest.Mock;
   delete: jest.Mock;
   eq: jest.Mock;
+  neq: jest.Mock;
   gt: jest.Mock;
   is: jest.Mock;
   or: jest.Mock;
@@ -66,6 +67,7 @@ export type MockSupabaseQueryClient = {
   upsert: jest.Mock;
   delete: jest.Mock;
   eq: jest.Mock;
+  neq: jest.Mock;
   gt: jest.Mock;
   is: jest.Mock;
   or: jest.Mock;
@@ -88,6 +90,7 @@ export function createMockSupabase(
     update: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
     gt: jest.fn().mockReturnThis(),
     is: jest.fn().mockReturnThis(),
     or: jest.fn().mockReturnThis(),
@@ -178,6 +181,7 @@ export function createMockSupabaseQuery(overrides?: {
     upsert: jest.fn(),
     delete: jest.fn(),
     eq: jest.fn(),
+    neq: jest.fn(),
     gt: jest.fn(),
     is: jest.fn(),
     or: jest.fn(),
@@ -203,6 +207,7 @@ export function createMockSupabaseQuery(overrides?: {
       upsert: (...args: unknown[]) => MockSupabaseBuilder;
       delete: (...args: unknown[]) => MockSupabaseBuilder;
       eq: (...args: unknown[]) => MockSupabaseBuilder;
+      neq: (...args: unknown[]) => MockSupabaseBuilder;
       gt: (...args: unknown[]) => MockSupabaseBuilder;
       is: (...args: unknown[]) => MockSupabaseBuilder;
       or: (...args: unknown[]) => MockSupabaseBuilder;
@@ -251,6 +256,11 @@ export function createMockSupabaseQuery(overrides?: {
       eq: (...args: unknown[]) => {
         record(table, "eq", args);
         supabase.eq(...args);
+        return builder;
+      },
+      neq: (...args: unknown[]) => {
+        record(table, "neq", args);
+        supabase.neq(...args);
         return builder;
       },
       gt: (...args: unknown[]) => {
@@ -358,6 +368,7 @@ export function mockCountQuery(supabase: { from: jest.Mock }, count: number): vo
     from: supabase.from, // Preserve from() for next query
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockResolvedValue({ count, error: null }),
+    neq: jest.fn().mockResolvedValue({ count, error: null }),
     gt: jest.fn().mockResolvedValue({ count, error: null }),
     is: jest.fn().mockResolvedValue({ count, error: null }),
   };
@@ -402,6 +413,7 @@ export function mockDataQuery(
   // All methods return the chain to support chaining
   dataChain.select = jest.fn().mockReturnValue(dataChain);
   dataChain.eq = jest.fn().mockReturnValue(dataChain);
+  dataChain.neq = jest.fn().mockReturnValue(dataChain);
   dataChain.gt = jest.fn().mockReturnValue(dataChain);
   dataChain.is = jest.fn().mockReturnValue(dataChain);
   dataChain.not = jest.fn().mockReturnValue(dataChain);
@@ -436,6 +448,25 @@ export function mockInsert(supabase: { from: jest.Mock }, error: unknown = null)
   };
 
   supabase.from.mockReturnValueOnce(insertChain);
+
+  if (!error) {
+    const verifyChain = {
+      from: supabase.from,
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: {
+          id: "job-123",
+          status: "queued",
+          locked_at: null,
+          created_at: null,
+        },
+        error: null,
+      }),
+    };
+
+    supabase.from.mockReturnValueOnce(verifyChain);
+  }
 }
 
 /**

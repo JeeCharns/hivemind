@@ -48,7 +48,7 @@ export default function HiveCard({ name, logoUrl, onClick }: HiveCardProps) {
       className="w-full border border-slate-200 rounded-lg px-4 py-6 hover:border-indigo-200 transition flex items-center gap-2 text-left"
     >
       <HiveLogo src={signedUrl} name={name} size={48} />
-      <div className="text-sm font-medium text-slate-800 truncate">{name}</div>
+      <div className="text-subtitle text-slate-800 truncate">{name}</div>
     </button>
   );
 }

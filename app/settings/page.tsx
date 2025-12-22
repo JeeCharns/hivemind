@@ -32,10 +32,10 @@ export default async function SettingsPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-h1 text-slate-900">
             Account Settings
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-body text-slate-600">
             Manage your profile and account preferences
           </p>
         </div>

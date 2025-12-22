@@ -10,7 +10,7 @@ import BrandLogo from "../../components/brand-logo";
 import Spinner from "../../components/spinner";
 import { GuestGuard } from "@/lib/auth/react/GuestGuard";
 
-export default function LoginPageClient() {
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const intent = searchParams?.get("intent");
   const inviteToken = searchParams?.get("invite");
@@ -212,5 +212,9 @@ function getMagicLinkError(err: unknown): {
   }
 
   return { message, isRateLimit: false };
+}
+
+export default function LoginPageClient() {
+  return <LoginPageContent />;
 }
 

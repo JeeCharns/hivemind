@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "./useSession";
 
@@ -29,15 +29,11 @@ export function GuestGuard({
 }: GuestGuardProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useSession();
-  const [justLoggedOut, setJustLoggedOut] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
 
-    return Boolean(
-      new URLSearchParams(window.location.search).get("logged_out"),
-    );
-  });
+  // Check if user just logged out (prevents redirect loop)
+  const justLoggedOut =
+    typeof window !== "undefined" &&
+    Boolean(new URLSearchParams(window.location.search).get("logged_out"));
 
   useEffect(() => {
     // Check if user just logged out (prevents redirect loop)
@@ -56,9 +52,7 @@ export function GuestGuard({
 
     if (loggedOut) {
       console.log("[GuestGuard] Detected logged_out param, clearing state");
-      // Mark that we just logged out to prevent redirects
-      setJustLoggedOut(true);
-
+      // Note: justLoggedOut state is already initialized from URL param
       // Clear any returnUrl to prevent redirect loop
       sessionStorage.removeItem("returnUrl");
 

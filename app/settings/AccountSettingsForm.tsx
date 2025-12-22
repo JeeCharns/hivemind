@@ -27,18 +27,18 @@ export default function AccountSettingsForm({
     <div className="space-y-8">
       {/* Account Section - Email (Read-only) */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Account</h2>
+        <h2 className="text-h4 text-slate-900">Account</h2>
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-subtitle text-slate-700">
             Email Address
           </label>
           <input
             type="email"
             value={email}
             disabled
-            className="w-full h-10 border border-slate-300 rounded-md px-3 text-sm text-slate-500 bg-slate-50 cursor-not-allowed"
+            className="w-full h-10 border border-slate-300 rounded-md px-3 text-body text-slate-500 bg-slate-50 cursor-not-allowed"
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-info text-slate-500">
             Contact support to change your email address
           </p>
         </div>
@@ -46,7 +46,7 @@ export default function AccountSettingsForm({
 
       {/* Profile Section - Display Name + Avatar */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
+        <h2 className="text-h4 text-slate-900">Profile</h2>
         <ProfileForm
           initialDisplayName={initialDisplayName}
           initialAvatarUrl={initialAvatarUrl}

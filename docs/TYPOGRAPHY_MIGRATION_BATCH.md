@@ -298,15 +298,18 @@ For each file you update:
 
 Mark off as you complete each file:
 
+**High Priority (All Complete!):**
 - [x] app/components/conversation/ListenView.tsx ✅ Complete (~15 changes)
-- [ ] app/components/conversation/ReportView.tsx
-- [ ] app/components/conversation/UnderstandView.tsx
+- [x] app/components/conversation/ReportView.tsx ✅ Complete (~8 changes)
+- [x] app/components/conversation/UnderstandView.tsx ✅ Complete (~11 changes)
 - [x] app/components/conversation/ConsensusMatrix.tsx ✅ Complete (~5 changes)
 - [x] app/components/conversation/FrequentlyMentionedGroupCard.tsx ✅ Complete (~4 changes)
-- [ ] app/components/new-session-wizard.tsx
+- [x] app/components/new-session-wizard.tsx ✅ Complete (~20 changes)
 - [x] app/hives/HivesHome.tsx ✅ Complete (~3 changes)
-- [ ] app/(hives)/components/HiveCard.tsx
-- [ ] app/hives/components/HiveCard.tsx
+- [x] app/(hives)/components/HiveCard.tsx ✅ Complete (1 change)
+- [x] app/hives/components/HiveCard.tsx ✅ Complete (1 change)
+
+**Medium Priority (Remaining):**
 - [ ] app/(hives)/components/SettingsForm.tsx
 - [ ] app/(hives)/components/InviteForm.tsx
 - [ ] app/settings/**/*.tsx (multiple files)
