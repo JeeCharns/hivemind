@@ -308,7 +308,7 @@ describe("useConversationFeed", () => {
     await act(async () => {
       try {
         await result.current.submit(input);
-      } catch (err) {
+      } catch {
         // Error is re-thrown by the hook
       }
     });

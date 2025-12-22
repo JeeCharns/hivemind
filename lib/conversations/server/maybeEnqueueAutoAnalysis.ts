@@ -8,7 +8,6 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { enqueueConversationAnalysis } from "./enqueueConversationAnalysis";
-import type { TriggerAnalysisResponse } from "../schemas";
 
 export interface AutoAnalysisResult {
   triggered: boolean;

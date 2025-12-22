@@ -43,7 +43,7 @@ export async function GET(
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
@@ -143,7 +143,7 @@ export async function POST(
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 

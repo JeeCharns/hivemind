@@ -17,7 +17,7 @@ export default function Alert({
 }: AlertProps) {
   return (
     <div
-      className={`text-sm rounded-lg border px-3 py-2 ${variantStyles[variant]} ${className}`.trim()}
+      className={`text-body rounded-lg border px-3 py-2 ${variantStyles[variant]} ${className}`.trim()}
     >
       {children}
     </div>

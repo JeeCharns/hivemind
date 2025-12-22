@@ -18,19 +18,22 @@ export default function Page({ params }: { params: Promise<{ hiveId: string }> }
   const { hiveId } = use(params);
   const router = useRouter();
   const { hive, stats, isLoading, error } = useHiveOverview(hiveId);
-  const [logoSignedUrl, setLogoSignedUrl] = useState<string | null>(null);
+  const [logo, setLogo] = useState<{
+    logoUrl: string;
+    signedUrl: string | null;
+  } | null>(null);
+  const logoSignedUrl =
+    hive?.logo_url && logo?.logoUrl === hive.logo_url ? logo.signedUrl : null;
 
   useEffect(() => {
-    if (!hive?.logo_url) {
-      setLogoSignedUrl(null);
-      return;
-    }
+    const logoUrl = hive?.logo_url;
+    if (!logoUrl) return;
 
     let cancelled = false;
 
-    getLogoSignedUrl(hive.logo_url).then((url) => {
+    getLogoSignedUrl(logoUrl).then((url) => {
       if (!cancelled) {
-        setLogoSignedUrl(url);
+        setLogo({ logoUrl, signedUrl: url });
       }
     });
 
@@ -69,8 +72,8 @@ export default function Page({ params }: { params: Promise<{ hiveId: string }> }
             <div className="flex items-center gap-4">
               <HiveLogo src={logoSignedUrl} name={hive.name} size={64} />
               <div>
-                <h1 className="text-3xl font-semibold text-[#172847]">{hive.name}</h1>
-                <p className="text-sm text-[#566175]">Hive ID: {hive.slug || hive.id}</p>
+                <h1 className="text-h1 text-text-primary">{hive.name}</h1>
+                <p className="text-body text-text-secondary">Hive ID: {hive.slug || hive.id}</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -95,14 +98,14 @@ export default function Page({ params }: { params: Promise<{ hiveId: string }> }
           {stats && (
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-[#566175] mb-1">Conversations</p>
-                <p className="text-2xl font-semibold text-[#172847]">
+                <p className="text-body text-text-secondary mb-1">Conversations</p>
+                <p className="text-h2 text-text-primary">
                   {stats.conversationsCount}
                 </p>
               </div>
               <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-[#566175] mb-1">Members</p>
-                <p className="text-2xl font-semibold text-[#172847]">
+                <p className="text-body text-text-secondary mb-1">Members</p>
+                <p className="text-h2 text-text-primary">
                   {stats.membersCount}
                 </p>
               </div>
@@ -111,7 +114,7 @@ export default function Page({ params }: { params: Promise<{ hiveId: string }> }
 
           {/* Content Area */}
           <div className="border-t border-slate-200 pt-6">
-            <p className="text-[#566175] text-center">
+            <p className="text-body text-text-secondary text-center">
               Hive dashboard content will go here.
             </p>
           </div>

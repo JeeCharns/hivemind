@@ -10,12 +10,14 @@
  * - Error state on analysis failure
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { UnderstandViewModel } from "@/types/conversation-understand";
 import UnderstandView from "./UnderstandView";
 import { useConversationAnalysisRealtime } from "@/lib/conversations/react/useConversationAnalysisRealtime";
 import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
+import { INCREMENTAL_THRESHOLD } from "@/lib/conversations/domain/thresholds";
 import Button from "@/app/components/button";
+import { ArrowsClockwise } from "@phosphor-icons/react";
 
 export interface UnderstandViewContainerProps {
   initialViewModel: UnderstandViewModel;
@@ -27,6 +29,8 @@ export default function UnderstandViewContainer({
   conversationType = "understand",
 }: UnderstandViewContainerProps) {
   const [viewModel, setViewModel] = useState(initialViewModel);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const lastReadyViewModelRef = useRef<UnderstandViewModel | null>(null);
 
   const {
     conversationId,
@@ -34,7 +38,14 @@ export default function UnderstandViewContainer({
     analysisError,
     responseCount = 0,
     threshold = 20,
+    isAnalysisStale = false,
+    newResponsesSinceAnalysis = 0,
   } = viewModel;
+
+  const shouldShowStaleBanner =
+    analysisStatus === "ready" &&
+    isAnalysisStale &&
+    newResponsesSinceAnalysis >= INCREMENTAL_THRESHOLD;
 
   // Fetch fresh understand data
   const fetchUnderstandData = useCallback(async () => {
@@ -57,13 +68,12 @@ export default function UnderstandViewContainer({
     analysisStatus !== "error";
 
   // Subscribe to realtime updates (primary mechanism)
-  const { status: realtimeStatus, error: realtimeError } =
-    useConversationAnalysisRealtime({
-      conversationId,
-      enabled: shouldSubscribe,
-      onRefresh: fetchUnderstandData,
-      debounceMs: 500,
-    });
+  const { status: realtimeStatus } = useConversationAnalysisRealtime({
+    conversationId,
+    enabled: shouldSubscribe,
+    onRefresh: fetchUnderstandData,
+    debounceMs: 500,
+  });
 
   // Fallback: Poll if realtime connection fails
   const useFallbackPolling =
@@ -78,7 +88,6 @@ export default function UnderstandViewContainer({
   // Update from polling fallback
   useEffect(() => {
     if (useFallbackPolling && statusData) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewModel((prev) => ({
         ...prev,
         analysisStatus: statusData.analysisStatus,
@@ -205,6 +214,88 @@ export default function UnderstandViewContainer({
     );
   }
 
-  // Analysis ready: show normal view
-  return <UnderstandView viewModel={viewModel} conversationType={conversationType} />;
+  // Regenerate handler
+  const handleRegenerate = async () => {
+    lastReadyViewModelRef.current = viewModel;
+    try {
+      setIsRegenerating(true);
+      setViewModel((prev) => ({
+        ...prev,
+        analysisStatus: "not_started",
+        analysisError: null,
+      }));
+
+      const res = await fetch(`/api/conversations/${conversationId}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "regenerate",
+          strategy: "auto",
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("[Regenerate] Failed:", data.error);
+        if (lastReadyViewModelRef.current) {
+          setViewModel(lastReadyViewModelRef.current);
+        }
+        return;
+      }
+
+      // Ensure we start polling/realtime immediately even if we missed the first update.
+      fetchUnderstandData();
+    } catch (err) {
+      console.error("[Regenerate] Error:", err);
+      if (lastReadyViewModelRef.current) {
+        setViewModel(lastReadyViewModelRef.current);
+      }
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  // Analysis ready: show normal view with optional regenerate banner
+  return (
+    <>
+      {shouldShowStaleBanner && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-amber-600">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-amber-900">
+                Analysis out of date
+              </p>
+              <p className="text-xs text-amber-700">
+                {newResponsesSinceAnalysis} new response{newResponsesSinceAnalysis !== 1 ? "s" : ""} since last analysis
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={handleRegenerate}
+            disabled={isRegenerating}
+            size="sm"
+            className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+          >
+            {isRegenerating ? (
+              <>
+                <ArrowsClockwise size={16} className="animate-spin mr-2" />
+                Regenerating...
+              </>
+            ) : (
+              <>
+                <ArrowsClockwise size={16} className="mr-2" />
+                Regenerate
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+      <UnderstandView viewModel={viewModel} conversationType={conversationType} />
+    </>
+  );
 }

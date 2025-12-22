@@ -10,30 +10,30 @@
 // Since helpers are internal, we'll test the behavior indirectly through integration tests
 
 describe("Cluster Relabeling Logic", () => {
+  // Mock the relabelClustersBySize logic (should match actual implementation)
+  const relabelClustersBySize = (clusterIndices: number[]): number[] => {
+    // Count cluster sizes
+    const clusterSizes = new Map<number, number>();
+    for (const idx of clusterIndices) {
+      clusterSizes.set(idx, (clusterSizes.get(idx) || 0) + 1);
+    }
+
+    // Sort clusters by size (descending)
+    const sortedClusters = Array.from(clusterSizes.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([idx]) => idx);
+
+    // Create mapping from old to new indices
+    const relabelMap = new Map<number, number>();
+    sortedClusters.forEach((oldIdx, newIdx) => {
+      relabelMap.set(oldIdx, newIdx);
+    });
+
+    // Apply relabeling
+    return clusterIndices.map((idx) => relabelMap.get(idx) ?? idx);
+  };
+
   it("should relabel clusters by size (largest = 0)", () => {
-    // Mock the relabelClustersBySize logic
-    const relabelClustersBySize = (clusterIndices: number[]): number[] => {
-      // Count cluster sizes
-      const clusterSizes = new Map<number, number>();
-      for (const idx of clusterIndices) {
-        clusterSizes.set(idx, (clusterSizes.get(idx) || 0) + 1);
-      }
-
-      // Sort clusters by size (descending)
-      const sortedClusters = Array.from(clusterSizes.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([idx]) => idx);
-
-      // Create mapping from old to new indices
-      const relabelMap = new Map<number, number>();
-      sortedClusters.forEach((oldIdx, newIdx) => {
-        relabelMap.set(oldIdx, newIdx);
-      });
-
-      // Apply relabeling
-      return clusterIndices.map((idx) => relabelMap.get(idx) ?? idx);
-    };
-
     // Test case 1: Simple relabeling
     const input1 = [2, 2, 2, 1, 1, 0]; // Cluster 2 has 3 items, cluster 1 has 2, cluster 0 has 1
     const expected1 = [0, 0, 0, 1, 1, 2]; // Cluster 2 → 0, cluster 1 → 1, cluster 0 → 2
@@ -49,6 +49,25 @@ describe("Cluster Relabeling Logic", () => {
     const output3 = relabelClustersBySize(input3);
     expect(output3.filter((x) => x === 0).length).toBe(2);
     expect(output3.filter((x) => x === 1).length).toBe(2);
+  });
+
+  it("should handle k=1 (single cluster) correctly", () => {
+    // All responses in one cluster (homogeneous data)
+    const input = [0, 0, 0, 0, 0, 0];
+    const expected = [0, 0, 0, 0, 0, 0]; // No change needed
+    expect(relabelClustersBySize(input)).toEqual(expected);
+  });
+
+  it("should handle empty input", () => {
+    const input: number[] = [];
+    const expected: number[] = [];
+    expect(relabelClustersBySize(input)).toEqual(expected);
+  });
+
+  it("should handle single element", () => {
+    const input = [0];
+    const expected = [0];
+    expect(relabelClustersBySize(input)).toEqual(expected);
   });
 });
 

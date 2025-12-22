@@ -11,6 +11,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
+  ArrowsClockwise,
   DotsThreeOutlineVertical,
   ExportIcon,
   X,
@@ -27,6 +28,9 @@ interface ConversationHeaderProps {
   title: string;
   conversationType?: "understand" | "decide";
   isAdmin?: boolean;
+  showRegenerateButton?: boolean;
+  isRegenerating?: boolean;
+  onRegenerate?: () => void;
 }
 
 export default function ConversationHeader({
@@ -36,6 +40,9 @@ export default function ConversationHeader({
   title,
   conversationType = "understand",
   isAdmin = false,
+  showRegenerateButton = false,
+  isRegenerating = false,
+  onRegenerate,
 }: ConversationHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -116,7 +123,7 @@ export default function ConversationHeader({
       <div className="mx-auto w-full max-w-7xl px-6 flex flex-col">
         <Link
           href={`/hives/${hiveKey}`}
-          className="inline-flex items-center gap-2 text-base leading-[22px] font-normal text-[#172847] hover:text-[#3A1DC8] transition-colors"
+          className="inline-flex items-center gap-2 text-body-lg text-text-primary hover:text-brand-primary transition-colors"
         >
           <ArrowLeftIcon size={16} weight="bold" className="text-[#989898]" />
           All sessions
@@ -124,7 +131,7 @@ export default function ConversationHeader({
 
         <div className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-[24px] leading-[31px] font-medium text-[#172847]">
+            <h1 className="text-h2 text-text-primary">
               {title}
             </h1>
             <div className="relative" ref={menuRef}>
@@ -150,7 +157,7 @@ export default function ConversationHeader({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                    className="w-full justify-start text-left px-3 py-2 text-body text-red-600 hover:bg-red-50 rounded-lg"
                     onClick={() => {
                       setConfirmOpen(true);
                       setMenuOpen(false);
@@ -171,10 +178,10 @@ export default function ConversationHeader({
                   <Link
                     key={tab.slug}
                     href={`${basePath}/${tab.slug}`}
-                    className={`inline-flex h-9 items-center justify-center rounded-sm px-3 text-[16px] font-medium leading-5 transition-colors ${
+                    className={`inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle transition-colors ${
                       isActive
-                        ? "bg-[#EDEFFD] text-[#3A1DC8]"
-                        : "bg-[#FDFDFD] text-[#9498B0] hover:text-[#3A1DC8]"
+                        ? "bg-[#EDEFFD] text-brand-primary"
+                        : "bg-[#FDFDFD] text-text-tertiary hover:text-brand-primary"
                     }`}
                   >
                     {tab.label}
@@ -182,6 +189,23 @@ export default function ConversationHeader({
                 );
               })}
             </div>
+
+            {showRegenerateButton && onRegenerate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-11 w-11 p-0 text-[#9498B0] hover:text-[#3A1DC8] disabled:opacity-50"
+                onClick={onRegenerate}
+                disabled={isRegenerating}
+                title="Regenerate analysis with new responses"
+                aria-label="Regenerate analysis"
+              >
+                <ArrowsClockwise
+                  size={20}
+                  className={isRegenerating ? "animate-spin" : ""}
+                />
+              </Button>
+            )}
 
             <Button
               variant="ghost"
@@ -200,10 +224,10 @@ export default function ConversationHeader({
       {confirmOpen && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-[#172847] mb-2">
+            <h3 className="text-h4 text-text-primary mb-2">
               Delete conversation?
             </h3>
-            <p className="text-sm text-[#566888] mb-4">
+            <p className="text-body text-text-muted mb-4">
               Are you sure you want to delete the session? This is a destructive action and the session will not be recoverable.
             </p>
             <div className="flex justify-end gap-3">
@@ -226,7 +250,7 @@ export default function ConversationHeader({
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#172847]">
+              <h3 className="text-h4 text-text-primary">
                 Share to {title}
               </h3>
               <button

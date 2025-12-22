@@ -29,7 +29,7 @@ export default function MembersView({
 }: MembersViewProps) {
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Calculate admin count for "only admin" detection
   const adminCount = useMemo(

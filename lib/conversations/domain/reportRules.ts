@@ -7,11 +7,13 @@
 
 import type { ReportGate } from "@/types/conversation-report";
 import type { ConversationPhase } from "@/types/conversations";
+import { REPORT_MIN_RESPONSES } from "./thresholds";
 
 /**
  * Minimum responses required to generate a report
+ * Re-exported for backward compatibility with existing imports
  */
-export const MIN_RESPONSES_FOR_REPORT = 30;
+export const MIN_RESPONSES_FOR_REPORT = REPORT_MIN_RESPONSES;
 
 /**
  * Determines if a report can be opened/generated

@@ -15,7 +15,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "worker": "tsx scripts/analysis-worker.ts",
-    "worker:dev": "tsx watch scripts/analysis-worker.ts"
+    "worker:dev": "tsx watch scripts/analysis-worker.ts",
+    "reload-schema": "tsx scripts/reload-postgrest-schema.ts",
+    "diagnose-table": "tsx scripts/diagnose-postgrest-table.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

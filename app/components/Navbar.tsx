@@ -29,8 +29,8 @@ export default function Navbar({ viewModel }: NavbarProps) {
         <div className="flex items-center gap-6">
           <Link href="/hives" className="flex items-center">
             <Image
-              src="/HiveMindLogo.png"
-              alt="HiveMind"
+              src="/HiveLogo.png"
+              alt="Hive"
               width={160}
               height={27}
               style={{ width: "auto", height: "auto" }}
@@ -41,10 +41,7 @@ export default function Navbar({ viewModel }: NavbarProps) {
           {/* Breadcrumb-style navigation */}
           <div className="flex items-center gap-2">
             {/* Hive Selector */}
-            <HiveSelector
-              hives={hives}
-              currentHiveId={currentHive?.id}
-            />
+            <HiveSelector hives={hives} currentHiveId={currentHive?.id} />
 
             {/* Page Selector (only show if we're in a hive) */}
             {currentHive && (

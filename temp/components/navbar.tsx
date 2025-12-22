@@ -1,8 +1,8 @@
 "use client";
 
-import OrgSelector, { OrgOption, OrgSelectorSkeleton } from "@/atoms/org-selector";
-import PageSelector from "@/atoms/page-selector";
-import UserSelector from "@/atoms/user-selector";
+import OrgSelector, { OrgOption, OrgSelectorSkeleton } from "@/components/org-selector";
+import PageSelector from "@/app/components/navbar/pageselector";
+import UserSelector from "@/components/user-selector";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
@@ -91,8 +91,8 @@ export default function Navbar({
         <div className="flex items-center gap-3">
           <Link href="/hives" className="flex items-center gap-2">
             <Image
-              src="/HiveMindLogo.png"
-              alt="HiveMind logo"
+              src="/HiveLogo.png"
+              alt="Hive logo"
               width={160}
               height={27}
               style={{ width: "auto", height: "auto" }}

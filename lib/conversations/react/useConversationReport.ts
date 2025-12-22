@@ -6,7 +6,12 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import type { ResultViewModel, ReportVersion } from "@/types/conversation-report";
+import type {
+  AgreementSummary,
+  ConsensusItem,
+  ResultViewModel,
+  ReportVersion,
+} from "@/types/conversation-report";
 import {
   reportClient as defaultReportClient,
   type IConversationReportClient,
@@ -22,6 +27,9 @@ export interface UseConversationReportReturn {
   currentHtml: string;
   selectedVersion: number | null;
   versions: ReportVersion[];
+  agreementSummaries: AgreementSummary[];
+  consensusItems: ConsensusItem[];
+  totalInteractions: number;
   loading: boolean;
   error: string | null;
   generate: () => Promise<void>;
@@ -48,6 +56,15 @@ export function useConversationReport({
   const [versions, setVersions] = useState<ReportVersion[]>(viewModel.versions);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(
     viewModel.versions.length > 0 ? viewModel.versions[0].version : null
+  );
+  const [agreementSummaries, setAgreementSummaries] = useState<
+    AgreementSummary[]
+  >(viewModel.agreementSummaries ?? []);
+  const [consensusItems, setConsensusItems] = useState<ConsensusItem[]>(
+    viewModel.consensusItems ?? []
+  );
+  const [totalInteractions, setTotalInteractions] = useState<number>(
+    viewModel.totalInteractions ?? 0
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +107,16 @@ export function useConversationReport({
       // Prepend to versions list and select it
       setVersions((prev) => [newVersion, ...prev]);
       setSelectedVersion(newVersion.version);
+
+      if (result.agreementSummaries) {
+        setAgreementSummaries(result.agreementSummaries);
+      }
+      if (result.consensusItems) {
+        setConsensusItems(result.consensusItems);
+      }
+      if (typeof result.totalInteractions === "number") {
+        setTotalInteractions(result.totalInteractions);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate report");
     } finally {
@@ -115,6 +142,9 @@ export function useConversationReport({
     currentHtml,
     selectedVersion,
     versions,
+    agreementSummaries,
+    consensusItems,
+    totalInteractions,
     loading,
     error,
     generate,

@@ -8,12 +8,18 @@
  * Follows SRP: UI only, business logic in useConversationFeedback hook
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { UnderstandViewModel, ResponsePoint } from "@/types/conversation-understand";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  UnderstandViewModel,
+  ResponsePoint,
+} from "@/types/conversation-understand";
 import { useConversationFeedback } from "@/lib/conversations/react/useConversationFeedback";
 import { getTagColors } from "@/lib/conversations/domain/tags";
 import Button from "@/app/components/button";
 import type { Feedback } from "@/types/conversation-understand";
+import FrequentlyMentionedGroupCard from "./FrequentlyMentionedGroupCard";
+import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
+import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
 
 const palette = [
   "#4F46E5",
@@ -26,15 +32,49 @@ const palette = [
   "#14B8A6",
 ];
 
+const MISC_COLOR = "#94a3b8"; // slate-400
+
 const CANVAS_SIZE = 520;
-const PAN_PADDING = 120;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2.5;
+const ZOOM_STEP = 0.2;
+
+// Zoom tiers for level-of-detail rendering
+type ZoomTier = "far" | "medium" | "close";
+
+const getZoomTier = (zoom: number): ZoomTier => {
+  if (zoom < 0.8) return "far";
+  if (zoom > 1.5) return "close";
+  return "medium";
+};
+
+// Rendering configuration per zoom tier
+const ZOOM_CONFIGS = {
+  far: {
+    dotRadius: 3,
+    clusterStrokeWidth: 2,
+    axisOpacity: 0.1,
+  },
+  medium: {
+    dotRadius: 2,
+    clusterStrokeWidth: 1,
+    axisOpacity: 0.15,
+  },
+  close: {
+    dotRadius: 2,
+    clusterStrokeWidth: 1,
+    axisOpacity: 0.2,
+  },
+} as const;
 
 /**
  * Scale UMAP points to canvas coordinates
  */
 const scalePoints = (points: ResponsePoint[], size = CANVAS_SIZE) => {
   // Filter out points without coordinates
-  const validPoints = points.filter((p) => p.xUmap !== null && p.yUmap !== null);
+  const validPoints = points.filter(
+    (p) => p.xUmap !== null && p.yUmap !== null
+  );
 
   if (validPoints.length === 0) {
     return [];
@@ -62,23 +102,93 @@ export interface UnderstandViewProps {
   conversationType?: "understand" | "decide";
 }
 
-export default function UnderstandView({ viewModel, conversationType = "understand" }: UnderstandViewProps) {
-  const { conversationId, responses, themes, feedbackItems } = viewModel;
+export default function UnderstandView({
+  viewModel,
+  conversationType = "understand",
+}: UnderstandViewProps) {
+  const {
+    conversationId,
+    responses,
+    themes,
+    feedbackItems,
+    frequentlyMentionedGroups: initialGroups,
+  } = viewModel;
 
   const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
   const [hoveredCluster, setHoveredCluster] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  // ViewBox state for semantic zoom (x, y, width, height in SVG coordinates)
+  const initialViewBox = {
+    x: 0,
+    y: 0,
+    width: CANVAS_SIZE,
+    height: CANVAS_SIZE,
+  };
+  const [viewBox, setViewBox] = useState(initialViewBox);
+  const [zoom, setZoom] = useState(1);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const panStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const viewBoxStart = useRef(initialViewBox);
+  const [frequentlyMentionedGroups, setFrequentlyMentionedGroups] = useState(
+    initialGroups || []
+  );
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { items, vote, loadingId } = useConversationFeedback({
+  const {
+    items,
+    vote: baseVote,
+    loadingId,
+  } = useConversationFeedback({
     conversationId,
     initialItems: feedbackItems,
   });
 
+  // Wrap vote to also update frequentlyMentionedGroups
+  const vote = useCallback(
+    async (responseId: string, feedback: Feedback) => {
+      // First, do the base vote (handles ungrouped items)
+      await baseVote(responseId, feedback);
+
+      // Then, update frequentlyMentionedGroups if the response is a representative
+      setFrequentlyMentionedGroups((prevGroups) =>
+        prevGroups.map((group) => {
+          if (group.representative.id !== responseId) return group;
+
+          // Clone the group and update representative
+          const newCounts = { ...group.representative.counts };
+          const previousCurrent = group.representative.current;
+
+          // Decrement previous choice if exists
+          if (previousCurrent) {
+            newCounts[previousCurrent] = Math.max(
+              0,
+              newCounts[previousCurrent] - 1
+            );
+          }
+
+          // Increment new choice
+          newCounts[feedback] = newCounts[feedback] + 1;
+
+          return {
+            ...group,
+            representative: {
+              ...group.representative,
+              counts: newCounts,
+              current: feedback,
+            },
+          };
+        })
+      );
+    },
+    [baseVote]
+  );
+
   const points = useMemo(() => scalePoints(responses), [responses]);
+
+  // Determine current zoom tier for LOD rendering
+  const zoomTier = useMemo(() => getZoomTier(zoom), [zoom]);
+  const zoomConfig = ZOOM_CONFIGS[zoomTier];
 
   const clusters = useMemo(() => {
     const grouped: Record<
@@ -94,28 +204,31 @@ export default function UnderstandView({ viewModel, conversationType = "understa
   }, [points]);
 
   const clusterMeta = useMemo(() => {
-    return Object.entries(clusters).map(([idx, { pts }]) => {
-      const xs = pts.map((p) => p.sx!);
-      const ys = pts.map((p) => p.sy!);
-      const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-      const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-      const maxRadius = Math.max(
-        ...pts.map((p) => Math.hypot(p.sx! - cx, p.sy! - cy))
-      );
-      const radius = maxRadius + 18;
-      const color = palette[Number(idx) % palette.length];
-      const themeName =
-        themes.find((t) => t.clusterIndex === Number(idx))?.name ??
-        `Theme ${idx}`;
-      return {
-        idx: Number(idx),
-        cx,
-        cy,
-        radius,
-        color,
-        themeName,
-      };
-    });
+    return Object.entries(clusters)
+      .filter(([idx]) => Number(idx) !== MISC_CLUSTER_INDEX) // Exclude misc from cluster rings
+      .map(([idx, { pts }]) => {
+        const xs = pts.map((p) => p.sx!);
+        const ys = pts.map((p) => p.sy!);
+        const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+        const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+
+        // Generate hull path for this cluster
+        const hullPoints = pts.map((p) => ({ x: p.sx!, y: p.sy! }));
+        const hullPath = generateClusterHullPath(hullPoints, 8, 0.3);
+
+        const color = palette[Number(idx) % palette.length];
+        const themeName =
+          themes.find((t) => t.clusterIndex === Number(idx))?.name ??
+          `Theme ${idx}`;
+        return {
+          idx: Number(idx),
+          cx,
+          cy,
+          hullPath,
+          color,
+          themeName,
+        };
+      });
   }, [clusters, themes]);
 
   const filteredPoints =
@@ -128,37 +241,194 @@ export default function UnderstandView({ viewModel, conversationType = "understa
       ? items
       : items.filter((r) => r.clusterIndex === selectedCluster);
 
+  // Filter groups for selected theme
+  const filteredGroups = useMemo(() => {
+    if (!frequentlyMentionedGroups) return [];
+    const groups =
+      selectedCluster === null
+        ? frequentlyMentionedGroups
+        : frequentlyMentionedGroups.filter(
+            (g) => g.clusterIndex === selectedCluster
+          );
+
+    // When viewing "All themes", prefer showing the most frequently mentioned groups first.
+    // Also applies within a single theme for consistency.
+    return groups.slice().sort((a, b) => {
+      const aSize = a.size ?? a.similarResponses.length + 1;
+      const bSize = b.size ?? b.similarResponses.length + 1;
+      if (bSize !== aSize) return bSize - aSize;
+      if (a.clusterIndex !== b.clusterIndex)
+        return a.clusterIndex - b.clusterIndex;
+      return a.groupId.localeCompare(b.groupId);
+    });
+  }, [frequentlyMentionedGroups, selectedCluster]);
+
+  // Create set of grouped response IDs to avoid duplicate rendering
+  const groupedResponseIds = useMemo(() => {
+    const ids = new Set<string>();
+    filteredGroups.forEach((group) => {
+      ids.add(group.representative.id);
+      group.similarResponses.forEach((resp) => ids.add(resp.id));
+    });
+    return ids;
+  }, [filteredGroups]);
+
+  // Filter out responses that are already in groups
+  const ungroupedItems = useMemo(() => {
+    return filteredItems.filter((item) => !groupedResponseIds.has(item.id));
+  }, [filteredItems, groupedResponseIds]);
+
+  const svgRef = useRef<SVGSVGElement>(null);
+
   const onPanStart = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragging(true);
     dragStart.current = { x: event.clientX, y: event.clientY };
-    panStart.current = pan;
+    viewBoxStart.current = viewBox;
   };
 
   const onPanMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!dragging) return;
+    if (!dragging || !svgRef.current) return;
+
+    // Calculate pixel delta
     const dx = event.clientX - dragStart.current.x;
     const dy = event.clientY - dragStart.current.y;
-    setPan({ x: panStart.current.x + dx, y: panStart.current.y + dy });
+
+    // Convert pixel delta to SVG coordinate delta based on current viewBox
+    // The conversion factor is viewBox width/height divided by the rendered pixel width/height
+    const rect = svgRef.current.getBoundingClientRect();
+    const svgDx = -(dx * viewBoxStart.current.width) / rect.width;
+    const svgDy = -(dy * viewBoxStart.current.height) / rect.height;
+
+    setViewBox({
+      ...viewBoxStart.current,
+      x: viewBoxStart.current.x + svgDx,
+      y: viewBoxStart.current.y + svgDy,
+    });
   };
 
   const onPanEnd = () => {
     setDragging(false);
   };
 
-  const panStyle = { transform: `translate(${pan.x}px, ${pan.y}px)` };
+  const clamp = useCallback((value: number, min: number, max: number) => {
+    return Math.min(max, Math.max(min, value));
+  }, []);
+
+  const zoomIn = useCallback(() => {
+    setZoom((prevZoom) => {
+      const newZoom = clamp(
+        Number((prevZoom + ZOOM_STEP).toFixed(2)),
+        MIN_ZOOM,
+        MAX_ZOOM
+      );
+      if (newZoom === prevZoom) return prevZoom; // Already at max
+      return newZoom;
+    });
+
+    setViewBox((prevViewBox) => {
+      // Calculate zoom factor (zoom increases, viewBox shrinks)
+      const zoomFactor = 1 / (1 + ZOOM_STEP);
+
+      // Center of the current viewBox
+      const centerX = prevViewBox.x + prevViewBox.width / 2;
+      const centerY = prevViewBox.y + prevViewBox.height / 2;
+
+      // New viewBox dimensions (smaller = more zoomed in)
+      const newWidth = prevViewBox.width * zoomFactor;
+      const newHeight = prevViewBox.height * zoomFactor;
+
+      // Keep center point fixed
+      return {
+        x: centerX - newWidth / 2,
+        y: centerY - newHeight / 2,
+        width: newWidth,
+        height: newHeight,
+      };
+    });
+  }, [clamp]);
+
+  const zoomOut = useCallback(() => {
+    setZoom((prevZoom) => {
+      const newZoom = clamp(
+        Number((prevZoom - ZOOM_STEP).toFixed(2)),
+        MIN_ZOOM,
+        MAX_ZOOM
+      );
+      if (newZoom === prevZoom) return prevZoom; // Already at min
+      return newZoom;
+    });
+
+    setViewBox((prevViewBox) => {
+      // Calculate zoom factor (zoom decreases, viewBox grows)
+      const zoomFactor = 1 + ZOOM_STEP;
+
+      // Center of the current viewBox
+      const centerX = prevViewBox.x + prevViewBox.width / 2;
+      const centerY = prevViewBox.y + prevViewBox.height / 2;
+
+      // New viewBox dimensions (larger = more zoomed out)
+      const newWidth = prevViewBox.width * zoomFactor;
+      const newHeight = prevViewBox.height * zoomFactor;
+
+      // Keep center point fixed
+      return {
+        x: centerX - newWidth / 2,
+        y: centerY - newHeight / 2,
+        width: newWidth,
+        height: newHeight,
+      };
+    });
+  }, [clamp]);
+
+  // ViewBox string for the SVG element
+  const viewBoxString = useMemo(
+    () => `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`,
+    [viewBox]
+  );
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
   }, []);
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickAway = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      window.addEventListener("click", handleClickAway);
+    }
+    return () => window.removeEventListener("click", handleClickAway);
+  }, [dropdownOpen]);
+
+  // Get theme color by cluster index
+  const getThemeColor = useCallback((clusterIndex: number) => {
+    if (clusterIndex === MISC_CLUSTER_INDEX) {
+      return MISC_COLOR;
+    }
+    return palette[clusterIndex % palette.length];
+  }, []);
+
+  // Get selected theme label
+  const selectedThemeLabel = useMemo(() => {
+    if (selectedCluster === null) return "All themes";
+    const theme = themes.find((t) => t.clusterIndex === selectedCluster);
+    return theme?.name || `Theme ${selectedCluster}`;
+  }, [selectedCluster, themes]);
+
   return (
     <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)] overflow-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start flex-1 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start flex-1 overflow-hidden">
         {/* Left column: Theme map */}
-        <div className="bg-white rounded-2xl overflow-hidden lg:col-span-2">
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 h-full">
           <div
-            className={`relative bg-slate-50 rounded-xl h-full overflow-hidden ${
+            className={`relative bg-white rounded-xl h-full overflow-hidden ${
               dragging ? "cursor-grabbing" : "cursor-grab"
             }`}
             onMouseDown={onPanStart}
@@ -169,14 +439,75 @@ export default function UnderstandView({ viewModel, conversationType = "understa
           >
             {mounted ? (
               <>
+                <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      zoomOut();
+                    }}
+                    aria-label="Zoom out"
+                    disabled={zoom <= MIN_ZOOM}
+                  >
+                    −
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      zoomIn();
+                    }}
+                    aria-label="Zoom in"
+                    disabled={zoom >= MAX_ZOOM}
+                  >
+                    +
+                  </Button>
+                </div>
                 <svg
-                  viewBox={`-${PAN_PADDING} -${PAN_PADDING} ${
-                    CANVAS_SIZE + PAN_PADDING * 2
-                  } ${CANVAS_SIZE + PAN_PADDING * 2}`}
-                  className="w-full h-full"
-                  style={panStyle}
+                  ref={svgRef}
+                  viewBox={viewBoxString}
+                  className="absolute inset-0 w-full h-full"
                   suppressHydrationWarning
+                  onClick={(e) => {
+                    // Reset to "All themes" when clicking outside clusters
+                    // Only if the target is the SVG element itself (background)
+                    if (e.target === e.currentTarget) {
+                      setSelectedCluster(null);
+                    }
+                  }}
                 >
+                  {/* Faint axes intersecting at center */}
+                  <g opacity={zoomConfig.axisOpacity}>
+                    {/* Vertical axis (Y) */}
+                    <line
+                      x1={CANVAS_SIZE / 2}
+                      y1={0}
+                      x2={CANVAS_SIZE / 2}
+                      y2={CANVAS_SIZE}
+                      stroke="#94a3b8"
+                      strokeWidth={1}
+                      strokeDasharray="4 4"
+                    />
+                    {/* Horizontal axis (X) */}
+                    <line
+                      x1={0}
+                      y1={CANVAS_SIZE / 2}
+                      x2={CANVAS_SIZE}
+                      y2={CANVAS_SIZE / 2}
+                      stroke="#94a3b8"
+                      strokeWidth={1}
+                      strokeDasharray="4 4"
+                    />
+                  </g>
+
                   {clusterMeta.map((meta) => {
                     const active =
                       selectedCluster === null || selectedCluster === meta.idx;
@@ -195,15 +526,17 @@ export default function UnderstandView({ viewModel, conversationType = "understa
                           )
                         }
                       >
-                        <circle
-                          cx={meta.cx}
-                          cy={meta.cy}
-                          r={meta.radius}
+                        <path
+                          d={meta.hullPath}
                           fill={meta.color}
                           fillOpacity={fillOpacity}
                           stroke={meta.color}
                           strokeOpacity={borderOpacity}
-                          strokeWidth={active ? 2 : 1}
+                          strokeWidth={
+                            active
+                              ? zoomConfig.clusterStrokeWidth
+                              : zoomConfig.clusterStrokeWidth * 0.5
+                          }
                         />
                       </g>
                     );
@@ -217,11 +550,13 @@ export default function UnderstandView({ viewModel, conversationType = "understa
                         key={p.id}
                         cx={p.sx}
                         cy={p.sy}
-                        r={6}
+                        r={zoomConfig.dotRadius}
                         fill={
-                          p.clusterIndex !== null
-                            ? palette[p.clusterIndex % palette.length]
-                            : "#94a3b8"
+                          p.clusterIndex === MISC_CLUSTER_INDEX
+                            ? MISC_COLOR
+                            : p.clusterIndex !== null
+                              ? palette[p.clusterIndex % palette.length]
+                              : "#94a3b8"
                         }
                         opacity={active ? 0.9 : 0.15}
                       >
@@ -233,53 +568,53 @@ export default function UnderstandView({ viewModel, conversationType = "understa
                       </circle>
                     );
                   })}
-                </svg>
-                {filteredPoints.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center text-slate-500">
-                    No points for this theme.
-                  </div>
-                )}
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    zIndex: 10,
-                    ...panStyle,
-                    left: -PAN_PADDING,
-                    top: -PAN_PADDING,
-                    width: CANVAS_SIZE + PAN_PADDING * 2,
-                    height: CANVAS_SIZE + PAN_PADDING * 2,
-                  }}
-                >
+                  {/* Cluster labels as SVG text */}
                   {clusterMeta.map((meta) => {
                     const active =
                       selectedCluster === null || selectedCluster === meta.idx;
+                    // Approximate text width (rough estimation: ~7px per character for 12px font)
+                    const textWidth = meta.themeName.length * 7;
+                    const padding = 12; // Reduced from 20px
+                    const rectWidth = textWidth + padding;
+                    const rectHeight = 20;
+
                     return (
-                      <div
-                        key={meta.idx}
-                        style={{
-                          position: "absolute",
-                          left: meta.cx + PAN_PADDING,
-                          top: meta.cy + PAN_PADDING,
-                          transform: "translate(-50%, -50%)",
-                          background: "rgba(255,255,255,0.95)",
-                          border: `1px solid ${meta.color}33`,
-                          borderRadius: "9999px",
-                          padding: "4px 10px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          textAlign: "center",
-                          width: "max-content",
-                          color: meta.color,
-                          boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
-                          pointerEvents: "none",
-                          opacity: active ? 1 : 0.6,
-                        }}
-                      >
-                        {meta.themeName}
-                      </div>
+                      <g key={`label-${meta.idx}`}>
+                        {/* Background pill */}
+                        <rect
+                          x={meta.cx - rectWidth / 2}
+                          y={meta.cy - rectHeight / 2}
+                          width={rectWidth}
+                          height={rectHeight}
+                          rx={10}
+                          fill="rgba(255,255,255,0.95)"
+                          stroke={meta.color}
+                          strokeOpacity={0.2}
+                          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.08))"
+                        />
+                        {/* Label text */}
+                        <text
+                          x={meta.cx}
+                          y={meta.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill={meta.color}
+                          fontSize="12"
+                          fontWeight="500"
+                          opacity={active ? 1 : 0.6}
+                          pointerEvents="none"
+                        >
+                          {meta.themeName}
+                        </text>
+                      </g>
                     );
                   })}
-                </div>
+                </svg>
+                {filteredPoints.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center text-body text-slate-500">
+                    No points for this theme.
+                  </div>
+                )}
               </>
             ) : (
               <div className="absolute inset-0 bg-slate-100 animate-pulse rounded-xl" />
@@ -288,112 +623,173 @@ export default function UnderstandView({ viewModel, conversationType = "understa
         </div>
 
         {/* Right column: Response list */}
-        <div className="bg-white space-y-4 p-8 rounded-2xl h-full overflow-y-auto lg:col-span-3">
+        <div className="bg-white space-y-4 p-8 rounded-2xl h-full overflow-y-auto shadow-sm border border-slate-100">
           <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSelectedCluster(null)}
-                className={`px-3 ${
-                  selectedCluster === null
-                    ? "border-indigo-200 bg-indigo-50"
-                    : "border-slate-200 hover:border-indigo-200"
-                }`}
-              >
-                All themes
-              </Button>
-              {themes.map((theme) => (
-                <Button
-                  key={theme.clusterIndex}
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    setSelectedCluster(
-                      selectedCluster === theme.clusterIndex
-                        ? null
-                        : theme.clusterIndex
-                    )
-                  }
-                  className={`px-3 ${
-                    selectedCluster === theme.clusterIndex
-                      ? "border-indigo-200 bg-indigo-50"
-                      : "border-slate-200 hover:border-indigo-200"
-                  }`}
+            <div className="flex items-center gap-3">
+              <label className="text-subtitle text-slate-700 whitespace-nowrap">
+                Filter by theme:
+              </label>
+              <div className="relative flex-1" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-body"
                 >
-                  {theme.name || `Theme ${theme.clusterIndex}`}
-                </Button>
-              ))}
+                  <span className="flex items-center gap-2">
+                    {selectedCluster !== null && (
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{
+                          backgroundColor: getThemeColor(selectedCluster),
+                        }}
+                      />
+                    )}
+                    <span className="text-subtitle">{selectedThemeLabel}</span>
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50 max-h-80 overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCluster(null);
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
+                    >
+                      All themes
+                    </button>
+                    {themes
+                      .sort((a, b) => {
+                        // Misc theme always last
+                        if (a.clusterIndex === MISC_CLUSTER_INDEX) return 1;
+                        if (b.clusterIndex === MISC_CLUSTER_INDEX) return -1;
+                        return 0;
+                      })
+                      .map((theme) => (
+                        <button
+                          key={theme.clusterIndex}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCluster(theme.clusterIndex);
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{
+                              backgroundColor: getThemeColor(
+                                theme.clusterIndex
+                              ),
+                            }}
+                          />
+                          {theme.name || `Theme ${theme.clusterIndex}`}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="space-y-8 pt-4">
             {filteredItems.length === 0 ? (
-              <div className="text-slate-600">
+              <div className="text-body text-slate-600">
                 No responses yet. Upload on Listen to get started.
               </div>
             ) : (
-              filteredItems.map((resp) => (
-                <div key={resp.id} className="rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border ${
-                        resp.tag
-                          ? getTagColors(resp.tag)
-                          : "bg-slate-100 text-slate-600 border-slate-200"
-                      }`}
-                    >
-                      {resp.tag ?? "response"}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {resp.counts.agree} agree · {resp.counts.pass} pass ·{" "}
-                      {resp.counts.disagree} disagree
-                    </span>
-                  </div>
+              <>
+                {/* Render frequently mentioned groups first */}
+                {filteredGroups.map((group) => (
+                  <FrequentlyMentionedGroupCard
+                    key={group.groupId}
+                    group={group}
+                    onVote={vote}
+                    loadingId={loadingId}
+                    conversationType={conversationType}
+                  />
+                ))}
 
-                  <p className="text-slate-800 leading-relaxed line-clamp-3">
-                    {resp.responseText}
-                  </p>
-
-                  {conversationType === "understand" && (
-                    <div className="flex gap-2">
-                      {(["agree", "pass", "disagree"] as Feedback[]).map((fb) => {
-                        const active = resp.current === fb;
-                        const base =
-                          fb === "agree"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : fb === "disagree"
-                            ? "bg-red-50 text-red-700 border-red-200"
-                            : "bg-slate-50 text-slate-700 border-slate-200";
-                        return (
-                          <Button
-                            key={fb}
-                            variant="secondary"
-                            size="sm"
-                            disabled={loadingId === resp.id}
-                            onClick={() => vote(resp.id, fb)}
-                            className={`flex-1 ${
-                              active
-                                ? base
-                                : "bg-white text-slate-700 border-slate-200 hover:border-indigo-200"
-                            }`}
-                          >
-                            {fb === "agree" && "Agree"}
-                            {fb === "pass" && "Pass"}
-                            {fb === "disagree" && "Disagree"}
-                          </Button>
-                        );
-                      })}
+                {/* Render ungrouped responses */}
+                {ungroupedItems.map((resp) => (
+                  <div key={resp.id} className="rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 text-label rounded-full border ${
+                          resp.tag
+                            ? getTagColors(resp.tag)
+                            : "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}
+                      >
+                        {resp.tag ?? "response"}
+                      </span>
+                      <span className="text-info text-slate-500">
+                        {resp.counts.agree} agree · {resp.counts.pass} pass ·{" "}
+                        {resp.counts.disagree} disagree
+                      </span>
                     </div>
-                  )}
 
-                  {conversationType === "decide" && (
-                    <p className="text-xs text-slate-500 italic mt-1">
-                      Feedback disabled for decision sessions
+                    <p className="text-body text-slate-800 leading-relaxed line-clamp-3">
+                      {resp.responseText}
                     </p>
-                  )}
-                </div>
-              ))
+
+                    {conversationType === "understand" && (
+                      <div className="flex gap-2">
+                        {(["agree", "pass", "disagree"] as Feedback[]).map(
+                          (fb) => {
+                            const active = resp.current === fb;
+                            const activeStyles =
+                              fb === "agree"
+                                ? "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                                : fb === "disagree"
+                                  ? "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100"
+                                  : "bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-200";
+                            const inactiveStyles =
+                              "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
+                            return (
+                              <Button
+                                key={fb}
+                                variant="secondary"
+                                size="sm"
+                                disabled={loadingId === resp.id}
+                                onClick={() => vote(resp.id, fb)}
+                                className={`flex-1 transition-colors ${
+                                  active ? activeStyles : inactiveStyles
+                                }`}
+                              >
+                                {fb === "agree" && "Agree"}
+                                {fb === "pass" && "Pass"}
+                                {fb === "disagree" && "Disagree"}
+                              </Button>
+                            );
+                          }
+                        )}
+                      </div>
+                    )}
+
+                    {conversationType === "decide" && (
+                      <p className="text-info text-slate-500 italic mt-1">
+                        Feedback disabled for decision sessions
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </div>

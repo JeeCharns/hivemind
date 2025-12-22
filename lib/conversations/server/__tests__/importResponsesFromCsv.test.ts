@@ -5,24 +5,47 @@
  */
 
 import { importResponsesFromCsv } from "../importResponsesFromCsv";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Mock Supabase client
-const createMockSupabase = (): any => {
-  const mockSupabase: any = {
-    from: jest.fn(() => mockSupabase),
-    select: jest.fn(() => mockSupabase),
-    insert: jest.fn(() => mockSupabase),
-    update: jest.fn(() => mockSupabase),
-    eq: jest.fn(() => mockSupabase),
-    single: jest.fn(() => mockSupabase),
-  };
+type MockSupabase = SupabaseClient & {
+  from: SupabaseClient["from"] & jest.Mock;
+  select: jest.Mock;
+  insert: jest.Mock;
+  update: jest.Mock;
+  eq: jest.Mock;
+  single: jest.Mock;
+  maybeSingle: jest.Mock;
+};
+
+type InsertedResponseRow = {
+  response_text: string;
+  tag: string | null;
+  is_anonymous?: boolean;
+};
+
+const createMockSupabase = (): MockSupabase => {
+  const mockSupabase = {} as unknown as MockSupabase;
+
+  mockSupabase.from = jest.fn(() => mockSupabase) as unknown as MockSupabase["from"];
+  mockSupabase.select = jest.fn(() => mockSupabase);
+  mockSupabase.insert = jest.fn(() => mockSupabase);
+  mockSupabase.update = jest.fn(() => mockSupabase);
+  mockSupabase.eq = jest.fn(() => mockSupabase);
+  mockSupabase.single = jest.fn(() => mockSupabase);
+  mockSupabase.maybeSingle = jest.fn(() => mockSupabase);
+
   return mockSupabase;
 };
 
 // Helper to create a File object from CSV string
 const createCsvFile = (content: string, filename = "test.csv"): File => {
   const blob = new Blob([content], { type: "text/csv" });
-  return new File([blob], filename, { type: "text/csv" });
+  const file = new File([blob], filename, { type: "text/csv" });
+  // Add text() method for Node.js environment
+  (file as File & { text: () => Promise<string> }).text = () =>
+    Promise.resolve(content);
+  return file;
 };
 
 describe("importResponsesFromCsv", () => {
@@ -52,7 +75,7 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     const result = await importResponsesFromCsv(
-      mockSupabase as any,
+      mockSupabase,
       conversationId,
       userId,
       file
@@ -65,15 +88,15 @@ describe("importResponsesFromCsv", () => {
     expect(mockSupabase.insert).toHaveBeenCalled();
   });
 
-  it("should normalize unknown tags to 'proposal'", async () => {
+  it("should treat unknown tags as null", async () => {
     mockSupabase.single.mockResolvedValueOnce({
       data: { id: conversationId, hive_id: "hive-1", type: "understand" },
       error: null,
     });
 
-    mockSupabase.insert.mockImplementationOnce((rows: any[]) => {
-      // Verify tag normalization
-      expect(rows[0].tag).toBe("proposal");
+    mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
+      // Verify unknown tags are treated as null
+      expect(rows[0].tag).toBeNull();
       expect(rows[1].tag).toBe("need");
       return { error: null };
     });
@@ -85,7 +108,7 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     await importResponsesFromCsv(
-      mockSupabase as any,
+      mockSupabase,
       conversationId,
       userId,
       file
@@ -104,8 +127,64 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     await expect(
-      importResponsesFromCsv(mockSupabase as any, conversationId, userId, file)
+      importResponsesFromCsv(mockSupabase, conversationId, userId, file)
     ).rejects.toThrow('CSV must include a column named "response"');
+  });
+
+  it("should accept 'responses' column name (case-insensitive)", async () => {
+    mockSupabase.single.mockResolvedValueOnce({
+      data: { id: conversationId, hive_id: "hive-1", type: "understand" },
+      error: null,
+    });
+
+    mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
+      expect(rows.length).toBe(2);
+      expect(rows[0].response_text).toBe("First response");
+      expect(rows[1].response_text).toBe("Second response");
+      return { error: null };
+    });
+
+    const csvContent = `Responses,Tag
+"First response","need"
+"Second response","data"`;
+
+    const file = createCsvFile(csvContent);
+
+    const result = await importResponsesFromCsv(
+      mockSupabase,
+      conversationId,
+      userId,
+      file
+    );
+
+    expect(result.importedCount).toBe(2);
+  });
+
+  it("should accept 'Response' column name (case-insensitive)", async () => {
+    mockSupabase.single.mockResolvedValueOnce({
+      data: { id: conversationId, hive_id: "hive-1", type: "understand" },
+      error: null,
+    });
+
+    mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
+      expect(rows.length).toBe(1);
+      expect(rows[0].response_text).toBe("Only response");
+      return { error: null };
+    });
+
+    const csvContent = `Response
+"Only response"`;
+
+    const file = createCsvFile(csvContent);
+
+    const result = await importResponsesFromCsv(
+      mockSupabase,
+      conversationId,
+      userId,
+      file
+    );
+
+    expect(result.importedCount).toBe(1);
   });
 
   it("should reject CSV exceeding row limit", async () => {
@@ -124,7 +203,7 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     await expect(
-      importResponsesFromCsv(mockSupabase as any, conversationId, userId, file)
+      importResponsesFromCsv(mockSupabase, conversationId, userId, file)
     ).rejects.toThrow("CSV exceeds maximum of 1000 rows");
   });
 
@@ -139,7 +218,7 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     await expect(
-      importResponsesFromCsv(mockSupabase as any, conversationId, userId, file)
+      importResponsesFromCsv(mockSupabase, conversationId, userId, file)
     ).rejects.toThrow("CSV file is empty");
   });
 
@@ -155,7 +234,7 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     await expect(
-      importResponsesFromCsv(mockSupabase as any, conversationId, userId, file)
+      importResponsesFromCsv(mockSupabase, conversationId, userId, file)
     ).rejects.toThrow("CSV import is only supported for 'understand' sessions");
   });
 
@@ -165,7 +244,7 @@ describe("importResponsesFromCsv", () => {
       error: null,
     });
 
-    mockSupabase.insert.mockImplementationOnce((rows: any[]) => {
+    mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
       // Verify only non-empty responses are included
       expect(rows.length).toBe(2);
       return { error: null };
@@ -179,7 +258,100 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     const result = await importResponsesFromCsv(
-      mockSupabase as any,
+      mockSupabase,
+      conversationId,
+      userId,
+      file
+    );
+
+    expect(result.importedCount).toBe(2);
+  });
+
+  it("should import CSV without tag column", async () => {
+    mockSupabase.single.mockResolvedValueOnce({
+      data: { id: conversationId, hive_id: "hive-1", type: "understand" },
+      error: null,
+    });
+
+    mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
+      // Verify all tags are null when column is missing
+      expect(rows.length).toBe(2);
+      expect(rows[0].tag).toBeNull();
+      expect(rows[1].tag).toBeNull();
+      return { error: null };
+    });
+
+    const csvContent = `response
+"First response"
+"Second response"`;
+
+    const file = createCsvFile(csvContent);
+
+    const result = await importResponsesFromCsv(
+      mockSupabase,
+      conversationId,
+      userId,
+      file
+    );
+
+    expect(result.importedCount).toBe(2);
+    expect(result.importBatchId).toBeDefined();
+  });
+
+  it("should treat empty tag cells as null", async () => {
+    mockSupabase.single.mockResolvedValueOnce({
+      data: { id: conversationId, hive_id: "hive-1", type: "understand" },
+      error: null,
+    });
+
+    mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
+      // Verify empty tags are null, while valid tags are preserved
+      expect(rows.length).toBe(3);
+      expect(rows[0].tag).toBe("need");
+      expect(rows[1].tag).toBeNull();
+      expect(rows[2].tag).toBe("data");
+      return { error: null };
+    });
+
+    const csvContent = `response,tag
+"First response","need"
+"Second response",""
+"Third response","data"`;
+
+    const file = createCsvFile(csvContent);
+
+    const result = await importResponsesFromCsv(
+      mockSupabase,
+      conversationId,
+      userId,
+      file
+    );
+
+    expect(result.importedCount).toBe(3);
+  });
+
+  it("should treat whitespace-only tag cells as null", async () => {
+    mockSupabase.single.mockResolvedValueOnce({
+      data: { id: conversationId, hive_id: "hive-1", type: "understand" },
+      error: null,
+    });
+
+    mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
+      // Verify whitespace-only tags are null
+      expect(rows.length).toBe(2);
+      expect(rows[0].tag).toBeNull();
+      expect(rows[1].tag).toBeNull();
+      return { error: null };
+    });
+
+    const csvContent = `response,tag
+"First response","   "
+"Second response","\t"`;
+
+    const file = createCsvFile(csvContent);
+
+    const result = await importResponsesFromCsv(
+      mockSupabase,
       conversationId,
       userId,
       file
@@ -200,7 +372,7 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(csvContent);
 
     await expect(
-      importResponsesFromCsv(mockSupabase as any, conversationId, userId, file)
+      importResponsesFromCsv(mockSupabase, conversationId, userId, file)
     ).rejects.toThrow("Conversation not found");
   });
 
@@ -215,7 +387,7 @@ describe("importResponsesFromCsv", () => {
     const file = createCsvFile(largeContent);
 
     await expect(
-      importResponsesFromCsv(mockSupabase as any, conversationId, userId, file)
+      importResponsesFromCsv(mockSupabase, conversationId, userId, file)
     ).rejects.toThrow("File size exceeds maximum");
   });
 
@@ -226,7 +398,7 @@ describe("importResponsesFromCsv", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementationOnce((rows: any[]) => {
+      mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
         // Verify all rows default to is_anonymous = true
         expect(rows.length).toBe(2);
         expect(rows[0].is_anonymous).toBe(true);
@@ -241,7 +413,7 @@ describe("importResponsesFromCsv", () => {
       const file = createCsvFile(csvContent);
 
       await importResponsesFromCsv(
-        mockSupabase as any,
+        mockSupabase,
         conversationId,
         userId,
         file
@@ -254,7 +426,7 @@ describe("importResponsesFromCsv", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementationOnce((rows: any[]) => {
+      mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
         expect(rows.length).toBe(2);
         expect(rows[0].is_anonymous).toBe(false);
         expect(rows[1].is_anonymous).toBe(true);
@@ -268,7 +440,7 @@ describe("importResponsesFromCsv", () => {
       const file = createCsvFile(csvContent);
 
       await importResponsesFromCsv(
-        mockSupabase as any,
+        mockSupabase,
         conversationId,
         userId,
         file
@@ -281,7 +453,7 @@ describe("importResponsesFromCsv", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementationOnce((rows: any[]) => {
+      mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
         expect(rows.length).toBe(6);
         expect(rows[0].is_anonymous).toBe(false); // "false"
         expect(rows[1].is_anonymous).toBe(false); // "0"
@@ -303,7 +475,7 @@ describe("importResponsesFromCsv", () => {
       const file = createCsvFile(csvContent);
 
       await importResponsesFromCsv(
-        mockSupabase as any,
+        mockSupabase,
         conversationId,
         userId,
         file
@@ -316,7 +488,7 @@ describe("importResponsesFromCsv", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementationOnce((rows: any[]) => {
+      mockSupabase.insert.mockImplementationOnce((rows: InsertedResponseRow[]) => {
         expect(rows.length).toBe(2);
         expect(rows[0].is_anonymous).toBe(false);
         expect(rows[1].is_anonymous).toBe(true);
@@ -330,7 +502,7 @@ describe("importResponsesFromCsv", () => {
       const file = createCsvFile(csvContent);
 
       await importResponsesFromCsv(
-        mockSupabase as any,
+        mockSupabase,
         conversationId,
         userId,
         file

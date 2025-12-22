@@ -56,7 +56,7 @@ export async function GET(
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       console.log("[GET /api/conversations/:id/votes] Not a member");
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
@@ -115,7 +115,7 @@ export async function POST(
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       console.log("[POST /api/conversations/:id/votes] Not a member");
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }

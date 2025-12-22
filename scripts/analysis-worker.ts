@@ -9,14 +9,17 @@
  * - Comprehensive logging
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { runConversationAnalysis } from "../lib/conversations/server/runConversationAnalysis";
+import { runConversationAnalysisIncremental } from "../lib/conversations/server/runConversationAnalysisIncremental";
 import winston from "winston";
+import { claimAnalysisJob } from "../lib/conversations/server/claimAnalysisJob";
 
 // Configuration
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || "5000", 10);
 const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || "3", 10);
 const WORKER_ID = process.env.WORKER_ID || `worker-${Math.random().toString(36).substring(7)}`;
+const JOB_LOCK_TTL_MS = parseInt(process.env.JOB_LOCK_TTL_MS || "900000", 10); // 15 minutes
 
 // Logger setup
 const logger = winston.createLogger({
@@ -40,18 +43,17 @@ const logger = winston.createLogger({
 /**
  * Initialize Supabase client
  */
-function createSupabaseClient() {
+function createSupabaseClient(): SupabaseClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseServiceKey =
-    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
-  if (!supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseSecretKey) {
     throw new Error(
       "Missing required environment variables: (NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL) and SUPABASE_SECRET_KEY"
     );
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  return createClient(supabaseUrl, supabaseSecretKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -63,10 +65,17 @@ function createSupabaseClient() {
  * Fetch next queued job
  */
 async function fetchNextJob(supabase: ReturnType<typeof createSupabaseClient>) {
+  const cutoff = new Date(Date.now() - JOB_LOCK_TTL_MS).toISOString();
   const { data, error } = await supabase
     .from("conversation_analysis_jobs")
     .select("*")
-    .eq("status", "queued")
+    .or(
+      [
+        "status.eq.queued",
+        "and(status.eq.running,locked_at.is.null)",
+        `and(status.eq.running,locked_at.lt.${cutoff})`,
+      ].join(",")
+    )
     .order("created_at", { ascending: true })
     .limit(1)
     .single();
@@ -81,30 +90,6 @@ async function fetchNextJob(supabase: ReturnType<typeof createSupabaseClient>) {
 }
 
 /**
- * Lock a job for processing
- */
-async function lockJob(
-  supabase: ReturnType<typeof createSupabaseClient>,
-  jobId: string
-): Promise<boolean> {
-  const { error } = await supabase
-    .from("conversation_analysis_jobs")
-    .update({
-      status: "running",
-      locked_at: new Date().toISOString(),
-    })
-    .eq("id", jobId)
-    .eq("status", "queued"); // Only lock if still queued (prevent race condition)
-
-  if (error) {
-    logger.error("Failed to lock job", { jobId, error: error.message });
-    return false;
-  }
-
-  return true;
-}
-
-/**
  * Mark job as succeeded
  */
 async function markJobSucceeded(
@@ -116,6 +101,7 @@ async function markJobSucceeded(
     .update({
       status: "succeeded",
       updated_at: new Date().toISOString(),
+      locked_at: null,
     })
     .eq("id", jobId);
 
@@ -162,27 +148,41 @@ async function markJobFailed(
  */
 async function processJob(
   supabase: ReturnType<typeof createSupabaseClient>,
-  job: any
+  job: {
+    id: string;
+    conversation_id: string;
+    attempts: number;
+    strategy: "full" | "incremental";
+  }
 ): Promise<void> {
-  const { id: jobId, conversation_id: conversationId, attempts } = job;
+  const { id: jobId, conversation_id: conversationId, attempts, strategy } = job;
 
-  logger.info("Processing job", { jobId, conversationId, attempts });
+  logger.info("Processing job", { jobId, conversationId, attempts, strategy });
 
   try {
-    // Lock the job
-    const locked = await lockJob(supabase, jobId);
-    if (!locked) {
-      logger.warn("Failed to lock job (race condition)", { jobId });
+    const claim = await claimAnalysisJob(supabase, {
+      jobId,
+      lockTtlMs: JOB_LOCK_TTL_MS,
+    });
+    if (!claim.claimed) {
+      logger.warn("Job not claimed (already running or not queued)", {
+        jobId,
+        conversationId,
+      });
       return;
     }
 
-    // Run analysis
-    await runConversationAnalysis(supabase, conversationId);
+    // Run analysis (branch on strategy)
+    if (strategy === "incremental") {
+      await runConversationAnalysisIncremental(supabase, conversationId);
+    } else {
+      await runConversationAnalysis(supabase, conversationId);
+    }
 
     // Mark as succeeded
     await markJobSucceeded(supabase, jobId);
 
-    logger.info("Job completed successfully", { jobId, conversationId });
+    logger.info("Job completed successfully", { jobId, conversationId, strategy });
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
@@ -191,9 +191,54 @@ async function processJob(
       jobId,
       conversationId,
       attempts,
+      strategy,
       error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
     });
+
+    // Check if this is a PostgREST schema cache issue
+    const isSchemaError =
+      errorMessage.includes("PostgREST") &&
+      errorMessage.includes("schema cache");
+
+    if (isSchemaError) {
+      logger.warn("PostgREST schema cache error detected", {
+        jobId,
+        conversationId,
+        suggestion: "Run: SELECT pg_notify('pgrst', 'reload schema');",
+      });
+
+      // For schema errors, check if the analysis actually completed
+      const { data: conv } = await supabase
+        .from("conversations")
+        .select("analysis_status")
+        .eq("id", conversationId)
+        .maybeSingle();
+
+      if (conv?.analysis_status === "ready" || conv?.analysis_status === "completed") {
+        logger.info("Analysis already completed despite job error", {
+          jobId,
+          conversationId,
+          analysisStatus: conv.analysis_status,
+        });
+
+        // Try to mark as succeeded, but don't fail if we can't
+        try {
+          await markJobSucceeded(supabase, jobId);
+          logger.info("Marked job as succeeded after detecting completed analysis", {
+            jobId,
+            conversationId,
+          });
+          return; // Exit early, don't retry
+        } catch {
+          logger.warn("Could not update job status, but analysis is complete", {
+            jobId,
+            conversationId,
+          });
+          return; // Exit early anyway, analysis is done
+        }
+      }
+    }
 
     // Mark as failed (will retry if under MAX_RETRIES)
     await markJobFailed(supabase, jobId, errorMessage, attempts);

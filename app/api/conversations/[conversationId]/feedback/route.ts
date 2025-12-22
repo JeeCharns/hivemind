@@ -11,6 +11,7 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import type { Feedback } from "@/types/conversation-understand";
 import { jsonError } from "@/lib/api/errors";
+import { submitFeedbackSchema } from "@/lib/conversations/schemas";
 
 const VALID_FEEDBACK: Feedback[] = ["agree", "pass", "disagree"];
 
@@ -43,7 +44,7 @@ export async function POST(
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
@@ -52,16 +53,29 @@ export async function POST(
       return jsonError("Feedback is disabled for decision sessions", 409, "FEEDBACK_DISABLED");
     }
 
-    // 4. Validate input
-    const body = await req.json();
-    const { responseId, feedback } = body;
+    // 4. Validate input (Zod boundary validation)
+    const rawBody: unknown = await req.json().catch(() => null);
+    const parsed = submitFeedbackSchema.safeParse(rawBody);
 
-    if (!responseId || typeof responseId !== "string") {
-      return jsonError("Response ID is required", 400);
+    if (!parsed.success) {
+      if (process.env.NODE_ENV !== "production") {
+        const maybeObj = rawBody as { responseId?: unknown; feedback?: unknown } | null;
+        console.log("[POST /api/conversations/:id/feedback] Invalid body", {
+          conversationId,
+          userId: session.user.id,
+          responseIdType: typeof maybeObj?.responseId,
+          feedback: maybeObj?.feedback,
+          issues: parsed.error.flatten(),
+        });
+      }
+      return jsonError("Invalid request body", 400, "VALIDATION_ERROR");
     }
 
-    if (!feedback || !VALID_FEEDBACK.includes(feedback as Feedback)) {
-      return jsonError("Invalid feedback value", 400);
+    const { responseId, feedback } = parsed.data;
+
+    // Backward-compatible guard (should be redundant with Zod)
+    if (!VALID_FEEDBACK.includes(feedback as Feedback)) {
+      return jsonError("Invalid feedback value", 400, "VALIDATION_ERROR");
     }
 
     // 5. Verify response exists and belongs to this conversation

@@ -7,7 +7,6 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserHives, type HiveRow } from "@/lib/navbar/data/hiveRepository";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
 
 export interface HiveWithSignedUrl extends Omit<HiveRow, "logo_url"> {
   logo_url: string | null; // This will be a signed URL or null

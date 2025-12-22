@@ -63,7 +63,10 @@ describe("POST /api/hives/[hiveId]/join", () => {
     expect(data.hiveKey).toBe("test-hive");
     expect(mockJoinHive).toHaveBeenCalledWith(
       expect.anything(),
-      "user-123",
+      expect.objectContaining({
+        id: "user-123",
+        email: "test@example.com",
+      }),
       "11111111-1111-4111-8111-111111111111"
     );
   });
@@ -168,6 +171,7 @@ describe("POST /api/hives/[hiveId]/join", () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe("Internal server error");
+    expect(data.code).toBe("INTERNAL_ERROR");
   });
 
   it("should be idempotent (joining same hive twice succeeds)", async () => {

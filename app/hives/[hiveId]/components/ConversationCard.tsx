@@ -1,7 +1,7 @@
 /**
  * Conversation Card - Presentational Component
  *
- * Displays a conversation summary card with CTA button
+ * Displays a conversation summary card with CTA details
  * Follows SRP: only responsible for rendering
  * All logic delegated to pure functions
  */
@@ -15,6 +15,19 @@ import { getConversationCta } from "@/lib/conversations/getConversationCta";
 interface ConversationCardProps {
   hiveKey: string;
   conversation: ConversationCardData;
+}
+
+function getStatusLabel(conversation: ConversationCardData): string {
+  if (conversation.report_json) return "Report ready";
+  if (conversation.analysis_status === "ready") return "Analysis ready";
+  if (conversation.analysis_status === "error") return "Analysis error";
+  if (
+    conversation.analysis_status === "analyzing" ||
+    conversation.analysis_status === "embedding"
+  ) {
+    return "Analysis in progress";
+  }
+  return "Collecting responses";
 }
 
 function formatDate(dateString: string): string {
@@ -37,40 +50,52 @@ export default function ConversationCard({
 }: ConversationCardProps) {
   const cta = getConversationCta(hiveKey, conversation);
   const typeLabel = conversation.type === "decide" ? "SOLUTION SPACE" : "PROBLEM SPACE";
+  const title = conversation.title?.trim() || "Untitled Conversation";
+  const description =
+    conversation.description?.trim() || "No description has been added yet.";
+  const statusLabel = getStatusLabel(conversation);
 
   return (
-    <article className="flex flex-col justify-between bg-white rounded-2xl border border-[#E6E9F2] p-6 min-h-[260px] shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex flex-col gap-4">
-        {/* Header: Type badge and date */}
-        <div className="flex items-start justify-between">
-          <span className="inline-flex items-center gap-2 px-2 py-1 bg-[#FFF1EB] text-[#E46E00] text-[12px] leading-6 font-semibold rounded">
-            {typeLabel}
-          </span>
-          <span className="text-xs text-slate-500">
-            {formatDate(conversation.created_at)}
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3 className="text-xl font-medium text-[#172847] line-clamp-2">
-          {conversation.title || "Untitled Conversation"}
-        </h3>
-
-        {/* Description */}
-        {conversation.description && (
-          <p className="text-sm leading-[1.4] font-normal text-[#566888] line-clamp-3">
-            {conversation.description}
-          </p>
-        )}
+    <Link
+      href={cta.href}
+      aria-label={`Open conversation: ${title}`}
+      className="group relative flex h-64 cursor-pointer flex-col overflow-hidden border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <span
+          className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide font-display ${
+            conversation.type === "decide"
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-red-50 text-red-600"
+          }`}
+        >
+          {typeLabel}
+        </span>
+        <span className="text-slate-400 text-xs font-medium">
+          {formatDate(conversation.created_at)}
+        </span>
       </div>
 
-      {/* CTA Button */}
-      <Link
-        href={cta.href}
-        className="mt-6 bg-[#EDEFFD] hover:bg-[#dfe3ff] text-[#3A1DC8] text-sm font-medium leading-6 rounded-sm py-2 px-4 text-center transition-colors"
-      >
-        {cta.label} →
-      </Link>
-    </article>
+      <h3 className="text-xl font-medium font-display text-slate-900 mb-2 line-clamp-2 transition-colors group-hover:text-indigo-600">
+        {title}
+      </h3>
+      <p className="text-slate-500 text-sm mb-6 line-clamp-3 leading-relaxed">
+        {description}
+      </p>
+
+      <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+        <span className="text-xs font-medium text-slate-500">{statusLabel}</span>
+        <span className="text-xs font-medium font-display text-indigo-600 bg-indigo-50 px-2.5 py-1.5">
+          {cta.label}
+          <span className="text-indigo-300">→</span>
+        </span>
+      </div>
+
+      {conversation.report_json && (
+        <div className="absolute top-6 right-6 text-indigo-600 bg-indigo-50 px-2 py-1 text-[10px] font-medium uppercase tracking-wide">
+          Ready
+        </div>
+      )}
+    </Link>
   );
 }

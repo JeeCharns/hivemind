@@ -36,7 +36,9 @@ describe("POST /api/conversations", () => {
       roles: [],
     });
 
-    mockSupabaseServerClient.mockResolvedValue({} as any);
+    mockSupabaseServerClient.mockResolvedValue(
+      {} as Awaited<ReturnType<typeof supabaseServerClient>>
+    );
   });
 
   it("should create conversation with valid input", async () => {

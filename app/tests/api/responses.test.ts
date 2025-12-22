@@ -19,6 +19,17 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { maybeEnqueueAutoAnalysis } from "@/lib/conversations/server/maybeEnqueueAutoAnalysis";
 
+type SupabaseMock = {
+  from: jest.Mock;
+  select: jest.Mock;
+  insert: jest.Mock;
+  eq: jest.Mock;
+  in: jest.Mock;
+  order: jest.Mock;
+  maybeSingle: jest.Mock;
+  single: jest.Mock;
+};
+
 describe("POST /api/conversations/[conversationId]/responses", () => {
   const mockGetServerSession = getServerSession as jest.MockedFunction<
     typeof getServerSession
@@ -34,7 +45,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
     typeof supabaseServerClient
   >;
 
-  let mockSupabase: any;
+  let mockSupabase: SupabaseMock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -42,7 +53,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
     // Mock authenticated session
     mockGetServerSession.mockResolvedValue({
       user: { id: "user-123", email: "test@example.com" },
-    } as any);
+    });
 
     mockRequireHiveMember.mockResolvedValue(undefined);
     mockMaybeEnqueueAutoAnalysis.mockResolvedValue({
@@ -63,7 +74,9 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
       single: jest.fn(),
     };
 
-    mockSupabaseServerClient.mockResolvedValue(mockSupabase);
+    mockSupabaseServerClient.mockResolvedValue(
+      mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+    );
   });
 
   describe("anonymity persistence", () => {
@@ -74,7 +87,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      let insertedData: any = null;
+      let insertedData: Record<string, unknown> | null = null;
 
       // Mock response insert
       mockSupabase.maybeSingle.mockResolvedValueOnce({
@@ -93,7 +106,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementation((data: any) => {
+      mockSupabase.insert.mockImplementation((data: Record<string, unknown>) => {
         insertedData = data;
         return mockSupabase;
       });
@@ -129,7 +142,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      let insertedData: any = null;
+      let insertedData: Record<string, unknown> | null = null;
 
       // Mock response insert
       mockSupabase.maybeSingle.mockResolvedValueOnce({
@@ -148,7 +161,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementation((data: any) => {
+      mockSupabase.insert.mockImplementation((data: Record<string, unknown>) => {
         insertedData = data;
         return mockSupabase;
       });
@@ -184,7 +197,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      let insertedData: any = null;
+      let insertedData: Record<string, unknown> | null = null;
 
       // Mock response insert
       mockSupabase.maybeSingle.mockResolvedValueOnce({
@@ -203,7 +216,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementation((data: any) => {
+      mockSupabase.insert.mockImplementation((data: Record<string, unknown>) => {
         insertedData = data;
         return mockSupabase;
       });
@@ -354,7 +367,7 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
     typeof supabaseServerClient
   >;
 
-  let mockSupabase: any;
+  let mockSupabase: SupabaseMock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -362,7 +375,7 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
     // Mock authenticated session
     mockGetServerSession.mockResolvedValue({
       user: { id: "user-123", email: "test@example.com" },
-    } as any);
+    });
 
     mockRequireHiveMember.mockResolvedValue(undefined);
 
@@ -370,13 +383,17 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
     mockSupabase = {
       from: jest.fn(() => mockSupabase),
       select: jest.fn(() => mockSupabase),
+      insert: jest.fn(() => mockSupabase),
       eq: jest.fn(() => mockSupabase),
       in: jest.fn(() => mockSupabase),
       order: jest.fn(() => mockSupabase),
       maybeSingle: jest.fn(),
+      single: jest.fn(),
     };
 
-    mockSupabaseServerClient.mockResolvedValue(mockSupabase);
+    mockSupabaseServerClient.mockResolvedValue(
+      mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+    );
   });
 
   describe("identity masking", () => {

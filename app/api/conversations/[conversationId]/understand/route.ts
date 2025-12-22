@@ -11,8 +11,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getUnderstandViewModel } from "@/lib/conversations/server/getUnderstandViewModel";
 import { jsonError } from "@/lib/api/errors";
-
-const DEFAULT_THRESHOLD = 20;
+import { UNDERSTAND_MIN_RESPONSES } from "@/lib/conversations/domain/thresholds";
 
 export async function GET(
   _req: NextRequest,
@@ -64,7 +63,7 @@ export async function GET(
       analysisStatus: conversation.analysis_status,
       analysisError: conversation.analysis_error,
       responseCount: count ?? 0,
-      threshold: DEFAULT_THRESHOLD,
+      threshold: UNDERSTAND_MIN_RESPONSES,
     });
   } catch (error) {
     console.error("[GET understand] Error:", error);

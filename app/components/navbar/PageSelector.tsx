@@ -62,9 +62,9 @@ export default function PageSelector({ hiveId, hiveSlug, currentPage }: PageSele
       <button
         type="button"
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-50 transition text-sm"
+        className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-50 transition text-body"
       >
-        <span className="text-sm font-medium text-slate-800">{activeLabel}</span>
+        <span className="text-subtitle text-slate-800">{activeLabel}</span>
         <svg
           className={`w-4 h-4 text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`}
           fill="none"
@@ -85,8 +85,8 @@ export default function PageSelector({ hiveId, hiveSlug, currentPage }: PageSele
                 key={page.id}
                 href={href}
                 onClick={() => setMenuOpen(false)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition flex items-center gap-2 ${
-                  isActive ? "bg-indigo-50 text-indigo-600 font-medium" : "text-slate-700"
+                className={`w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 ${
+                  isActive ? "bg-indigo-50 text-indigo-600 text-subtitle" : "text-slate-700"
                 }`}
               >
                 {page.label}

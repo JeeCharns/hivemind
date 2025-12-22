@@ -11,8 +11,8 @@ export default function BrandLogo({
 }) {
   return (
     <Image
-      src="/HiveMindLogo.png"
-      alt="HiveMind logo"
+      src="/HiveLogo.png"
+      alt="Hive logo"
       width={size * 4}
       height={size}
       className={className ?? ""}

@@ -134,16 +134,14 @@ export default function LoginPageClient() {
           ) : (
             <>
               <h1
-                className="text-center text-[#172847] text-2xl font-semibold leading-[31px]"
-                style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}
+                className="text-center text-text-primary text-h2 font-display"
               >
                 {intent === "join" && hiveName
                   ? `Enter your email address to join ${hiveName}`
                   : "Sign Up or Create Account"}
               </h1>
               <p
-                className="text-center text-[#566175] text-sm leading-[19.6px] max-w-md"
-                style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}
+                className="text-center text-text-secondary text-body max-w-md font-display"
               >
                 Let us know your email address, click the link we send you and
                 we&apos;ll do the rest!
@@ -156,7 +154,7 @@ export default function LoginPageClient() {
               )}
 
               {statusMessage && (
-                <div className="w-full text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+                <div className="w-full text-body text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
                   <p>{statusMessage}</p>
                 </div>
               )}

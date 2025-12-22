@@ -40,7 +40,7 @@ export async function DELETE(
     // 3. Verify admin access
     try {
       await requireHiveAdmin(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       return jsonError("Unauthorized: Admin access required", 403);
     }
 

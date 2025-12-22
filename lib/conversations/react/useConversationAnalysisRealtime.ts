@@ -6,7 +6,7 @@
  * Follows SRP: single responsibility of realtime subscription management
  */
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -28,12 +28,9 @@ export interface UseConversationAnalysisRealtimeResult {
  * Debounce helper
  * Delays function execution until after delay has passed since last call
  */
-function debounce<T extends (...args: any[]) => void>(
-  func: T,
-  delay: number
-): T {
-  let timeoutId: NodeJS.Timeout;
-  return ((...args: any[]) => {
+function debounce<T extends (...args: unknown[]) => void>(func: T, delay: number): T {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return ((...args: Parameters<T>) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func(...args), delay);
   }) as T;
@@ -61,34 +58,21 @@ export function useConversationAnalysisRealtime({
   const [status, setStatus] = useState<RealtimeStatus>("disconnected");
   const [error, setError] = useState<string | undefined>();
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const onRefreshRef = useRef(onRefresh);
-
-  // Keep onRefresh reference current
-  useEffect(() => {
-    onRefreshRef.current = onRefresh;
-  }, [onRefresh]);
 
   // Create debounced refresh function
-  const debouncedRefresh = useCallback(
-    debounce(() => {
-      onRefreshRef.current();
-    }, debounceMs),
-    [debounceMs]
+  const debouncedRefresh = useMemo(
+    () => debounce(onRefresh, debounceMs),
+    [onRefresh, debounceMs]
   );
 
   useEffect(() => {
     // Skip if not enabled
     if (!enabled) {
-      setStatus("disconnected");
       return;
     }
 
     // Create channel name
     const channelName = `analysis:${conversationId}`;
-
-    // Set connecting state
-    setStatus("connecting");
-    setError(undefined);
 
     // Create realtime channel
     const channel = supabase
@@ -126,11 +110,13 @@ export function useConversationAnalysisRealtime({
 
         if (status === "SUBSCRIBED") {
           setStatus("connected");
+          setError(undefined);
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           setStatus("error");
           setError(`Realtime connection ${status.toLowerCase()}`);
         } else if (status === "CLOSED") {
           setStatus("disconnected");
+          setError(undefined);
         }
       });
 
@@ -147,5 +133,8 @@ export function useConversationAnalysisRealtime({
     };
   }, [conversationId, enabled, debouncedRefresh]);
 
-  return { status, error };
+  const effectiveStatus = enabled ? status : "disconnected";
+  const effectiveError = enabled && status === "error" ? error : undefined;
+
+  return { status: effectiveStatus, error: effectiveError };
 }

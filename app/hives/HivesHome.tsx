@@ -25,21 +25,21 @@ export default function HivesHome({ hives, error }: HivesHomeProps) {
   const handleHiveClick = (hive: HiveWithSignedUrl) => {
     // Prefer slug over ID for cleaner URLs
     const hiveKey = hive.slug || hive.id;
-    window.location.href = `/hives/${hiveKey}`;
+    router.push(`/hives/${hiveKey}`);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 pb-8 relative">
       <div className="w-full max-w-[480px] bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex flex-col items-center gap-4">
-        <h1 className="text-2xl font-semibold text-[#172847]">Your Hives</h1>
-        <p className="text-sm text-[#566175] text-center">
+        <h1 className="text-h2 text-text-primary">Your Hives</h1>
+        <p className="text-body text-text-secondary text-center">
           {hives.length > 0
             ? "Select a hive to continue."
             : "Create your first hive to get started."}
         </p>
 
         {error ? (
-          <div className="w-full text-sm text-red-600 text-center py-4 border border-red-200 bg-red-50 rounded-lg">
+          <div className="w-full text-body text-red-600 text-center py-4 border border-red-200 bg-red-50 rounded-lg">
             {error}
           </div>
         ) : (
@@ -52,7 +52,7 @@ export default function HivesHome({ hives, error }: HivesHomeProps) {
                 className="w-full border border-slate-200 rounded-lg px-4 py-6 hover:border-indigo-200 transition flex items-center gap-2 text-left"
               >
                 <HiveLogo src={hive.logo_url} name={hive.name} size={48} />
-                <div className="text-sm font-medium text-slate-800 truncate">
+                <div className="text-subtitle text-slate-800 truncate">
                   {hive.name ?? "Hive"}
                 </div>
               </button>

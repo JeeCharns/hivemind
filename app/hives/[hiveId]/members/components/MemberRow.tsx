@@ -64,7 +64,7 @@ export default function MemberRow({
     <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0">
       <div className="flex items-center gap-3">
         {/* Avatar */}
-        <div className="relative h-9 w-9 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center text-sm font-semibold text-slate-700">
+        <div className="relative h-9 w-9 avatar-round bg-slate-200 overflow-hidden flex items-center justify-center text-sm font-semibold text-slate-700">
           {avatarUrl ? (
             <Image
               src={avatarUrl}

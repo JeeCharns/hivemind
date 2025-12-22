@@ -17,6 +17,15 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { requireHiveAdmin } from "@/lib/conversations/server/requireHiveAdmin";
 
+type SupabaseMock = {
+  from: jest.Mock;
+  select: jest.Mock;
+  eq: jest.Mock;
+  in: jest.Mock;
+  delete: jest.Mock;
+  maybeSingle: jest.Mock;
+};
+
 describe("DELETE /api/conversations/[conversationId]", () => {
   const mockGetServerSession = getServerSession as jest.MockedFunction<
     typeof getServerSession
@@ -28,7 +37,7 @@ describe("DELETE /api/conversations/[conversationId]", () => {
     typeof supabaseServerClient
   >;
 
-  let mockSupabase: any;
+  let mockSupabase: SupabaseMock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -36,7 +45,7 @@ describe("DELETE /api/conversations/[conversationId]", () => {
     // Default mock implementations
     mockGetServerSession.mockResolvedValue({
       user: { id: "user-123", email: "test@example.com" },
-    } as any);
+    });
 
     mockRequireHiveAdmin.mockResolvedValue(undefined);
 
@@ -50,7 +59,9 @@ describe("DELETE /api/conversations/[conversationId]", () => {
       maybeSingle: jest.fn(),
     };
 
-    mockSupabaseServerClient.mockResolvedValue(mockSupabase);
+    mockSupabaseServerClient.mockResolvedValue(
+      mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+    );
   });
 
   it("should delete conversation and all related data", async () => {

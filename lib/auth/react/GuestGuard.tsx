@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "./useSession";
 
@@ -29,7 +29,15 @@ export function GuestGuard({
 }: GuestGuardProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useSession();
-  const justLoggedOut = useRef(false);
+  const [justLoggedOut, setJustLoggedOut] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return Boolean(
+      new URLSearchParams(window.location.search).get("logged_out"),
+    );
+  });
 
   useEffect(() => {
     // Check if user just logged out (prevents redirect loop)
@@ -42,14 +50,14 @@ export function GuestGuard({
       nextParam,
       isAuthenticated,
       isLoading,
-      justLoggedOut: justLoggedOut.current,
+      justLoggedOut,
       url: window.location.href,
     });
 
     if (loggedOut) {
       console.log("[GuestGuard] Detected logged_out param, clearing state");
       // Mark that we just logged out to prevent redirects
-      justLoggedOut.current = true;
+      setJustLoggedOut(true);
 
       // Clear any returnUrl to prevent redirect loop
       sessionStorage.removeItem("returnUrl");
@@ -63,7 +71,7 @@ export function GuestGuard({
     }
 
     // Don't redirect if we just logged out, even if session still shows authenticated
-    if (justLoggedOut.current) {
+    if (justLoggedOut) {
       console.log("[GuestGuard] Just logged out, skipping redirect");
       return;
     }
@@ -95,10 +103,10 @@ export function GuestGuard({
       console.log("[GuestGuard] Redirecting to default:", redirectTo || "/hives");
       router.push(redirectTo || "/hives");
     }
-  }, [isAuthenticated, isLoading, router, redirectTo]);
+  }, [isAuthenticated, isLoading, justLoggedOut, router, redirectTo]);
 
   // Show fallback while loading or redirecting (but not if we just logged out)
-  if ((isLoading || isAuthenticated) && fallback && !justLoggedOut.current) {
+  if ((isLoading || isAuthenticated) && fallback && !justLoggedOut) {
     return <>{fallback}</>;
   }
 

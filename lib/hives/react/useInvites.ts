@@ -7,7 +7,7 @@
  * Handles fetching, creating, and revoking invites
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { hiveClient } from "../data/hiveClient";
 import type { HiveInvite } from "../domain/hive.types";
 
@@ -25,7 +25,7 @@ export function useInvites(hiveId: string) {
     "idle" | "creating" | "success" | "error"
   >("idle");
 
-  const fetchInvites = async () => {
+  const fetchInvites = useCallback(async () => {
     try {
       setStatus("loading");
       const data = await hiveClient.listInvites(hiveId);
@@ -38,12 +38,12 @@ export function useInvites(hiveId: string) {
       );
       setStatus("error");
     }
-  };
+  }, [hiveId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInvites();
-  }, [hiveId]);
+  }, [fetchInvites]);
 
   const createInvite = async (emails: string[]) => {
     try {

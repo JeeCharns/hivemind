@@ -55,9 +55,9 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
 
   if (hives.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-600">
-        <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">
-          <span className="text-xs">?</span>
+      <div className="flex items-center gap-2 text-body text-slate-600">
+        <div className="h-8 w-8 avatar-round bg-slate-100 flex items-center justify-center">
+          <span className="text-label">?</span>
         </div>
         <span>No hives</span>
       </div>
@@ -69,12 +69,12 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
       <button
         type="button"
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-50 transition text-sm"
+        className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-50 transition text-body"
       >
-        <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center font-semibold text-xs">
+        <div className="h-8 w-8 avatar-round bg-indigo-100 text-indigo-800 flex items-center justify-center text-label">
           {initials}
         </div>
-        <span className="font-medium text-slate-800">{displayName}</span>
+        <span className="text-subtitle text-slate-800">{displayName}</span>
         <svg
           className={`w-4 h-4 text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`}
           fill="none"
@@ -87,7 +87,7 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
 
       {menuOpen && (
         <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-          <div className="px-3 py-2 text-xs font-medium text-slate-500 uppercase">
+          <div className="px-3 py-2 text-allcaps text-slate-500">
             Your Hives
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -109,12 +109,12 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
                     isSelected ? "bg-indigo-50" : ""
                   }`}
                 >
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center font-semibold text-xs ${
+                  <div className={`h-8 w-8 avatar-round flex items-center justify-center text-label ${
                     isSelected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"
                   }`}>
                     {hiveInitials}
                   </div>
-                  <span className={`text-sm ${isSelected ? "font-medium text-indigo-600" : "text-slate-700"}`}>
+                  <span className={`text-body ${isSelected ? "text-subtitle text-indigo-600" : "text-slate-700"}`}>
                     {hive.name}
                   </span>
                 </button>

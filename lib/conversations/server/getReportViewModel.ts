@@ -13,11 +13,39 @@ import type {
 } from "@/types/conversation-report";
 import { requireHiveMember } from "./requireHiveMember";
 import { canOpenReport, canGenerateReport } from "../domain/reportRules";
+import { computeAgreementSummaries } from "../domain/agreementSummaries";
+import { computeResponseConsensusItems } from "../domain/responseConsensus";
 
 interface ReportRow {
   version: number;
   html: string;
   created_at: string | null;
+}
+
+interface ReportResponseRow {
+  id: string | number;
+  response_text: string;
+}
+
+interface ReportFeedbackRow {
+  response_id: string | number;
+  feedback: string;
+}
+
+function parseAnalysisStatus(
+  value: unknown
+): "not_started" | "embedding" | "analyzing" | "ready" | "error" | null {
+  switch (value) {
+    case "not_started":
+    case "embedding":
+    case "analyzing":
+    case "ready":
+    case "error":
+    case null:
+      return value;
+    default:
+      return null;
+  }
 }
 
 /**
@@ -59,7 +87,9 @@ export async function getReportViewModel(
   // 1. Fetch conversation
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
-    .select("id, hive_id, type, phase, analysis_status, report_json, title")
+    .select(
+      "id, hive_id, type, phase, analysis_status, analysis_error, report_json, title"
+    )
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -74,7 +104,13 @@ export async function getReportViewModel(
   const isAdmin = await checkIsAdmin(supabase, userId, conversation.hive_id);
 
   // 4. Fetch data in parallel
-  const [versionsResult, responseCountResult] = await Promise.all([
+  const [
+    versionsResult,
+    responseCountResult,
+    responsesResult,
+    feedbackResult,
+    feedbackCountResult,
+  ] = await Promise.all([
     // Fetch report versions
     supabase
       .from("conversation_reports")
@@ -87,6 +123,25 @@ export async function getReportViewModel(
       .from("conversation_responses")
       .select("id", { count: "exact", head: true })
       .eq("conversation_id", conversationId),
+
+    // Fetch responses for agreement/divisive summaries
+    supabase
+      .from("conversation_responses")
+      .select("id, response_text")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false }),
+
+    // Fetch feedback for agreement/divisive summaries
+    supabase
+      .from("response_feedback")
+      .select("response_id, feedback")
+      .eq("conversation_id", conversationId),
+
+    // Count total votes (all responses)
+    supabase
+      .from("response_feedback")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversationId),
   ]);
 
   if (versionsResult.error) {
@@ -97,8 +152,21 @@ export async function getReportViewModel(
     throw new Error("Failed to count responses");
   }
 
+  if (responsesResult.error) {
+    throw new Error("Failed to fetch responses");
+  }
+
+  if (feedbackResult.error) {
+    throw new Error("Failed to fetch feedback");
+  }
+
+  if (feedbackCountResult.error) {
+    throw new Error("Failed to count feedback");
+  }
+
   const reportRows = (versionsResult.data || []) as ReportRow[];
   const responseCount = responseCountResult.count || 0;
+  const totalInteractions = feedbackCountResult.count || 0;
 
   // 5. Build versions list
   const versions: ReportVersion[] = reportRows.map((row) => ({
@@ -125,13 +193,44 @@ export async function getReportViewModel(
     gate
   );
 
+  const responses = (responsesResult.data || []) as ReportResponseRow[];
+  const feedbackRows = (feedbackResult.data || []) as ReportFeedbackRow[];
+
+  const consensusItems = computeResponseConsensusItems(
+    responses.map((r) => ({
+      id: String(r.id),
+      responseText: r.response_text,
+    })),
+    feedbackRows.map((r) => ({
+      responseId: String(r.response_id),
+      feedback: r.feedback,
+    }))
+  );
+
+  const agreementSummaries = computeAgreementSummaries(
+    responses.map((r) => ({
+      id: String(r.id),
+      responseText: r.response_text,
+    })),
+    feedbackRows.map((r) => ({
+      responseId: String(r.response_id),
+      feedback: r.feedback,
+    })),
+    { maxPerType: 100 }
+  );
+
   // 8. Return view model
   return {
     conversationId: conversation.id,
     report,
     versions,
     responseCount,
+    totalInteractions,
     canGenerate,
     gateReason: gate.allowed ? null : gate.reason,
+    agreementSummaries,
+    consensusItems,
+    analysisStatus: parseAnalysisStatus(conversation.analysis_status),
+    analysisError: conversation.analysis_error,
   };
 }

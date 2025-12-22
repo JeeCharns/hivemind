@@ -1,15 +1,17 @@
 /**
  * POST /api/conversations/[conversationId]/analyze
  *
- * Trigger conversation analysis
+ * Trigger conversation analysis with intelligent strategy selection
+ * Supports manual and regenerate modes with incremental/full strategies
  * Requires authentication and conversation access
- * Returns 202 Accepted with job status
+ * Returns 202 Accepted with job status and strategy metadata
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireAuth } from "@/lib/auth/server/requireAuth";
-import { enqueueConversationAnalysis } from "@/lib/conversations/server/enqueueConversationAnalysis";
+import { triggerConversationAnalysis } from "@/lib/conversations/server/triggerConversationAnalysis";
+import { triggerAnalysisRequestSchema } from "@/lib/conversations/schemas";
 import { jsonError } from "@/lib/api/errors";
 
 export async function POST(
@@ -28,14 +30,28 @@ export async function POST(
       return jsonError("Conversation ID is required", 400, "VALIDATION_ERROR");
     }
 
+    // Parse and validate request body
+    let requestBody;
+    try {
+      const body = await request.json().catch(() => ({}));
+      requestBody = triggerAnalysisRequestSchema.parse(body);
+    } catch {
+      return jsonError(
+        "Invalid request body",
+        400,
+        "VALIDATION_ERROR"
+      );
+    }
+
     // Get Supabase client
     const supabase = await supabaseServerClient();
 
-    // Enqueue analysis job
-    const result = await enqueueConversationAnalysis(
+    // Trigger analysis with strategy decision
+    const result = await triggerConversationAnalysis(
       supabase,
       conversationId,
-      userId
+      userId,
+      requestBody
     );
 
     // Return 202 Accepted for queued jobs, 200 for already running/complete

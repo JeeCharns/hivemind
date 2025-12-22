@@ -5,6 +5,8 @@
  * Follows DIP: interface allows for mocking in tests
  */
 
+import type { AgreementSummary, ConsensusItem } from "@/types/conversation-report";
+
 /**
  * Result from report generation
  */
@@ -13,6 +15,9 @@ export interface GenerateReportResult {
   report?: string;
   version?: number;
   createdAt?: string | null;
+  agreementSummaries?: AgreementSummary[];
+  consensusItems?: ConsensusItem[];
+  totalInteractions?: number;
   error?: string;
 }
 
@@ -50,6 +55,10 @@ export class ConversationReportClient implements IConversationReportClient {
       report: data.report,
       version: data.version,
       createdAt: data.createdAt || data.created_at || null,
+      agreementSummaries: data.agreementSummaries,
+      consensusItems: data.consensusItems,
+      totalInteractions:
+        typeof data.totalInteractions === "number" ? data.totalInteractions : 0,
     };
   }
 }

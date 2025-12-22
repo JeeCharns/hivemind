@@ -45,10 +45,32 @@ export const uploadCsvResponseSchema = z.object({
 export type UploadCsvResponse = z.infer<typeof uploadCsvResponseSchema>;
 
 /**
+ * Schema for analysis trigger request body
+ */
+export const triggerAnalysisRequestSchema = z.object({
+  mode: z.enum(["manual", "regenerate"]).optional().default("manual"),
+  strategy: z.enum(["auto", "incremental", "full"]).optional().default("auto"),
+});
+
+export type TriggerAnalysisRequest = z.infer<typeof triggerAnalysisRequestSchema>;
+
+/**
  * Schema for analysis trigger response
  */
 export const triggerAnalysisResponseSchema = z.object({
   status: z.enum(["queued", "already_running", "already_complete"]),
+  strategy: z.enum(["incremental", "full"]).optional(),
+  reason: z.enum([
+    "fresh",
+    "stale",
+    "in_progress",
+    "below_threshold",
+    "wrong_type",
+    "missing_prereqs",
+  ]).optional(),
+  currentResponseCount: z.number().int().nonnegative().optional(),
+  analysisResponseCount: z.number().int().nonnegative().nullable().optional(),
+  newResponsesSinceAnalysis: z.number().int().nonnegative().optional(),
 });
 
 export type TriggerAnalysisResponse = z.infer<
@@ -57,12 +79,16 @@ export type TriggerAnalysisResponse = z.infer<
 
 /**
  * Schema for creating a new response
+ * Empty/whitespace-only tags are transformed to null
  */
 export const createResponseSchema = z.object({
   text: z.string().min(1).max(500),
   tag: z.enum(LISTEN_TAGS as [ListenTag, ...ListenTag[]]).nullable().optional(),
   anonymous: z.boolean().optional(),
-});
+}).transform((data) => ({
+  ...data,
+  tag: data.tag && typeof data.tag === 'string' && data.tag.trim() ? data.tag : null,
+}));
 
 export type CreateResponseInput = z.infer<typeof createResponseSchema>;
 
@@ -107,6 +133,21 @@ export const voteOnProposalSchema = z.object({
 });
 
 export type VoteOnProposalInput = z.infer<typeof voteOnProposalSchema>;
+
+/**
+ * Schema for submitting feedback on a response (Understand tab)
+ * Accepts responseId as string or number (BIGINT) and normalizes to string.
+ */
+const feedbackResponseIdSchema = z
+  .union([z.string().min(1), z.number().int().positive()])
+  .transform((value) => String(value));
+
+export const submitFeedbackSchema = z.object({
+  responseId: feedbackResponseIdSchema,
+  feedback: z.enum(["agree", "pass", "disagree"]),
+});
+
+export type SubmitFeedbackInput = z.infer<typeof submitFeedbackSchema>;
 
 /**
  * Schema for vote response

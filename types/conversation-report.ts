@@ -39,8 +39,22 @@ export interface AgreementSummary {
   id: string;
   responseText: string;
   agreePercent: number;
+  passPercent: number;
+  disagreePercent: number;
   totalVotes: number;
   type: "agreement" | "divisive";
+}
+
+export interface ConsensusItem {
+  id: string;
+  responseText: string;
+  agreePercent: number;
+  passPercent: number;
+  disagreePercent: number;
+  agreeVotes: number;
+  passVotes: number;
+  disagreeVotes: number;
+  totalVotes: number;
 }
 
 /**
@@ -52,7 +66,17 @@ export interface ResultViewModel {
   report: ReportContent;
   versions: ReportVersion[];
   responseCount: number;
+  totalInteractions: number;
   canGenerate: boolean;
   gateReason?: string | null;
   agreementSummaries?: AgreementSummary[];
+  consensusItems: ConsensusItem[];
+  analysisStatus:
+    | "not_started"
+    | "embedding"
+    | "analyzing"
+    | "ready"
+    | "error"
+    | null;
+  analysisError?: string | null;
 }

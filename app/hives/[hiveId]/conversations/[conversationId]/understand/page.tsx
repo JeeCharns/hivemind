@@ -41,37 +41,18 @@ export default async function UnderstandPage({ params }: UnderstandPageProps) {
   // 3. Verify membership (throws if not a member)
   await requireHiveMember(supabase, session.user.id, hive.id);
 
-  // 4. Get conversation analysis metadata
-  const { data: convData } = await supabase
-    .from("conversations")
-    .select("analysis_status, analysis_error")
-    .eq("id", conversation.id)
-    .single();
-
-  // 5. Count responses
-  const { count } = await supabase
-    .from("conversation_responses")
-    .select("id", { count: "exact", head: true })
-    .eq("conversation_id", conversation.id);
-
-  // 6. Build complete view model
+  // 4. Build complete view model (includes staleness metadata)
   const viewModel = await getUnderstandViewModel(
     supabase,
     conversation.id,
     session.user.id
   );
 
-  // 7. Render client container with enhanced view model
+  // 5. Render client container with view model
   return (
     <div className="mx-auto w-full max-w-7xl px-6">
       <UnderstandViewContainer
-        initialViewModel={{
-          ...viewModel,
-          analysisStatus: convData?.analysis_status ?? null,
-          analysisError: convData?.analysis_error ?? null,
-          responseCount: count ?? 0,
-          threshold: 20,
-        }}
+        initialViewModel={viewModel}
         conversationType={conversation.type as "understand" | "decide"}
       />
     </div>

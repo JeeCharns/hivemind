@@ -23,18 +23,19 @@ export interface ImportResponsesResult {
 
 /**
  * Normalize tag to allowed set
- * Unknown tags default to "proposal"
+ * Empty/whitespace tags return null
+ * Unknown/invalid tags return null (lenient - allows import to continue)
  */
 function normalizeTag(tag: string | null | undefined): ListenTag | null {
-  if (!tag) return null;
+  if (!tag || !tag.trim()) return null;
 
   const normalized = tag.toLowerCase().trim() as ListenTag;
   if (LISTEN_TAGS.includes(normalized)) {
     return normalized;
   }
 
-  // Unknown tags default to "proposal"
-  return "proposal";
+  // Unknown tags treated as null (lenient mode - import continues without tag)
+  return null;
 }
 
 /**
@@ -56,8 +57,14 @@ async function parseCsvFile(
   // Parse CSV
   let records: Array<Record<string, string>>;
   try {
+    const normalizeHeader = (header: string) => {
+      const normalized = header.replace(/^\uFEFF/, "").trim().toLowerCase();
+      if (normalized === "responses") return "response";
+      return normalized;
+    };
+
     records = parse(fileText, {
-      columns: true,
+      columns: (headers) => headers.map(normalizeHeader),
       skip_empty_lines: true,
       trim: true,
     });

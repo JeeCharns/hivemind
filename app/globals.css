@@ -1,5 +1,16 @@
+@config "../tailwind.config.ts";
 @import "tailwindcss";
 
+/* App-wide: remove all rounded corners */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
 
 /* Basic global styles */
 body {
@@ -13,4 +24,95 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Typography Utilities */
+@layer utilities {
+  /* Display text variants */
+  .text-display-lg {
+    @apply text-display-lg font-display;
+  }
+
+  .text-display-md {
+    @apply text-display-md font-display;
+  }
+
+  .text-display-sm {
+    @apply text-display-sm font-display;
+  }
+
+  /* Heading variants */
+  .text-h1 {
+    @apply text-h1 font-display;
+  }
+
+  .text-h2 {
+    @apply text-h2 font-display;
+  }
+
+  .text-h3 {
+    @apply text-h3 font-display;
+  }
+
+  .text-h4 {
+    @apply text-h4 font-display;
+  }
+
+  /* Body text variants */
+  .text-body-lg {
+    @apply text-body-lg;
+  }
+
+  .text-body {
+    @apply text-body;
+  }
+
+  .text-body-sm {
+    @apply text-body-sm;
+  }
+
+  /* UI element variants */
+  .text-subtitle {
+    @apply text-subtitle;
+  }
+
+  .text-label {
+    @apply text-label font-display;
+  }
+
+  .text-label-sm {
+    @apply text-label-sm font-display;
+  }
+
+  .text-pill {
+    @apply text-pill;
+  }
+
+  .text-button-lg {
+    @apply text-button-lg;
+  }
+
+  .text-button {
+    @apply text-button;
+  }
+
+  .text-button-sm {
+    @apply text-button-sm;
+  }
+
+  .text-allcaps {
+    @apply text-allcaps;
+  }
+
+  .text-info {
+    @apply text-info;
+  }
+
+  .spinner-round {
+    border-radius: 9999px !important;
+  }
+
+  .avatar-round {
+    border-radius: 9999px !important;
+  }
 }

@@ -8,7 +8,7 @@
  * Follows SRP: UI only, business logic in useConversationFeed hook
  */
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ThumbsUp, PaperPlaneTilt, CaretDown, FileText, DownloadSimple } from "@phosphor-icons/react";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -24,6 +24,7 @@ import { useConversationFeed } from "@/lib/conversations/react/useConversationFe
 import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
 import Button from "@/app/components/button";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 const MAX_LEN = 500;
 
@@ -41,17 +42,25 @@ export default function ListenView({
   conversationId,
   currentUserDisplayName,
   initialAnalysisStatus,
-  sourceReportHtml,
   sourceReportConversationTitle,
   conversationType = "understand",
   sourceConversationId,
 }: ListenViewProps) {
+  const { hiveId: hiveKey, conversationId: conversationKey } = useParams<{
+    hiveId: string;
+    conversationId: string;
+  }>();
+
   const { feed, isLoadingFeed, isSubmitting, error, submit, toggleLike, refresh } =
     useConversationFeed({ conversationId });
 
   const [text, setText] = useState("");
   const [tag, setTag] = useState<ListenTag | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [postAs, setPostAs] = useState<"self" | "anon">("self");
   const [postAsOpen, setPostAsOpen] = useState(false);
   const postAsRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +82,7 @@ export default function ListenView({
 
   const remaining = MAX_LEN - text.length;
   const isDecisionSession = conversationType === "decide";
-  const canSubmit = text.trim().length > 0 && (isDecisionSession || !!tag) && text.length <= MAX_LEN;
+  const canSubmit = text.trim().length > 0 && text.length <= MAX_LEN;
 
   const submitResponse = async () => {
     if (!canSubmit || isSubmitting) return;
@@ -94,10 +103,6 @@ export default function ListenView({
       }
     }
   };
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Close "Post as" dropdown on click outside
   useEffect(() => {
@@ -161,7 +166,7 @@ export default function ListenView({
             size="sm"
             onClick={() => setTag((prev) => (prev === t ? null : t))}
             aria-pressed={isSelected}
-            className={`px-3 rounded-full text-sm font-medium border transition ${active}`}
+            className={`px-3 rounded-full text-button border transition ${active}`}
           >
             {TAG_LABELS[t]}
           </Button>
@@ -178,16 +183,16 @@ export default function ListenView({
       return (
         <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-emerald-700 font-medium text-sm">
+            <span className="text-emerald-700 text-subtitle">
               ✓ Themes ready
             </span>
-            <span className="text-emerald-600 text-sm">
+            <span className="text-emerald-600 text-body">
               Your responses have been analyzed
             </span>
           </div>
           <Link
-            href={`#understand`}
-            className="text-emerald-700 hover:text-emerald-800 font-medium text-sm underline"
+            href={`/hives/${hiveKey}/conversations/${conversationKey}/understand`}
+            className="text-emerald-700 hover:text-emerald-800 text-subtitle underline"
           >
             View themes →
           </Link>
@@ -199,7 +204,7 @@ export default function ListenView({
       return (
         <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-3 flex items-center gap-2">
           <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-          <span className="text-indigo-700 text-sm">
+          <span className="text-indigo-700 text-body">
             Generating themes... This usually takes 30-60 seconds.
           </span>
         </div>
@@ -236,10 +241,10 @@ export default function ListenView({
                   <FileText size={20} className="text-indigo-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#172847] truncate">
+                  <p className="text-subtitle text-text-primary truncate">
                     {sourceReportConversationTitle || "Problem Space Report"}
                   </p>
-                  <p className="text-xs text-[#566888]">
+                  <p className="text-info text-text-muted">
                     Reference document
                   </p>
                 </div>
@@ -263,9 +268,9 @@ export default function ListenView({
                   onChange={(e) => setText(e.target.value.slice(0, MAX_LEN))}
                   maxLength={MAX_LEN}
                   placeholder="Submit your thoughts, one at a time!"
-                  className="w-full h-32 border border-slate-200 rounded-lg p-3 pb-8 text-sm text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                  className="w-full h-32 border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                 />
-                <span className="absolute bottom-2 left-3 text-xs text-slate-500">
+                <span className="absolute bottom-2 left-3 text-info text-slate-500">
                   {remaining} characters left
                 </span>
               </div>
@@ -273,8 +278,8 @@ export default function ListenView({
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 {!isDecisionSession && (
                   <div className="flex flex-col gap-1">
-                    <span className="text-[12px] font-medium text-[#172847]">
-                      Tag your response for more clarity
+                    <span className="text-label text-text-primary">
+                      Tag your response (optional)
                     </span>
                     <div className="flex flex-wrap items-center gap-2">
                       {TagButtons}
@@ -284,7 +289,7 @@ export default function ListenView({
 
                 <div className={`flex items-center gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[12px] font-medium text-[#172847]">
+                    <span className="text-label text-text-primary">
                       Post as...
                     </span>
                     <div className="relative" ref={postAsRef}>
@@ -296,12 +301,12 @@ export default function ListenView({
                         onClick={() => setPostAsOpen((o) => !o)}
                       >
                         <span className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-[11px] text-slate-600">
+                          <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
                             {postAs === "self"
                               ? (displayName[0] ?? "M").toUpperCase()
                               : "A"}
                           </span>
-                          <span className="text-[12px] max-w-32 truncate text-left">
+                          <span className="text-label max-w-32 truncate text-left">
                             {postAs === "self" ? displayName : "Anonymous"}
                           </span>
                         </span>
@@ -326,16 +331,16 @@ export default function ListenView({
                                 setPostAs(opt.key as "self" | "anon");
                                 setPostAsOpen(false);
                               }}
-                              className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-sm hover:bg-slate-50 ${
+                              className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-body hover:bg-slate-50 ${
                                 postAs === opt.key
-                                  ? "text-[#3A1DC8] bg-indigo-50"
+                                  ? "text-brand-primary bg-indigo-50"
                                   : "text-slate-700"
                               }`}
                             >
-                              <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-[11px] text-slate-600">
+                              <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
                                 {opt.badge}
                               </span>
-                              <span className="text-[12px]">{opt.label}</span>
+                              <span className="text-label">{opt.label}</span>
                             </Button>
                           ))}
                         </div>
@@ -358,7 +363,7 @@ export default function ListenView({
             </div>
 
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-body text-red-700">
                 {error}
               </div>
             )}
@@ -367,9 +372,9 @@ export default function ListenView({
           {/* Right column: Live feed */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 h-full overflow-y-auto max-h-[calc(100vh-220px)] space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-slate-900">Live Feed</h3>
+              <h3 className="text-h4 text-slate-900">Live Feed</h3>
               {showSpinner && (
-                <span className="inline-block w-4 h-4 aspect-square border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                <span className="inline-block w-4 h-4 aspect-square border-2 border-indigo-200 border-t-indigo-600 spinner-round animate-spin" />
               )}
             </div>
 
@@ -383,7 +388,7 @@ export default function ListenView({
                 ))}
               </div>
             ) : feed.length === 0 ? (
-              <div className="text-slate-500 text-sm">
+              <div className="text-slate-500 text-body">
                 No responses yet. Be the first to share.
               </div>
             ) : (
@@ -394,27 +399,27 @@ export default function ListenView({
                       <div className="flex items-center gap-2">
                         {resp.tag && (
                           <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getTagColors(
+                            className={`px-2 py-0.5 rounded-full text-label border ${getTagColors(
                               resp.tag
                             )}`}
                           >
                             {TAG_LABELS[resp.tag] || resp.tag}
                           </span>
                         )}
-                        <span className="text-sm font-medium text-slate-800">
+                        <span className="text-subtitle text-slate-800">
                           {resp.user?.name ?? "Anonymous"}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-info text-slate-400">
                           {new Date(resp.createdAt).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-800">{resp.text}</p>
+                      <p className="text-body text-slate-800">{resp.text}</p>
                     </div>
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => toggleLike(resp.id)}
-                      className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-md ${
+                      className={`flex items-center gap-1 text-subtitle px-2 py-1 rounded-md ${
                         resp.likedByMe
                           ? "border-green-200 bg-green-50 text-green-700"
                           : "border-slate-200 text-slate-500 hover:border-indigo-200"

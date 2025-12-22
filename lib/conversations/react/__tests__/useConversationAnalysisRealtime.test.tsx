@@ -17,7 +17,12 @@ jest.mock("@/lib/supabase/client", () => ({
 }));
 
 describe("useConversationAnalysisRealtime", () => {
-  let mockChannel: any;
+  type MockChannel = {
+    on: jest.Mock;
+    subscribe: jest.Mock;
+  };
+
+  let mockChannel: MockChannel;
   let mockOn: jest.Mock;
   let mockSubscribe: jest.Mock;
 
@@ -26,7 +31,7 @@ describe("useConversationAnalysisRealtime", () => {
     jest.useFakeTimers();
 
     mockOn = jest.fn().mockReturnThis();
-    mockSubscribe = jest.fn().mockImplementation((callback) => {
+    mockSubscribe = jest.fn().mockImplementation((callback: (status: string) => void) => {
       // Simulate successful subscription
       setTimeout(() => callback("SUBSCRIBED"), 0);
       return mockChannel;
@@ -100,14 +105,16 @@ describe("useConversationAnalysisRealtime", () => {
 
   it("should call onRefresh when conversations update event fires", async () => {
     const onRefresh = jest.fn();
-    let conversationsHandler: Function;
+    let conversationsHandler: ((payload: unknown) => void) | undefined;
 
-    mockOn.mockImplementation((type, config, handler) => {
+    mockOn.mockImplementation(
+      (_type: string, config: { table?: string }, handler: (payload: unknown) => void) => {
       if (config.table === "conversations") {
         conversationsHandler = handler;
       }
       return mockChannel;
-    });
+      }
+    );
 
     renderHook(() =>
       useConversationAnalysisRealtime({
@@ -131,17 +138,19 @@ describe("useConversationAnalysisRealtime", () => {
 
   it("should debounce multiple rapid events", async () => {
     const onRefresh = jest.fn();
-    let conversationsHandler: Function;
-    let themesHandler: Function;
+    let conversationsHandler: ((payload: unknown) => void) | undefined;
+    let themesHandler: ((payload: unknown) => void) | undefined;
 
-    mockOn.mockImplementation((type, config, handler) => {
+    mockOn.mockImplementation(
+      (_type: string, config: { table?: string }, handler: (payload: unknown) => void) => {
       if (config.table === "conversations") {
         conversationsHandler = handler;
       } else if (config.table === "conversation_themes") {
         themesHandler = handler;
       }
       return mockChannel;
-    });
+      }
+    );
 
     renderHook(() =>
       useConversationAnalysisRealtime({
@@ -187,7 +196,7 @@ describe("useConversationAnalysisRealtime", () => {
   });
 
   it("should handle subscription errors", async () => {
-    mockSubscribe.mockImplementation((callback) => {
+    mockSubscribe.mockImplementation((callback: (status: string) => void) => {
       setTimeout(() => callback("CHANNEL_ERROR"), 0);
       return mockChannel;
     });

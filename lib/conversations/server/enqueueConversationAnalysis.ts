@@ -45,14 +45,17 @@ export async function enqueueConversationAnalysis(
   // Try to insert a new job record
   // The unique constraint on (conversation_id, status) where status IN ('queued', 'running')
   // will prevent duplicate jobs
-  const { error: insertError } = await supabase
+  const { data: insertedJob, error: insertError } = await supabase
     .from("conversation_analysis_jobs")
     .insert({
       conversation_id: conversationId,
       status: "queued",
       created_by: userId,
       attempts: 0,
-    });
+      strategy: "full", // Default strategy for auto-analysis
+    })
+    .select("id")
+    .single();
 
   // If insert failed due to unique constraint, job already exists
   if (insertError) {
@@ -65,6 +68,10 @@ export async function enqueueConversationAnalysis(
     throw new Error("Failed to enqueue analysis job");
   }
 
+  if (!insertedJob) {
+    throw new Error("Failed to create analysis job");
+  }
+
   // Update conversation status to indicate analysis has been queued
   await supabase
     .from("conversations")
@@ -72,6 +79,10 @@ export async function enqueueConversationAnalysis(
       analysis_status: "not_started",
     })
     .eq("id", conversationId);
+
+  // Trigger background execution immediately (fire-and-forget)
+  const { runAnalysisInBackground } = await import("./runAnalysisInBackground");
+  runAnalysisInBackground(supabase, conversationId, insertedJob.id, "full");
 
   return { status: "queued" };
 }

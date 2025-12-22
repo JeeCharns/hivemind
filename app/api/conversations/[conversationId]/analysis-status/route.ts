@@ -11,8 +11,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { jsonError } from "@/lib/api/errors";
-
-const DEFAULT_THRESHOLD = 20;
+import { UNDERSTAND_MIN_RESPONSES } from "@/lib/conversations/domain/thresholds";
 
 export async function GET(
   _req: NextRequest,
@@ -43,7 +42,7 @@ export async function GET(
     // 3. Verify membership
     try {
       await requireHiveMember(supabase, session.user.id, conversation.hive_id);
-    } catch (_err) {
+    } catch {
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
@@ -63,7 +62,7 @@ export async function GET(
       analysisStatus: conversation.analysis_status,
       analysisError: conversation.analysis_error,
       responseCount: count ?? 0,
-      threshold: DEFAULT_THRESHOLD,
+      threshold: UNDERSTAND_MIN_RESPONSES,
     });
   } catch (error) {
     console.error("[GET analysis-status] Error:", error);

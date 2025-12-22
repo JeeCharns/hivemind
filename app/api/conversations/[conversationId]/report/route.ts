@@ -12,6 +12,8 @@ import { requireHiveAdmin } from "@/lib/conversations/server/requireHiveAdmin";
 import { canOpenReport } from "@/lib/conversations/domain/reportRules";
 import { MIN_RESPONSES_FOR_REPORT } from "@/lib/conversations/domain/reportRules";
 import { jsonError } from "@/lib/api/errors";
+import { computeAgreementSummaries } from "@/lib/conversations/domain/agreementSummaries";
+import { computeResponseConsensusItems } from "@/lib/conversations/domain/responseConsensus";
 
 export async function POST(
   _req: NextRequest,
@@ -29,11 +31,17 @@ export async function POST(
     const supabase = await supabaseServerClient();
 
     // 2. Get conversation with all necessary fields
-    const { data: conversation, error: convError } = await supabase
+    const conversationResult = await supabase
       .from("conversations")
       .select("id, hive_id, type, phase, analysis_status, title")
       .eq("id", conversationId)
       .maybeSingle();
+
+    if (!conversationResult) {
+      return jsonError("Failed to fetch conversation", 500);
+    }
+
+    const { data: conversation, error: convError } = conversationResult;
 
     if (convError || !conversation) {
       return jsonError("Conversation not found", 404);
@@ -63,10 +71,16 @@ export async function POST(
     }
 
     // 6. Count responses and validate gate
-    const { count: responseCount, error: countError } = await supabase
+    const responseCountResult = await supabase
       .from("conversation_responses")
       .select("id", { count: "exact", head: true })
       .eq("conversation_id", conversationId);
+
+    if (!responseCountResult) {
+      return jsonError("Failed to count responses", 500);
+    }
+
+    const { count: responseCount, error: countError } = responseCountResult;
 
     if (countError) {
       return jsonError("Failed to count responses", 500);
@@ -81,7 +95,12 @@ export async function POST(
     }
 
     // 7. Fetch themes and responses for prompt building
-    const [themesResult, responsesResult, feedbackResult] = await Promise.all([
+    const [
+      themesResult,
+      responsesResult,
+      feedbackResult,
+      summaryResponsesResult,
+    ] = await Promise.all([
       supabase
         .from("conversation_themes")
         .select("cluster_index, name, description, size")
@@ -99,15 +118,32 @@ export async function POST(
         .from("response_feedback")
         .select("response_id, feedback")
         .eq("conversation_id", conversationId),
+
+      // Fetch response texts for agreement/divisive summaries (no prompt limit)
+      supabase
+        .from("conversation_responses")
+        .select("id, response_text")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: false }),
     ]);
 
-    if (themesResult.error || responsesResult.error || feedbackResult.error) {
+    if (
+      !themesResult ||
+      !responsesResult ||
+      !feedbackResult ||
+      !summaryResponsesResult ||
+      themesResult.error ||
+      responsesResult.error ||
+      feedbackResult.error ||
+      summaryResponsesResult.error
+    ) {
       return jsonError("Failed to fetch conversation data", 500);
     }
 
     const themes = themesResult.data || [];
     const responses = responsesResult.data || [];
     const feedbackRows = feedbackResult.data || [];
+    const summaryResponses = summaryResponsesResult.data || [];
 
     // 8. Build feedback summary
     const feedbackCounts = new Map<
@@ -296,7 +332,7 @@ Output ONLY the HTML content. Do not include markdown code fences, explanations,
     }
 
     // 11. Determine next version number
-    const { data: latestVersion } = await supabase
+    const latestVersionResult = await supabase
       .from("conversation_reports")
       .select("version")
       .eq("conversation_id", conversationId)
@@ -304,10 +340,19 @@ Output ONLY the HTML content. Do not include markdown code fences, explanations,
       .limit(1)
       .maybeSingle();
 
+    if (!latestVersionResult) {
+      return jsonError("Failed to fetch report version", 500);
+    }
+
+    const { data: latestVersion, error: latestVersionError } = latestVersionResult;
+    if (latestVersionError) {
+      return jsonError("Failed to fetch report version", 500);
+    }
+
     const nextVersion = (latestVersion?.version || 0) + 1;
 
     // 12. Insert new report version
-    const { data: newReport, error: insertError } = await supabase
+    const insertResult = await supabase
       .from("conversation_reports")
       .insert({
         conversation_id: conversationId,
@@ -318,6 +363,11 @@ Output ONLY the HTML content. Do not include markdown code fences, explanations,
       .select("version, html, created_at")
       .maybeSingle();
 
+    if (!insertResult) {
+      return jsonError("Failed to save report", 500);
+    }
+
+    const { data: newReport, error: insertError } = insertResult;
     if (insertError || !newReport) {
       console.error("[POST report] Insert error:", insertError);
       return jsonError("Failed to save report", 500);
@@ -337,11 +387,44 @@ Output ONLY the HTML content. Do not include markdown code fences, explanations,
         .eq("id", conversationId);
     }
 
-    // 15. Return new report
+    // 15. Return new report (+ refreshed agreement/divisive summaries)
+    const agreementSummaries = computeAgreementSummaries(
+      summaryResponses.map((r) => ({
+        id: String(r.id),
+        responseText: String(r.response_text ?? ""),
+      })),
+      feedbackRows.map((r) => ({
+        responseId: String(r.response_id),
+        feedback: String(r.feedback),
+      })),
+      { maxPerType: 100 }
+    );
+
+    const consensusItems = computeResponseConsensusItems(
+      summaryResponses.map((r) => ({
+        id: String(r.id),
+        responseText: String(r.response_text ?? ""),
+      })),
+      feedbackRows.map((r) => ({
+        responseId: String(r.response_id),
+        feedback: String(r.feedback),
+      }))
+    );
+
+    const totalInteractionsResult = await supabase
+      .from("response_feedback")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversationId);
+
+    const totalInteractions = totalInteractionsResult?.count || 0;
+
     return NextResponse.json({
       report: newReport.html,
       version: newReport.version,
       createdAt: newReport.created_at,
+      agreementSummaries,
+      consensusItems,
+      totalInteractions,
     });
   } catch (error) {
     console.error("[POST report] Error:", error);

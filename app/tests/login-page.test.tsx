@@ -4,6 +4,7 @@ import Page from "../(auth)/login/page";
 
 const mockLogin = jest.fn();
 const pushMock = jest.fn();
+let searchParamsMock = new URLSearchParams();
 
 jest.mock("../(auth)/hooks/useAuth", () => ({
   useAuth: () => ({
@@ -14,6 +15,7 @@ jest.mock("../(auth)/hooks/useAuth", () => ({
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
+  useSearchParams: () => searchParamsMock,
 }));
 
 jest.mock("@/lib/auth/react/useSession", () => ({
@@ -24,6 +26,7 @@ describe("LoginPage", () => {
   beforeEach(() => {
     mockLogin.mockReset();
     pushMock.mockReset();
+    searchParamsMock = new URLSearchParams();
   });
 
   it("renders heading and login form after loading", async () => {

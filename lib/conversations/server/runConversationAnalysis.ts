@@ -11,6 +11,16 @@ import { createOpenAIClient, generateEmbeddings } from "@/lib/analysis/openai/em
 import { reduceToTwoD } from "@/lib/analysis/clustering/dimensionReduction";
 import { clusterEmbeddings } from "@/lib/analysis/clustering/kmeans";
 import { generateThemes, type Theme } from "@/lib/analysis/openai/themeGenerator";
+import { groupResponsesBySimilarity, DEFAULT_GROUPING_PARAMS } from "../domain/similarityGrouping";
+import { saveResponseEmbeddings } from "./saveResponseEmbeddings";
+import { saveResponseGroups } from "./saveResponseGroups";
+import { computeMADZScores, detectOutliersPerCluster } from "../domain/outlierDetection";
+import {
+  MISC_CLUSTER_INDEX,
+  OUTLIER_Z_THRESHOLD,
+  OUTLIER_MIN_CLUSTER_SIZE,
+  OUTLIER_MAX_RATIO,
+} from "../domain/thresholds";
 
 interface ResponseData {
   id: string;
@@ -70,7 +80,56 @@ export async function runConversationAnalysis(
     // Relabel clusters by size (largest = 0, next = 1, etc.) for stable UX
     const clusterIndices = relabelClustersBySize(rawClusterIndices);
 
-    console.log(`[runConversationAnalysis] Clustered into ${new Set(clusterIndices).size} groups`);
+    // Log cluster distribution
+    const clusterSizes = new Map<number, number>();
+    for (const idx of clusterIndices) {
+      clusterSizes.set(idx, (clusterSizes.get(idx) || 0) + 1);
+    }
+    const sortedSizes = Array.from(clusterSizes.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([idx, size]) => `cluster ${idx}: ${size}`)
+      .slice(0, 10); // Top 10 clusters
+
+    console.log(
+      `[runConversationAnalysis] Clustered into ${clusterSizes.size} groups (${sortedSizes.join(", ")}${clusterSizes.size > 10 ? ", ..." : ""})`
+    );
+
+    // 6a. Compute cluster centroids in embedding space
+    const clusterCentroids = computeClusterCentroids(embeddings, clusterIndices);
+
+    // 6b. Compute distances to centroids for outlier detection
+    const distancesToCentroids = computeDistancesToCentroids(
+      embeddings,
+      clusterIndices,
+      clusterCentroids
+    );
+
+    // 6c. Compute outlier scores (MAD-based z-scores)
+    const outlierScores = computeOutlierScores(clusterIndices, distancesToCentroids);
+
+    // 6d. Detect outliers per cluster
+    const outlierMap = detectOutliersPerCluster(
+      clusterIndices,
+      distancesToCentroids,
+      {
+        threshold: OUTLIER_Z_THRESHOLD,
+        minClusterSize: OUTLIER_MIN_CLUSTER_SIZE,
+        maxOutlierRatio: OUTLIER_MAX_RATIO,
+      }
+    );
+
+    // 6e. Reassign outliers to MISC_CLUSTER_INDEX
+    let miscCount = 0;
+    for (const [, outlierIndices] of outlierMap.entries()) {
+      for (const responseIdx of outlierIndices) {
+        clusterIndices[responseIdx] = MISC_CLUSTER_INDEX;
+        miscCount++;
+      }
+    }
+
+    console.log(
+      `[runConversationAnalysis] Detected ${miscCount} outliers across ${outlierMap.size} clusters`
+    );
 
     // 7. Group responses by cluster with diverse sampling
     const responsesByCluster = new Map<number, { texts: string[]; originalIndices: number[] }>();
@@ -87,13 +146,26 @@ export async function runConversationAnalysis(
     // 8. Generate themes with diverse sampling
     const themesInput = new Map<number, string[]>();
     for (const [clusterIdx, { texts, originalIndices }] of responsesByCluster.entries()) {
+      // Skip MISC_CLUSTER_INDEX for LLM theme generation
+      if (clusterIdx === MISC_CLUSTER_INDEX) continue;
+
       // Sample diverse responses (spread across original order)
       const sampledTexts = sampleDiverseResponses(texts, originalIndices, 20);
       themesInput.set(clusterIdx, sampledTexts);
     }
     const themes = await generateThemes(openai, themesInput);
 
-    console.log(`[runConversationAnalysis] Generated ${themes.length} themes`);
+    // Add hardcoded "Misc" theme if outliers exist
+    if (miscCount > 0) {
+      themes.push({
+        clusterIndex: MISC_CLUSTER_INDEX,
+        name: "Misc",
+        description: "Responses that don't fit well into other themes",
+        size: miscCount,
+      });
+    }
+
+    console.log(`[runConversationAnalysis] Generated ${themes.length} themes (including ${miscCount > 0 ? 1 : 0} misc theme)`);
 
     // 9. Save results to database
     await saveAnalysisResults(
@@ -102,10 +174,41 @@ export async function runConversationAnalysis(
       responses,
       coordinates,
       clusterIndices,
+      distancesToCentroids,
+      outlierScores,
       themes
     );
 
-    // 10. Update status to 'ready' with tracking metadata
+    // 10. Persist cluster models for incremental updates
+    await saveClusterModels(
+      supabase,
+      conversationId,
+      embeddings,
+      coordinates,
+      clusterIndices
+    );
+
+    // 11. Persist embeddings for similarity grouping
+    await saveResponseEmbeddings(supabase, conversationId, responses, embeddings);
+
+    // 12. Compute and save "frequently mentioned" groups
+    const responsesWithEmbeddings = responses.map((r, i) => ({
+      id: r.id,
+      text: r.text,
+      embedding: embeddings[i],
+      clusterIndex: clusterIndices[i],
+    }));
+
+    const groups = groupResponsesBySimilarity(
+      responsesWithEmbeddings,
+      DEFAULT_GROUPING_PARAMS
+    );
+
+    await saveResponseGroups(supabase, conversationId, groups, DEFAULT_GROUPING_PARAMS);
+
+    console.log(`[runConversationAnalysis] Created ${groups.length} frequently mentioned groups`);
+
+    // 13. Update status to 'ready' with tracking metadata
     await updateAnalysisStatus(supabase, conversationId, "ready");
     await supabase
       .from("conversations")
@@ -203,9 +306,11 @@ async function saveAnalysisResults(
   responses: ResponseData[],
   coordinates: number[][],
   clusterIndices: number[],
+  distancesToCentroids: number[],
+  outlierScores: (number | null)[],
   themes: Theme[]
 ): Promise<void> {
-  // 1. Update responses with coordinates and cluster indices
+  // 1. Update responses with coordinates, cluster indices, and outlier data
   // Use sequential updates to avoid overwhelming Supabase connections
   // This is more reliable than parallel updates for large batches
   for (let i = 0; i < responses.length; i++) {
@@ -215,6 +320,9 @@ async function saveAnalysisResults(
         x_umap: coordinates[i][0],
         y_umap: coordinates[i][1],
         cluster_index: clusterIndices[i],
+        distance_to_centroid: distancesToCentroids[i],
+        outlier_score: outlierScores[i],
+        is_misc: clusterIndices[i] === MISC_CLUSTER_INDEX,
       })
       .eq("id", responses[i].id);
 
@@ -346,4 +454,227 @@ function sampleDiverseResponses(
   }
 
   return samples;
+}
+
+/**
+ * Save cluster models for incremental updates
+ * Computes cluster centroids in embedding space and 2D space
+ *
+ * @param supabase - Supabase client
+ * @param conversationId - Conversation UUID
+ * @param embeddings - All response embeddings
+ * @param coordinates - All 2D coordinates
+ * @param clusterIndices - Cluster assignments
+ */
+async function saveClusterModels(
+  supabase: SupabaseClient,
+  conversationId: string,
+  embeddings: number[][],
+  coordinates: number[][],
+  clusterIndices: number[]
+): Promise<void> {
+  // Group by cluster
+  const clusterData = new Map<
+    number,
+    { embeddings: number[][]; coords: number[][] }
+  >();
+
+  for (let i = 0; i < clusterIndices.length; i++) {
+    const clusterIdx = clusterIndices[i];
+
+    // Skip MISC_CLUSTER_INDEX (no centroid model for outliers)
+    if (clusterIdx === MISC_CLUSTER_INDEX) continue;
+
+    if (!clusterData.has(clusterIdx)) {
+      clusterData.set(clusterIdx, { embeddings: [], coords: [] });
+    }
+    const cluster = clusterData.get(clusterIdx)!;
+    cluster.embeddings.push(embeddings[i]);
+    cluster.coords.push(coordinates[i]);
+  }
+
+  // Delete existing models
+  await supabase
+    .from("conversation_cluster_models")
+    .delete()
+    .eq("conversation_id", conversationId);
+
+  // Compute centroids and stats for each cluster
+  const models = [];
+  for (const [clusterIdx, { embeddings: clusterEmbeddings, coords }] of clusterData.entries()) {
+    // Compute centroid in embedding space
+    const centroidEmbedding = computeCentroid(clusterEmbeddings);
+
+    // Compute centroid in 2D space
+    const centroidX =
+      coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+    const centroidY =
+      coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+
+    // Compute spread radius (max distance from centroid)
+    let maxRadius = 0;
+    for (const [x, y] of coords) {
+      const dist = Math.sqrt((x - centroidX) ** 2 + (y - centroidY) ** 2);
+      maxRadius = Math.max(maxRadius, dist);
+    }
+
+    // Add 10% padding to spread radius
+    const spreadRadius = maxRadius * 1.1 || 0.1;
+
+    models.push({
+      conversation_id: conversationId,
+      cluster_index: clusterIdx,
+      centroid_embedding: centroidEmbedding,
+      centroid_x_umap: centroidX,
+      centroid_y_umap: centroidY,
+      spread_radius: spreadRadius,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  // Insert new models
+  if (models.length > 0) {
+    const { error } = await supabase
+      .from("conversation_cluster_models")
+      .insert(models);
+
+    if (error) {
+      console.error("[saveClusterModels] Failed to save models:", error);
+      throw new Error(`Failed to save cluster models: ${error.message}`);
+    }
+  }
+
+  console.log(`[saveClusterModels] Saved ${models.length} cluster models`);
+}
+
+/**
+ * Compute centroid of a set of vectors
+ */
+function computeCentroid(vectors: number[][]): number[] {
+  if (vectors.length === 0) {
+    throw new Error("Cannot compute centroid of empty set");
+  }
+
+  const dim = vectors[0].length;
+  const centroid = new Array(dim).fill(0);
+
+  for (const vector of vectors) {
+    for (let i = 0; i < dim; i++) {
+      centroid[i] += vector[i];
+    }
+  }
+
+  for (let i = 0; i < dim; i++) {
+    centroid[i] /= vectors.length;
+  }
+
+  return centroid;
+}
+
+/**
+ * Compute cluster centroids in embedding space
+ * Groups embeddings by cluster and computes mean for each
+ */
+function computeClusterCentroids(
+  embeddings: number[][],
+  clusterIndices: number[]
+): Map<number, number[]> {
+  // Group embeddings by cluster
+  const clusterEmbeddings = new Map<number, number[][]>();
+  for (let i = 0; i < embeddings.length; i++) {
+    const clusterIdx = clusterIndices[i];
+    if (!clusterEmbeddings.has(clusterIdx)) {
+      clusterEmbeddings.set(clusterIdx, []);
+    }
+    clusterEmbeddings.get(clusterIdx)!.push(embeddings[i]);
+  }
+
+  // Compute centroid for each cluster
+  const centroids = new Map<number, number[]>();
+  for (const [clusterIdx, embeds] of clusterEmbeddings.entries()) {
+    centroids.set(clusterIdx, computeCentroid(embeds));
+  }
+
+  return centroids;
+}
+
+/**
+ * Compute cosine distance between two vectors
+ * Returns 0 for identical vectors, 2 for opposite vectors
+ */
+function cosineDistance(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error("Vectors must have same length");
+  }
+
+  let dotProduct = 0;
+  let magA = 0;
+  let magB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+
+  magA = Math.sqrt(magA);
+  magB = Math.sqrt(magB);
+
+  // Handle zero vectors
+  if (magA === 0 || magB === 0) return 2;
+
+  const cosineSimilarity = dotProduct / (magA * magB);
+  return 1 - cosineSimilarity;
+}
+
+/**
+ * Compute distances from each response to its assigned centroid
+ */
+function computeDistancesToCentroids(
+  embeddings: number[][],
+  clusterIndices: number[],
+  centroids: Map<number, number[]>
+): number[] {
+  return embeddings.map((embedding, i) => {
+    const clusterIdx = clusterIndices[i];
+    const centroid = centroids.get(clusterIdx);
+    if (!centroid) return 0;
+    return cosineDistance(embedding, centroid);
+  });
+}
+
+/**
+ * Compute MAD-based z-scores for outlier detection
+ * Returns array of outlier scores (null for responses in small clusters)
+ */
+function computeOutlierScores(
+  clusterIndices: number[],
+  distancesToCentroids: number[]
+): (number | null)[] {
+  // Group distances by cluster
+  const clusterDistances = new Map<number, Array<{ idx: number; distance: number }>>();
+  for (let i = 0; i < clusterIndices.length; i++) {
+    const clusterIdx = clusterIndices[i];
+    if (!clusterDistances.has(clusterIdx)) {
+      clusterDistances.set(clusterIdx, []);
+    }
+    clusterDistances.get(clusterIdx)!.push({ idx: i, distance: distancesToCentroids[i] });
+  }
+
+  // Compute z-scores per cluster
+  const outlierScores = new Array<number | null>(clusterIndices.length).fill(null);
+
+  for (const [, entries] of clusterDistances.entries()) {
+    // Skip small clusters
+    if (entries.length < OUTLIER_MIN_CLUSTER_SIZE) continue;
+
+    const distances = entries.map(e => e.distance);
+    const zScores = computeMADZScores(distances);
+
+    for (let j = 0; j < entries.length; j++) {
+      outlierScores[entries[j].idx] = zScores[j];
+    }
+  }
+
+  return outlierScores;
 }

@@ -51,17 +51,34 @@ export default function NewSessionWizard({
   const [reportsError, setReportsError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (step === 2 && type === "decide" && open) {
-      setReportsLoading(true);
-      setReportsError(null);
-      fetchProblemReports(hiveId)
-        .then((data) => setReports(data))
-        .catch((err) => {
-          console.error("[NewSessionWizard] Failed to fetch reports:", err);
-          setReportsError("Failed to load available reports");
-        })
-        .finally(() => setReportsLoading(false));
-    }
+    if (step !== 2 || type !== "decide" || !open) return;
+
+    let cancelled = false;
+
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return null;
+        setReportsLoading(true);
+        setReportsError(null);
+        return fetchProblemReports(hiveId);
+      })
+      .then((data) => {
+        if (!data || cancelled) return;
+        setReports(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[NewSessionWizard] Failed to fetch reports:", err);
+        setReportsError("Failed to load available reports");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setReportsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [step, type, open, hiveId]);
 
   if (!open) return null;

@@ -18,19 +18,21 @@ interface HiveCardProps {
 }
 
 export default function HiveCard({ name, logoUrl, onClick }: HiveCardProps) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [logo, setLogo] = useState<{
+    logoUrl: string;
+    signedUrl: string | null;
+  } | null>(null);
+  const signedUrl =
+    logoUrl && logo?.logoUrl === logoUrl ? logo.signedUrl : null;
 
   useEffect(() => {
-    if (!logoUrl) {
-      setSignedUrl(null);
-      return;
-    }
+    if (!logoUrl) return;
 
     let cancelled = false;
 
     getLogoSignedUrl(logoUrl).then((url) => {
       if (!cancelled) {
-        setSignedUrl(url);
+        setLogo({ logoUrl, signedUrl: url });
       }
     });
 
