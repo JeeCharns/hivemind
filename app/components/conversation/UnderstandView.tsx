@@ -18,7 +18,10 @@ import { getTagColors } from "@/lib/conversations/domain/tags";
 import Button from "@/app/components/button";
 import type { Feedback } from "@/types/conversation-understand";
 import FrequentlyMentionedGroupCard from "./FrequentlyMentionedGroupCard";
-import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
+import {
+  MISC_CLUSTER_INDEX,
+  HULL_OUTLIER_THRESHOLD,
+} from "@/lib/conversations/domain/thresholds";
 import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
 
 const palette = [
@@ -213,8 +216,15 @@ export default function UnderstandView({
         const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
 
         // Generate hull path for this cluster
+        // Filter visual outliers to prevent long "spikey tails" from isolated points
         const hullPoints = pts.map((p) => ({ x: p.sx!, y: p.sy! }));
-        const hullPath = generateClusterHullPath(hullPoints, 8, 0.3);
+        const hullPath = generateClusterHullPath(
+          hullPoints,
+          8, // padding
+          0.3, // smoothness
+          true, // filterOutliers enabled
+          HULL_OUTLIER_THRESHOLD
+        );
 
         const color = palette[Number(idx) % palette.length];
         const themeName =

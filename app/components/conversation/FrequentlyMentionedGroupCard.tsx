@@ -14,7 +14,10 @@
 
 import { useState } from "react";
 import { CaretDown } from "@phosphor-icons/react";
-import type { FrequentlyMentionedGroup, Feedback } from "@/types/conversation-understand";
+import type {
+  FrequentlyMentionedGroup,
+  Feedback,
+} from "@/types/conversation-understand";
 import { getTagColors } from "@/lib/conversations/domain/tags";
 import Button from "@/app/components/button";
 
@@ -39,7 +42,7 @@ export default function FrequentlyMentionedGroupCard({
       {/* Header with badge */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-1 text-label rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
+          <span className="inline-flex items-center py-1 text-label rounded-full text-indigo-700">
             Frequently mentioned
           </span>
           {representative.tag && (
@@ -53,8 +56,8 @@ export default function FrequentlyMentionedGroupCard({
           )}
         </div>
         <span className="text-info text-slate-500">
-          {representative.counts.agree} agree · {representative.counts.pass} pass ·{" "}
-          {representative.counts.disagree} disagree
+          {representative.counts.agree} agree · {representative.counts.pass}{" "}
+          pass · {representative.counts.disagree} disagree
         </span>
       </div>
 
@@ -72,9 +75,10 @@ export default function FrequentlyMentionedGroupCard({
               fb === "agree"
                 ? "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
                 : fb === "disagree"
-                ? "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100"
-                : "bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-200";
-            const inactiveStyles = "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
+                  ? "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100"
+                  : "bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-200";
+            const inactiveStyles =
+              "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
             return (
               <Button
                 key={fb}
@@ -103,7 +107,7 @@ export default function FrequentlyMentionedGroupCard({
 
       {/* Expand/collapse toggle */}
       {similarResponses.length > 0 && (
-        <div className="pt-2 border-t border-indigo-200">
+        <div className="pt-2">
           <Button
             variant="ghost"
             size="sm"

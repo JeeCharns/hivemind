@@ -21,7 +21,7 @@ export default function NewSessionLauncher({
       <>
         <Button
           variant="secondary"
-          className="w-full flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-[#D7E0F0] p-10 min-h-[300px] bg-white/60 text-[#566888] hover:border-[#b8c7e6] hover:text-[#3A1DC8] transition-colors"
+          className="w-full flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-[#D7E0F0] p-10 h-64 bg-white/60 text-[#566888] hover:border-[#b8c7e6] hover:text-[#3A1DC8] transition-colors"
           onClick={() => setOpen(true)}
         >
           <span className="w-14 h-14 rounded-lg bg-[#DADDE1] flex items-center justify-center">

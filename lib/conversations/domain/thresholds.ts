@@ -59,3 +59,13 @@ export const OUTLIER_MIN_CLUSTER_SIZE = 6;
  * Example: 0.20 = at most 20% of cluster can be outliers
  */
 export const OUTLIER_MAX_RATIO = 0.20;
+
+/**
+ * IQR multiplier for visual outlier filtering in cluster hull generation
+ * Points beyond Q3 + threshold * IQR are excluded from hull shape (but still rendered)
+ * This prevents long "spikey tails" from isolated points in 2D visualization
+ * Higher values = more permissive (include more distant points)
+ * Lower values = more aggressive filtering (tighter hulls)
+ * Default: 2.5 (balanced between capturing cluster shape and excluding extreme outliers)
+ */
+export const HULL_OUTLIER_THRESHOLD = 2.5;
