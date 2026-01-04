@@ -122,11 +122,24 @@ export async function triggerConversationAnalysis(
     };
   }
 
-  // 8. Check if analysis is already in progress
-  if (
-    conversation.analysis_status &&
-    ["embedding", "analyzing", "not_started"].includes(conversation.analysis_status)
-  ) {
+  // 8. Check if analysis job is already queued/running
+  // Check the jobs table for active jobs, not just the conversation status
+  const { data: existingJobs, error: jobsError } = await supabase
+    .from("conversation_analysis_jobs")
+    .select("id, status")
+    .eq("conversation_id", conversationId)
+    .in("status", ["queued", "running"])
+    .limit(1);
+
+  if (jobsError) {
+    console.error("[triggerConversationAnalysis] Failed to check existing jobs:", jobsError);
+    // Continue anyway - we'll try to create the job
+  }
+
+  if (existingJobs && existingJobs.length > 0) {
+    console.log(
+      `[triggerConversationAnalysis] Job already exists with status=${existingJobs[0].status}`
+    );
     return {
       status: "already_running",
       reason: "in_progress",

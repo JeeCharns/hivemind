@@ -45,11 +45,11 @@ export function useAnalysisStatus({
         setData(result);
         setError(null);
 
-        // Continue polling if analysis is in progress
+        // Continue polling only if analysis is actively in progress
+        // Do NOT poll on "not_started" - that means no job has been triggered yet
         if (
           result.analysisStatus === "embedding" ||
-          result.analysisStatus === "analyzing" ||
-          result.analysisStatus === "not_started"
+          result.analysisStatus === "analyzing"
         ) {
           timeoutId = setTimeout(fetchStatus, interval);
         }

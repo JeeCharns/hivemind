@@ -95,7 +95,7 @@ export function createMockSupabase(
     neq: jest.fn().mockReturnThis(),
     gt: jest.fn().mockReturnThis(),
     is: jest.fn().mockReturnThis(),
-    in: jest.fn().mockResolvedValue({ data: null, error: null }),
+    in: jest.fn().mockReturnThis(),
     or: jest.fn().mockReturnThis(),
     not: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
@@ -404,6 +404,8 @@ export function mockDataQuery(
     from: supabase.from, // Preserve from() for next query
     single: terminal,
     maybeSingle: terminal,
+    // Make the chain thenable so it can be awaited directly
+    then: (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve),
   };
 
   // Keep `useSingle` for callers/documentation without changing behavior.
@@ -419,6 +421,7 @@ export function mockDataQuery(
   dataChain.neq = jest.fn().mockReturnValue(dataChain);
   dataChain.gt = jest.fn().mockReturnValue(dataChain);
   dataChain.is = jest.fn().mockReturnValue(dataChain);
+  dataChain.in = jest.fn().mockReturnValue(dataChain);
   dataChain.not = jest.fn().mockReturnValue(dataChain);
   dataChain.order = jest.fn().mockReturnValue(dataChain);
   dataChain.limit = jest.fn().mockReturnValue(dataChain);
@@ -483,11 +486,17 @@ export function mockInsert(supabase: { from: jest.Mock }, error: unknown = null)
  * mockUpdate(supabase); // success
  */
 export function mockUpdate(supabase: { from: jest.Mock }, error: unknown = null): void {
-  const updateChain = {
+  const result = { error };
+  const updateChain: Record<string, unknown> = {
     from: supabase.from,
-    update: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockResolvedValue({ error }),
   };
+
+  // Add chainable methods after object is created to avoid circular reference
+  updateChain.update = jest.fn().mockReturnValue(updateChain);
+  updateChain.eq = jest.fn().mockReturnValue(updateChain);
+  updateChain.in = jest.fn().mockReturnValue(updateChain);
+  // Make the chain thenable so it can be awaited directly
+  updateChain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve);
 
   supabase.from.mockReturnValueOnce(updateChain);
 }
