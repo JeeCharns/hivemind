@@ -17,7 +17,7 @@ describe("getConversationCta", () => {
     title: "Test Conversation",
     description: "Test description",
     created_at: "2025-01-01T00:00:00Z",
-    analysis_status: null,
+    analysis_status: "not_started",
     report_json: null,
   };
 
@@ -83,7 +83,7 @@ describe("getConversationCta", () => {
     it("should return 'Submit your thoughts!' CTA when no report or analysis", () => {
       const conversation: ConversationCardData = {
         ...baseConversation,
-        analysis_status: null,
+        analysis_status: "not_started",
         report_json: null,
       };
 

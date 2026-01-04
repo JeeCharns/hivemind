@@ -31,7 +31,7 @@ export interface ConversationRow {
   title: string | null;
   description: string | null;
   created_at: string;
-  analysis_status: AnalysisStatus | null;
+  analysis_status: AnalysisStatus;
   report_json: unknown | null;
   source_conversation_id: string | null;
   source_report_version: number | null;
@@ -47,7 +47,7 @@ export interface ConversationCardData {
   title: string | null;
   description: string | null;
   created_at: string;
-  analysis_status: AnalysisStatus | null;
+  analysis_status: AnalysisStatus;
   report_json: unknown | null;
 }
 
@@ -61,7 +61,7 @@ export interface ConversationRowSummary {
   title: string | null;
   type: ConversationType;
   phase: ConversationPhase;
-  analysis_status: AnalysisStatus | null;
+  analysis_status: AnalysisStatus;
   report_json: unknown | null;
 }
 
