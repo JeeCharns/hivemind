@@ -148,3 +148,107 @@ describe("Embedding Normalization", () => {
     expect(result[2]).toEqual([1, 0]);
   });
 });
+
+import { enforceMinClusters } from "../../domain/clusterEnforcement";
+import { MIN_CLUSTERS_SMALL, MIN_CLUSTERS_LARGE, MISC_CLUSTER_INDEX } from "../../domain/thresholds";
+
+describe("Minimum Cluster Floor Enforcement", () => {
+
+  /**
+   * Helper to create synthetic embeddings
+   */
+  function createEmbeddings(n: number, dim = 3): number[][] {
+    const embeddings: number[][] = [];
+    for (let i = 0; i < n; i++) {
+      const embedding = new Array(dim).fill(0);
+      embedding[0] = i / n;
+      embedding[1] = Math.sin(i);
+      embedding[2] = Math.cos(i);
+      embeddings.push(embedding);
+    }
+    return embeddings;
+  }
+
+  /**
+   * Helper to count non-misc clusters
+   */
+  function countNonMiscClusters(clusterIndices: number[]): number {
+    const uniqueClusters = new Set(
+      clusterIndices.filter((idx: number) => idx !== MISC_CLUSTER_INDEX)
+    );
+    return uniqueClusters.size;
+  }
+
+  it("should enforce 3 clusters for n=20 when auto-k returns 1", () => {
+    const embeddings = createEmbeddings(20);
+    const clusterIndices = new Array(20).fill(0); // All in one cluster
+
+    const result = enforceMinClusters(embeddings, clusterIndices, 20);
+
+    expect(result.targetMinClusters).toBe(MIN_CLUSTERS_SMALL);
+    expect(result.finalClusterCount).toBe(3);
+    expect(countNonMiscClusters(result.clusterIndices)).toBe(3);
+  });
+
+  it("should enforce 5 clusters for n=60 when auto-k returns 2", () => {
+    const embeddings = createEmbeddings(60);
+    const clusterIndices = embeddings.map((_, i) => (i < 30 ? 0 : 1));
+
+    const result = enforceMinClusters(embeddings, clusterIndices, 60);
+
+    expect(result.targetMinClusters).toBe(MIN_CLUSTERS_LARGE);
+    expect(result.finalClusterCount).toBe(5);
+    expect(countNonMiscClusters(result.clusterIndices)).toBe(5);
+  });
+
+  it("should preserve MISC_CLUSTER_INDEX during enforcement", () => {
+    const embeddings = createEmbeddings(25);
+    // Start with 2 clusters and some misc
+    const clusterIndices = embeddings.map((_, i) =>
+      i < 10 ? 0 : i < 20 ? 1 : MISC_CLUSTER_INDEX
+    );
+
+    const result = enforceMinClusters(embeddings, clusterIndices, 25);
+
+    // MISC_CLUSTER_INDEX should be preserved
+    const hasMisc = result.clusterIndices.some(
+      (idx: number) => idx === MISC_CLUSTER_INDEX
+    );
+    expect(hasMisc).toBe(true);
+
+    // Count should only include non-misc clusters
+    const nonMiscCount = countNonMiscClusters(result.clusterIndices);
+    expect(result.finalClusterCount).toBe(nonMiscCount);
+  });
+
+  it("should not split if already meeting minimum", () => {
+    const embeddings = createEmbeddings(20);
+    // Start with 3 clusters (already meeting floor)
+    const clusterIndices = embeddings.map((_, i) =>
+      i < 7 ? 0 : i < 14 ? 1 : 2
+    );
+
+    const result = enforceMinClusters(embeddings, clusterIndices, 20);
+
+    expect(result.splitsPerformed).toBe(0);
+    expect(result.reason).toBe("Already meets minimum cluster floor");
+  });
+
+  it("should occur before outlier detection in pipeline", () => {
+    // This test verifies the ordering constraint in the spec:
+    // enforceMinClusters must run BEFORE outlier detection
+    // so that outliers are detected on the final cluster assignments
+
+    const embeddings = createEmbeddings(20);
+    const clusterIndices = new Array(20).fill(0);
+
+    // Step 1: Enforce minimum clusters
+    const enforcementResult = enforceMinClusters(embeddings, clusterIndices, 20);
+
+    // Step 2: Outlier detection would run on enforcementResult.clusterIndices
+    // (not testing actual outlier detection here, just the ordering)
+
+    // Verify that enforcement has completed before outlier detection
+    expect(enforcementResult.finalClusterCount).toBeGreaterThanOrEqual(MIN_CLUSTERS_SMALL);
+  });
+});

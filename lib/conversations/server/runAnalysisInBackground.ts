@@ -81,20 +81,35 @@ export async function runAnalysisInBackground(
 
         // Only try to update job status if we successfully claimed it
         if (jobClaimed) {
-          const successUpdate = await admin
+          // Worker safety: verify job is still active before persisting results
+          // This prevents a superseded job from overwriting newer analysis
+          const { data: jobCheck } = await admin
             .from("conversation_analysis_jobs")
-            .update({
-              status: "succeeded",
-              locked_at: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", jobId);
+            .select("status")
+            .eq("id", jobId)
+            .single();
 
-          if (successUpdate.error) {
-            console.warn(
-              "[runAnalysisInBackground] Could not update job status to succeeded (table visibility issue):",
-              successUpdate.error.message
+          if (jobCheck && jobCheck.status === "running") {
+            const successUpdate = await admin
+              .from("conversation_analysis_jobs")
+              .update({
+                status: "succeeded",
+                locked_at: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", jobId);
+
+            if (successUpdate.error) {
+              console.warn(
+                "[runAnalysisInBackground] Could not update job status to succeeded (table visibility issue):",
+                successUpdate.error.message
+              );
+            }
+          } else {
+            console.log(
+              `[runAnalysisInBackground] Job ${jobId} was superseded (status=${jobCheck?.status}), discarding results`
             );
+            return; // Exit without persisting results
           }
         } else {
           console.log(

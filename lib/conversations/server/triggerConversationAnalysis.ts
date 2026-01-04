@@ -159,7 +159,34 @@ export async function triggerConversationAnalysis(
     `[triggerConversationAnalysis] strategy=${chosenStrategy} newCount=${newCount}`
   );
 
-  // 10. Enqueue job
+  // 10. Retire any active jobs for this conversation (for regenerate mode)
+  // This prevents stale jobs from completing and overwriting newer analysis results
+  if (request.mode === "regenerate") {
+    console.log(
+      `[triggerConversationAnalysis] Retiring active jobs for conversation ${conversationId}`
+    );
+
+    const { error: retireError } = await supabase
+      .from("conversation_analysis_jobs")
+      .update({
+        status: "failed",
+        last_error: "superseded by regenerate",
+        locked_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("conversation_id", conversationId)
+      .in("status", ["queued", "running"]);
+
+    if (retireError) {
+      console.error(
+        "[triggerConversationAnalysis] Failed to retire active jobs:",
+        retireError
+      );
+      // Don't throw - we'll still try to create the new job
+    }
+  }
+
+  // 11. Enqueue job
   console.log("[triggerConversationAnalysis] Creating analysis job with status=queued");
 
   const { data: insertedJob, error: insertError } = await supabase
@@ -182,20 +209,8 @@ export async function triggerConversationAnalysis(
     errorMessage: insertError?.message,
   });
 
-  // If insert failed due to unique constraint, job already exists
+  // If insert failed, handle the error
   if (insertError) {
-    if (insertError.code === "23505") {
-      // unique_violation
-      return {
-        status: "already_running",
-        reason: "in_progress",
-        strategy: chosenStrategy,
-        currentResponseCount: currentCount,
-        analysisResponseCount: conversation.analysis_response_count,
-        newResponsesSinceAnalysis: newCount,
-      };
-    }
-
     console.error("[triggerConversationAnalysis] Insert failed:", insertError);
     throw new Error("Failed to enqueue analysis job");
   }
@@ -219,7 +234,7 @@ export async function triggerConversationAnalysis(
     jobData: verifyJob,
   });
 
-  // 11. Update conversation status
+  // 12. Update conversation status
   await supabase
     .from("conversations")
     .update({
@@ -227,7 +242,7 @@ export async function triggerConversationAnalysis(
     })
     .eq("id", conversationId);
 
-  // 12. Trigger background execution immediately (fire-and-forget)
+  // 13. Trigger background execution immediately (fire-and-forget)
   // Import dynamically to avoid loading unless needed
   const { runAnalysisInBackground } = await import("./runAnalysisInBackground");
   runAnalysisInBackground(supabase, conversationId, insertedJob.id, chosenStrategy);

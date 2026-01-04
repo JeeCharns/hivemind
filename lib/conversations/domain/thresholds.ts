@@ -61,11 +61,20 @@ export const OUTLIER_MIN_CLUSTER_SIZE = 6;
 export const OUTLIER_MAX_RATIO = 0.20;
 
 /**
- * IQR multiplier for visual outlier filtering in cluster hull generation
- * Points beyond Q3 + threshold * IQR are excluded from hull shape (but still rendered)
- * This prevents long "spikey tails" from isolated points in 2D visualization
- * Higher values = more permissive (include more distant points)
- * Lower values = more aggressive filtering (tighter hulls)
- * Default: 2.5 (balanced between capturing cluster shape and excluding extreme outliers)
+ * Minimum cluster count for small datasets (n <= 40)
+ * Applied via post-processing splits in full analysis only
  */
-export const HULL_OUTLIER_THRESHOLD = 2.5;
+export const MIN_CLUSTERS_SMALL = 3;
+
+/**
+ * Minimum cluster count for large datasets (n >= 41)
+ * Applied via post-processing splits in full analysis only
+ */
+export const MIN_CLUSTERS_LARGE = 5;
+
+/**
+ * Minimum cluster size required to split during forced cluster enforcement
+ * Must be >= 2 * this value to be eligible for splitting
+ * Recommended: 2 for strict floor enforcement, 3 for stability
+ */
+export const MIN_FORCED_CLUSTER_SIZE = 2;

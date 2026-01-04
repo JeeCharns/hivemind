@@ -63,9 +63,29 @@ function createSupabaseClient(): SupabaseClient {
 
 /**
  * Fetch next queued job
+ * Uses RPC to bypass PostgREST schema cache issues
  */
 async function fetchNextJob(supabase: ReturnType<typeof createSupabaseClient>) {
   const cutoff = new Date(Date.now() - JOB_LOCK_TTL_MS).toISOString();
+
+  // Try RPC first (bypasses PostgREST schema cache)
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    "fetch_next_analysis_job",
+    { p_cutoff: cutoff }
+  );
+
+  if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+    return rpcData[0];
+  }
+
+  if (rpcError) {
+    logger.warn("RPC fetch failed, falling back to REST API", {
+      error: rpcError.message,
+      code: rpcError.code,
+    });
+  }
+
+  // Fallback to REST API
   const { data, error } = await supabase
     .from("conversation_analysis_jobs")
     .select("*")

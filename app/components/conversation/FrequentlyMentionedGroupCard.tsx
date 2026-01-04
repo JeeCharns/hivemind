@@ -71,23 +71,29 @@ export default function FrequentlyMentionedGroupCard({
         <div className="flex gap-2">
           {(["agree", "pass", "disagree"] as Feedback[]).map((fb) => {
             const active = representative.current === fb;
+            const hasVoted = representative.current !== null;
+            const isDisabled = hasVoted && !active;
+
             const activeStyles =
               fb === "agree"
-                ? "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                ? "!bg-emerald-100 !text-emerald-800 !border-emerald-300 hover:!bg-emerald-100"
                 : fb === "disagree"
-                  ? "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100"
-                  : "bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-200";
+                  ? "!bg-orange-100 !text-orange-800 !border-orange-300 hover:!bg-orange-100"
+                  : "!bg-slate-200 !text-slate-800 !border-slate-300 hover:!bg-slate-200";
             const inactiveStyles =
               "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
+            const disabledStyles =
+              "!bg-slate-100 !text-slate-400 !border-slate-200 !cursor-not-allowed";
+
             return (
               <Button
                 key={fb}
                 variant="secondary"
                 size="sm"
-                disabled={loadingId === representative.id}
+                disabled={loadingId === representative.id || isDisabled}
                 onClick={() => onVote(representative.id, fb)}
                 className={`flex-1 transition-colors ${
-                  active ? activeStyles : inactiveStyles
+                  active ? activeStyles : isDisabled ? disabledStyles : inactiveStyles
                 }`}
               >
                 {fb === "agree" && "Agree"}

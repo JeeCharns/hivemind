@@ -18,10 +18,7 @@ import { getTagColors } from "@/lib/conversations/domain/tags";
 import Button from "@/app/components/button";
 import type { Feedback } from "@/types/conversation-understand";
 import FrequentlyMentionedGroupCard from "./FrequentlyMentionedGroupCard";
-import {
-  MISC_CLUSTER_INDEX,
-  HULL_OUTLIER_THRESHOLD,
-} from "@/lib/conversations/domain/thresholds";
+import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
 import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
 
 const palette = [
@@ -103,11 +100,13 @@ const scalePoints = (points: ResponsePoint[], size = CANVAS_SIZE) => {
 export interface UnderstandViewProps {
   viewModel: UnderstandViewModel;
   conversationType?: "understand" | "decide";
+  analysisInProgress?: boolean;
 }
 
 export default function UnderstandView({
   viewModel,
   conversationType = "understand",
+  analysisInProgress = false,
 }: UnderstandViewProps) {
   const {
     conversationId,
@@ -162,23 +161,35 @@ export default function UnderstandView({
           const newCounts = { ...group.representative.counts };
           const previousCurrent = group.representative.current;
 
-          // Decrement previous choice if exists
-          if (previousCurrent) {
-            newCounts[previousCurrent] = Math.max(
-              0,
-              newCounts[previousCurrent] - 1
-            );
-          }
+          // Check if this is a toggle-off (clicking the same button)
+          const isToggleOff = previousCurrent === feedback;
 
-          // Increment new choice
-          newCounts[feedback] = newCounts[feedback] + 1;
+          let newCurrent: Feedback | null = feedback;
+
+          if (isToggleOff) {
+            // Toggle off: decrement the current choice and set current to null
+            newCounts[feedback] = Math.max(0, newCounts[feedback] - 1);
+            newCurrent = null;
+          } else {
+            // Switching or new vote
+            // Decrement previous choice if exists
+            if (previousCurrent) {
+              newCounts[previousCurrent] = Math.max(
+                0,
+                newCounts[previousCurrent] - 1
+              );
+            }
+
+            // Increment new choice
+            newCounts[feedback] = newCounts[feedback] + 1;
+          }
 
           return {
             ...group,
             representative: {
               ...group.representative,
               counts: newCounts,
-              current: feedback,
+              current: newCurrent,
             },
           };
         })
@@ -216,15 +227,8 @@ export default function UnderstandView({
         const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
 
         // Generate hull path for this cluster
-        // Filter visual outliers to prevent long "spikey tails" from isolated points
         const hullPoints = pts.map((p) => ({ x: p.sx!, y: p.sy! }));
-        const hullPath = generateClusterHullPath(
-          hullPoints,
-          8, // padding
-          0.3, // smoothness
-          true, // filterOutliers enabled
-          HULL_OUTLIER_THRESHOLD
-        );
+        const hullPath = generateClusterHullPath(hullPoints, 8, 0.3);
 
         const color = palette[Number(idx) % palette.length];
         const themeName =
@@ -250,6 +254,20 @@ export default function UnderstandView({
     selectedCluster === null
       ? items
       : items.filter((r) => r.clusterIndex === selectedCluster);
+
+  // Debug logging
+  if (typeof window !== "undefined" && selectedCluster !== null) {
+    console.log("[UnderstandView] Filter debug:", {
+      selectedCluster,
+      totalItems: items.length,
+      filteredCount: filteredItems.length,
+      clusterDistribution: items.reduce((acc, item) => {
+        const key = item.clusterIndex === null ? "null" : item.clusterIndex;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {} as Record<string | number, number>),
+    });
+  }
 
   // Filter groups for selected theme
   const filteredGroups = useMemo(() => {
@@ -436,7 +454,29 @@ export default function UnderstandView({
     <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)] overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start flex-1 overflow-hidden">
         {/* Left column: Theme map */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 h-full">
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 h-full relative">
+          {/* Loading overlay for left column only */}
+          {analysisInProgress && (
+            <div className="absolute inset-0 bg-white/95 z-30 flex items-center justify-center backdrop-blur-sm">
+              <div className="max-w-md mx-auto space-y-4 text-center p-8">
+                <div className="animate-pulse text-6xl mb-4">🔮</div>
+                <h2 className="text-xl font-semibold text-slate-800">
+                  Updating Theme Map
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Regenerating clusters and themes...
+                </p>
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
+                </div>
+                <p className="text-xs text-slate-500 mt-4">
+                  The response list below remains interactive
+                </p>
+              </div>
+            </div>
+          )}
           <div
             className={`relative bg-white rounded-xl h-full overflow-hidden ${
               dragging ? "cursor-grabbing" : "cursor-grab"
@@ -763,23 +803,29 @@ export default function UnderstandView({
                         {(["agree", "pass", "disagree"] as Feedback[]).map(
                           (fb) => {
                             const active = resp.current === fb;
+                            const hasVoted = resp.current !== null;
+                            const isDisabled = hasVoted && !active;
+
                             const activeStyles =
                               fb === "agree"
-                                ? "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                                ? "!bg-emerald-100 !text-emerald-800 !border-emerald-300 hover:!bg-emerald-100"
                                 : fb === "disagree"
-                                  ? "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100"
-                                  : "bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-200";
+                                  ? "!bg-orange-100 !text-orange-800 !border-orange-300 hover:!bg-orange-100"
+                                  : "!bg-slate-200 !text-slate-800 !border-slate-300 hover:!bg-slate-200";
                             const inactiveStyles =
                               "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
+                            const disabledStyles =
+                              "!bg-slate-100 !text-slate-400 !border-slate-200 !cursor-not-allowed";
+
                             return (
                               <Button
                                 key={fb}
                                 variant="secondary"
                                 size="sm"
-                                disabled={loadingId === resp.id}
+                                disabled={loadingId === resp.id || isDisabled}
                                 onClick={() => vote(resp.id, fb)}
                                 className={`flex-1 transition-colors ${
-                                  active ? activeStyles : inactiveStyles
+                                  active ? activeStyles : isDisabled ? disabledStyles : inactiveStyles
                                 }`}
                               >
                                 {fb === "agree" && "Agree"}

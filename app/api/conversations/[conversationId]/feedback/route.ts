@@ -90,24 +90,48 @@ export async function POST(
       return jsonError("Response not found", 404);
     }
 
-    // 6. Upsert feedback (handles both insert and update)
-    const { error: upsertError } = await supabase
+    // 6. Check for existing feedback to support toggle-off behavior
+    const { data: existingFeedback } = await supabase
       .from("response_feedback")
-      .upsert(
-        {
-          conversation_id: conversationId,
-          response_id: responseId,
-          user_id: session.user.id,
-          feedback: feedback as Feedback,
-        },
-        {
-          onConflict: "conversation_id,response_id,user_id",
-        }
-      );
+      .select("feedback")
+      .eq("conversation_id", conversationId)
+      .eq("response_id", responseId)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
 
-    if (upsertError) {
-      console.error("[POST feedback] Upsert error:", upsertError);
-      return jsonError("Failed to submit feedback", 500);
+    // If user is voting for the same feedback again, withdraw (delete) the vote
+    if (existingFeedback && existingFeedback.feedback === feedback) {
+      const { error: deleteError } = await supabase
+        .from("response_feedback")
+        .delete()
+        .eq("conversation_id", conversationId)
+        .eq("response_id", responseId)
+        .eq("user_id", session.user.id);
+
+      if (deleteError) {
+        console.error("[POST feedback] Delete error:", deleteError);
+        return jsonError("Failed to withdraw feedback", 500);
+      }
+    } else {
+      // Otherwise, upsert feedback (handles both insert and update)
+      const { error: upsertError } = await supabase
+        .from("response_feedback")
+        .upsert(
+          {
+            conversation_id: conversationId,
+            response_id: responseId,
+            user_id: session.user.id,
+            feedback: feedback as Feedback,
+          },
+          {
+            onConflict: "conversation_id,response_id,user_id",
+          }
+        );
+
+      if (upsertError) {
+        console.error("[POST feedback] Upsert error:", upsertError);
+        return jsonError("Failed to submit feedback", 500);
+      }
     }
 
     // 7. Fetch updated counts for this response

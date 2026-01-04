@@ -247,6 +247,8 @@ describe("triggerConversationAnalysis", () => {
 
       mockCountQuery(supabase, 25);
 
+      // For regenerate mode: retire jobs + conversation status update
+      mockUpdate(supabase);
       mockInsert(supabase);
       mockUpdate(supabase);
 
@@ -272,6 +274,8 @@ describe("triggerConversationAnalysis", () => {
 
       mockCountQuery(supabase, 35);
 
+      // For regenerate mode: retire jobs + conversation status update
+      mockUpdate(supabase);
       mockInsert(supabase);
       mockUpdate(supabase);
 
@@ -376,7 +380,10 @@ describe("triggerConversationAnalysis", () => {
 
       mockCountQuery(supabase, 25);
 
-      // Unique constraint violation
+      // Check prerequisites (cluster models exist)
+      mockCountQuery(supabase, 3);
+
+      // Unique constraint violation when trying to insert job
       mockInsert(supabase, { code: "23505" });
 
       const result = await triggerConversationAnalysis(
@@ -487,6 +494,78 @@ describe("triggerConversationAnalysis", () => {
         analysisResponseCount: 25,
         newResponsesSinceAnalysis: 0,
       });
+    });
+  });
+
+  describe("regenerate mode", () => {
+    it("retires active jobs before enqueueing new job in regenerate mode", async () => {
+      const supabase = createMockSupabase();
+
+      mockDataQuery(
+        supabase,
+        generateConversation({
+          analysis_status: "ready",
+          analysis_response_count: 20,
+        })
+      );
+
+      mockDataQuery(supabase, generateMembership(userId), false);
+
+      mockCountQuery(supabase, 25);
+
+      mockCountQuery(supabase, 3); // cluster models exist
+
+      // Mock the update call to retire active jobs
+      mockUpdate(supabase);
+      mockInsert(supabase);
+      // Second mockUpdate for conversation status update
+      mockUpdate(supabase);
+
+      const result = await triggerConversationAnalysis(
+        supabase,
+        conversationId,
+        userId,
+        { mode: "regenerate", strategy: "auto" }
+      );
+
+      expect(result.status).toBe("queued");
+      expect(result.strategy).toBe("incremental");
+
+      // Verify update was called (retire jobs + update conversation status)
+      expect(supabase.update).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not retire jobs in manual mode", async () => {
+      const supabase = createMockSupabase();
+
+      mockDataQuery(
+        supabase,
+        generateConversation({
+          analysis_status: "ready",
+          analysis_response_count: 20,
+        })
+      );
+
+      mockDataQuery(supabase, generateMembership(userId), false);
+
+      mockCountQuery(supabase, 25);
+
+      mockCountQuery(supabase, 3); // cluster models exist
+
+      mockInsert(supabase);
+      mockUpdate(supabase);
+
+      const result = await triggerConversationAnalysis(
+        supabase,
+        conversationId,
+        userId,
+        { mode: "manual", strategy: "auto" }
+      );
+
+      expect(result.status).toBe("queued");
+
+      // Verify update was called only once (for conversation status, not for retiring jobs)
+      expect(supabase.update).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -294,4 +294,73 @@ describe("useConversationFeedback", () => {
     expect(result.current.items).toEqual(originalItems);
     expect(mockClient.voteCalls).toHaveLength(0);
   });
+
+  it("should withdraw vote when clicking the same feedback again (toggle-off)", async () => {
+    const mockClient = new MockFeedbackClient();
+    mockClient.responseCount = { agree: 2, pass: 1, disagree: 0 }; // Server counts after withdrawal
+    const initialItems = getInitialItems();
+
+    const { result } = renderHook(() =>
+      useConversationFeedback({
+        conversationId: "conv-1",
+        initialItems,
+        feedbackClient: mockClient,
+      })
+    );
+
+    // Vote "agree" on second item (already has "agree")
+    await act(async () => {
+      await result.current.vote("2", "agree");
+    });
+
+    await waitFor(() => {
+      expect(result.current.loadingId).toBeNull();
+    });
+
+    const item = result.current.items.find((i) => i.id === "2");
+    expect(item?.current).toBeNull(); // Vote withdrawn
+    expect(item?.counts).toEqual({ agree: 2, pass: 1, disagree: 0 }); // Server counts
+    expect(mockClient.voteCalls).toHaveLength(1);
+    expect(mockClient.voteCalls[0]).toEqual({
+      conversationId: "conv-1",
+      responseId: "2",
+      feedback: "agree",
+    });
+  });
+
+  it("should optimistically decrement count when toggling off", async () => {
+    const mockClient = new MockFeedbackClient();
+    const initialItems: FeedbackItem[] = [
+      {
+        id: "1",
+        responseText: "First response",
+        tag: "need",
+        clusterIndex: 0,
+        counts: { agree: 5, pass: 2, disagree: 1 },
+        current: "agree", // User has already voted agree
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useConversationFeedback({
+        conversationId: "conv-1",
+        initialItems,
+        feedbackClient: mockClient,
+      })
+    );
+
+    // Click "agree" again to toggle off
+    await act(async () => {
+      await result.current.vote("1", "agree");
+    });
+
+    await waitFor(() => {
+      expect(result.current.loadingId).toBeNull();
+    });
+
+    const item = result.current.items.find((i) => i.id === "1");
+    expect(item?.current).toBeNull(); // Vote withdrawn
+    // The optimistic count should have decremented, then been replaced by server count
+    expect(item?.counts).toEqual({ agree: 1, pass: 0, disagree: 0 });
+  });
 });

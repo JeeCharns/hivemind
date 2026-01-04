@@ -117,16 +117,38 @@ export async function claimAnalysisJob(
       // If SELECT works, try UPDATE without any column references in the payload
       console.log("[claimAnalysisJob] SELECT works, but UPDATE with columns fails.");
       console.log("[claimAnalysisJob] This indicates PostgREST can READ the table but has stale write schema.");
+      console.log("[claimAnalysisJob] Attempting RPC fallback using claim_analysis_job function...");
 
-      // Since we can't update the job table, we'll just return that we couldn't claim it
-      // The calling code will handle this by proceeding without job tracking
-
-      throw new Error(
-        "Failed to claim analysis job: PostgREST schema cache doesn't include 'status' column. " +
-          "Please reload PostgREST schema cache: run `SELECT pg_notify('pgrst', 'reload schema');` in Supabase SQL editor, " +
-          "or restart your Supabase project. " +
-          `Connected Supabase host: ${supabaseHostFromEnv() ?? "unknown"}`
+      // Fallback: Use database function to bypass PostgREST entirely
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        "claim_analysis_job",
+        {
+          p_job_id: opts.jobId,
+          p_locked_at: lockedAt,
+          p_cutoff: cutoff,
+        }
       );
+
+      if (rpcError) {
+        console.error("[claimAnalysisJob] ❌ RPC fallback also failed:", rpcError);
+
+        throw new Error(
+          "Failed to claim analysis job: PostgREST schema cache doesn't include 'status' column. " +
+            "Please reload PostgREST schema cache: run `SELECT pg_notify('pgrst', 'reload schema');` in Supabase SQL editor, " +
+            "or restart your Supabase project. " +
+            `Connected Supabase host: ${supabaseHostFromEnv() ?? "unknown"}. ` +
+            `RPC fallback error: ${rpcError.message}`
+        );
+      }
+
+      console.log("[claimAnalysisJob] ✅ RPC fallback succeeded!", rpcData);
+
+      // Check if claim was successful
+      if (Array.isArray(rpcData) && rpcData.length > 0 && rpcData[0].claimed) {
+        return { claimed: true, lockedAt };
+      }
+
+      return { claimed: false, reason: "not_queued_or_locked" };
     }
     throw new Error(`Failed to claim analysis job: ${message}`);
   }

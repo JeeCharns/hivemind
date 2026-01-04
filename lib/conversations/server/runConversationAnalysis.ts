@@ -21,6 +21,7 @@ import {
   OUTLIER_MIN_CLUSTER_SIZE,
   OUTLIER_MAX_RATIO,
 } from "../domain/thresholds";
+import { enforceMinClusters } from "../domain/clusterEnforcement";
 
 interface ResponseData {
   id: string;
@@ -78,14 +79,14 @@ export async function runConversationAnalysis(
     const rawClusterIndices = clusterEmbeddings(embeddings);
 
     // Relabel clusters by size (largest = 0, next = 1, etc.) for stable UX
-    const clusterIndices = relabelClustersBySize(rawClusterIndices);
+    let clusterIndices = relabelClustersBySize(rawClusterIndices);
 
-    // Log cluster distribution
-    const clusterSizes = new Map<number, number>();
+    // Log initial cluster distribution
+    let clusterSizes = new Map<number, number>();
     for (const idx of clusterIndices) {
       clusterSizes.set(idx, (clusterSizes.get(idx) || 0) + 1);
     }
-    const sortedSizes = Array.from(clusterSizes.entries())
+    let sortedSizes = Array.from(clusterSizes.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([idx, size]) => `cluster ${idx}: ${size}`)
       .slice(0, 10); // Top 10 clusters
@@ -94,20 +95,54 @@ export async function runConversationAnalysis(
       `[runConversationAnalysis] Clustered into ${clusterSizes.size} groups (${sortedSizes.join(", ")}${clusterSizes.size > 10 ? ", ..." : ""})`
     );
 
-    // 6a. Compute cluster centroids in embedding space
+    // 6a. Enforce minimum cluster floor via post-processing splits
+    const enforcementResult = enforceMinClusters(
+      embeddings,
+      clusterIndices,
+      responses.length
+    );
+
+    clusterIndices = enforcementResult.clusterIndices;
+
+    // Log enforcement results
+    if (enforcementResult.splitsPerformed > 0) {
+      console.log(
+        `[runConversationAnalysis] Enforced minimum cluster floor: ` +
+        `target=${enforcementResult.targetMinClusters}, ` +
+        `effective=${enforcementResult.effectiveMinClusters}, ` +
+        `splits=${enforcementResult.splitsPerformed}, ` +
+        `final=${enforcementResult.finalClusterCount}`
+      );
+    } else if (enforcementResult.reason) {
+      console.log(
+        `[runConversationAnalysis] Minimum cluster floor check: ${enforcementResult.reason}`
+      );
+    }
+
+    // Update cluster distribution after enforcement
+    clusterSizes = new Map<number, number>();
+    for (const idx of clusterIndices) {
+      clusterSizes.set(idx, (clusterSizes.get(idx) || 0) + 1);
+    }
+    sortedSizes = Array.from(clusterSizes.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([idx, size]) => `cluster ${idx}: ${size}`)
+      .slice(0, 10); // Top 10 clusters
+
+    // 6b. Compute cluster centroids in embedding space
     const clusterCentroids = computeClusterCentroids(embeddings, clusterIndices);
 
-    // 6b. Compute distances to centroids for outlier detection
+    // 6c. Compute distances to centroids for outlier detection
     const distancesToCentroids = computeDistancesToCentroids(
       embeddings,
       clusterIndices,
       clusterCentroids
     );
 
-    // 6c. Compute outlier scores (MAD-based z-scores)
+    // 6d. Compute outlier scores (MAD-based z-scores)
     const outlierScores = computeOutlierScores(clusterIndices, distancesToCentroids);
 
-    // 6d. Detect outliers per cluster
+    // 6e. Detect outliers per cluster
     const outlierMap = detectOutliersPerCluster(
       clusterIndices,
       distancesToCentroids,
@@ -118,7 +153,7 @@ export async function runConversationAnalysis(
       }
     );
 
-    // 6e. Reassign outliers to MISC_CLUSTER_INDEX
+    // 6f. Reassign outliers to MISC_CLUSTER_INDEX
     let miscCount = 0;
     for (const [, outlierIndices] of outlierMap.entries()) {
       for (const responseIdx of outlierIndices) {
@@ -130,6 +165,19 @@ export async function runConversationAnalysis(
     console.log(
       `[runConversationAnalysis] Detected ${miscCount} outliers across ${outlierMap.size} clusters`
     );
+
+    // Log if outlier reassignment reduced cluster count below target
+    if (enforcementResult.splitsPerformed > 0) {
+      const finalNonMiscCount = clusterIndices.filter(
+        (idx) => idx !== MISC_CLUSTER_INDEX
+      ).reduce((set, idx) => set.add(idx), new Set()).size;
+      if (finalNonMiscCount < enforcementResult.effectiveMinClusters) {
+        console.log(
+          `[runConversationAnalysis] Warning: outlier reassignment reduced cluster count to ${finalNonMiscCount} ` +
+          `(below target ${enforcementResult.effectiveMinClusters})`
+        );
+      }
+    }
 
     // 7. Group responses by cluster with diverse sampling
     const responsesByCluster = new Map<number, { texts: string[]; originalIndices: number[] }>();

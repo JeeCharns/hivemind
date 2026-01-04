@@ -4,9 +4,9 @@ This document describes the Supabase Realtime configuration required for push-ba
 
 ## Overview
 
-The Understand feature uses Supabase Realtime to push analysis updates to the browser instead of polling. This provides:
+The Understand feature uses Supabase Realtime to push analysis updates to the browser instead of relying solely on polling. This provides:
 - Immediate UI updates when analysis completes
-- Reduced server load (no polling endpoints hit)
+- Reduced server load (status polling runs as a low-frequency safety net)
 - Better user experience with live status updates
 
 ## Architecture
@@ -152,9 +152,9 @@ Location: [lib/conversations/react/useConversationAnalysisRealtime.ts](../lib/co
 - Default 500ms debounce to collapse burst updates
 - Theme inserts + status update often happen together
 
-**Fallback:**
-- If realtime connection fails (`status === "error"`), falls back to polling via `useAnalysisStatus`
-- Polling interval: 5 seconds
+**Polling safety net:**
+- `useAnalysisStatus` runs while analysis is in progress to prevent silent stalls
+- Polling interval: 5 seconds when realtime is unavailable, 15 seconds when connected (lightweight status check)
 
 ### Component: UnderstandViewContainer
 
@@ -163,7 +163,7 @@ Location: [app/components/conversation/UnderstandViewContainer.tsx](../app/compo
 **Behavior:**
 - Subscribes to realtime when `responseCount >= 20` and analysis in progress
 - Shows connection status indicator ("● Live updates enabled")
-- Falls back to polling if realtime errors
+- Uses a status polling safety net (faster when realtime errors, slower when connected)
 - Fetches fresh data via API when events arrive
 
 ## Testing
@@ -211,7 +211,7 @@ Location: [app/components/conversation/UnderstandViewContainer.tsx](../app/compo
 1. Check Supabase URL/publishable key are correct
 2. Verify user is authenticated (`auth.uid()` should return user ID)
 3. Check browser network tab for WebSocket connection
-4. Fallback polling should activate if realtime fails
+4. Status polling should continue if realtime fails (more frequent interval)
 
 ## Performance Considerations
 
@@ -241,18 +241,18 @@ For high-traffic scenarios:
 
 ## Rollout Plan
 
-1. **Phase 1: Deploy with fallback** (current)
+1. **Phase 1: Deploy with safety net** (current)
    - Realtime is primary mechanism
-   - Polling fallback if realtime fails
+   - Status polling runs as a safety net (faster when realtime fails)
    - Both `analysis-status` endpoint and realtime coexist
 
 2. **Phase 2: Monitor** (1-2 weeks)
    - Track realtime connection success rate
-   - Monitor fallback polling usage
+   - Monitor safety-net polling usage
    - Verify RLS policies prevent unauthorized access
 
 3. **Phase 3: Optimize** (optional)
-   - Remove polling fallback if realtime is reliable
+   - Consider removing the safety-net polling if realtime is reliable
    - Consider deprecating `analysis-status` endpoint
    - Add metrics/logging for realtime performance
 
@@ -269,7 +269,7 @@ For high-traffic scenarios:
 1. Verify replication enabled (see Configuration section)
 2. Test RLS policies with manual queries
 3. Check browser console for specific errors
-4. Fallback polling should work if realtime fails
+4. Status polling should work if realtime fails
 
 ### Issue: UI not updating despite events
 

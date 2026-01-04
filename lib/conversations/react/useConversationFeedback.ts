@@ -47,6 +47,7 @@ export function useConversationFeedback({
 
   /**
    * Vote on a response with optimistic update
+   * Supports toggle-off: clicking the same button withdraws the vote
    */
   const vote = useCallback(
     async (responseId: string, feedback: Feedback) => {
@@ -57,21 +58,31 @@ export function useConversationFeedback({
       // Store previous state for revert
       const previousItem = { ...item };
 
+      // Check if this is a toggle-off (clicking the same button)
+      const isToggleOff = item.current === feedback;
+
       // Optimistic update
       setItems((prev) =>
         prev.map((i) => {
           if (i.id !== responseId) return i;
 
           const newCounts = { ...i.counts };
-          const newCurrent = feedback;
+          let newCurrent: Feedback | null = feedback;
 
-          // Decrement previous choice if exists
-          if (i.current) {
-            newCounts[i.current] = Math.max(0, newCounts[i.current] - 1);
+          if (isToggleOff) {
+            // Toggle off: decrement the current choice and set current to null
+            newCounts[feedback] = Math.max(0, newCounts[feedback] - 1);
+            newCurrent = null;
+          } else {
+            // Switching or new vote
+            // Decrement previous choice if exists
+            if (i.current) {
+              newCounts[i.current] = Math.max(0, newCounts[i.current] - 1);
+            }
+
+            // Increment new choice
+            newCounts[feedback] = newCounts[feedback] + 1;
           }
-
-          // Increment new choice
-          newCounts[feedback] = newCounts[feedback] + 1;
 
           return {
             ...i,
@@ -96,10 +107,11 @@ export function useConversationFeedback({
           setError(result.error || "Failed to submit feedback");
         } else if (result.counts) {
           // Update with server counts (in case of race conditions)
+          // After toggle-off, current should be null
           setItems((prev) =>
             prev.map((i) =>
               i.id === responseId
-                ? { ...i, counts: result.counts!, current: feedback }
+                ? { ...i, counts: result.counts!, current: isToggleOff ? null : feedback }
                 : i
             )
           );

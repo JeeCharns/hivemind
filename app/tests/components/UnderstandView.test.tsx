@@ -138,4 +138,114 @@ describe("UnderstandView theme filters", () => {
       larger.compareDocumentPosition(smaller) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
   });
+
+  it("applies active styles to voted button and disables other buttons", () => {
+    const viewModel: UnderstandViewModel = {
+      ...baseViewModel(),
+      feedbackItems: [
+        {
+          id: "r1",
+          responseText: "Response with agree vote",
+          tag: null,
+          clusterIndex: 0,
+          counts: { agree: 5, pass: 2, disagree: 1 },
+          current: "agree",
+        },
+      ],
+    };
+
+    useConversationFeedbackMock.mockReturnValue({
+      items: viewModel.feedbackItems,
+      vote: jest.fn(),
+      loadingId: null,
+    });
+
+    render(<UnderstandView viewModel={viewModel} />);
+
+    const agreeButton = screen.getByRole("button", { name: "Agree" });
+    const passButton = screen.getByRole("button", { name: "Pass" });
+    const disagreeButton = screen.getByRole("button", { name: "Disagree" });
+
+    // Active button should have emerald active styles
+    expect(agreeButton.className).toContain("!bg-emerald-100");
+    expect(agreeButton.className).toContain("!text-emerald-800");
+    expect(agreeButton.className).toContain("!border-emerald-300");
+
+    // Other buttons should be disabled
+    expect(passButton).toBeDisabled();
+    expect(disagreeButton).toBeDisabled();
+
+    // Disabled buttons should have disabled styles
+    expect(passButton.className).toContain("!bg-slate-100");
+    expect(passButton.className).toContain("!text-slate-400");
+    expect(disagreeButton.className).toContain("!bg-slate-100");
+    expect(disagreeButton.className).toContain("!text-slate-400");
+
+    // Active button should NOT be disabled (allows toggle-off)
+    expect(agreeButton).not.toBeDisabled();
+  });
+
+  it("applies orange active styles to disagree vote", () => {
+    const viewModel: UnderstandViewModel = {
+      ...baseViewModel(),
+      feedbackItems: [
+        {
+          id: "r1",
+          responseText: "Response with disagree vote",
+          tag: null,
+          clusterIndex: 0,
+          counts: { agree: 1, pass: 2, disagree: 5 },
+          current: "disagree",
+        },
+      ],
+    };
+
+    useConversationFeedbackMock.mockReturnValue({
+      items: viewModel.feedbackItems,
+      vote: jest.fn(),
+      loadingId: null,
+    });
+
+    render(<UnderstandView viewModel={viewModel} />);
+
+    const disagreeButton = screen.getByRole("button", { name: "Disagree" });
+
+    // Active disagree button should have orange styles
+    expect(disagreeButton.className).toContain("!bg-orange-100");
+    expect(disagreeButton.className).toContain("!text-orange-800");
+    expect(disagreeButton.className).toContain("!border-orange-300");
+    expect(disagreeButton).not.toBeDisabled();
+  });
+
+  it("applies slate active styles to pass vote", () => {
+    const viewModel: UnderstandViewModel = {
+      ...baseViewModel(),
+      feedbackItems: [
+        {
+          id: "r1",
+          responseText: "Response with pass vote",
+          tag: null,
+          clusterIndex: 0,
+          counts: { agree: 1, pass: 5, disagree: 2 },
+          current: "pass",
+        },
+      ],
+    };
+
+    useConversationFeedbackMock.mockReturnValue({
+      items: viewModel.feedbackItems,
+      vote: jest.fn(),
+      loadingId: null,
+    });
+
+    render(<UnderstandView viewModel={viewModel} />);
+
+    const passButton = screen.getByRole("button", { name: "Pass" });
+
+    // Active pass button should have darker slate styles
+    expect(passButton.className).toContain("!bg-slate-200");
+    expect(passButton.className).toContain("!text-slate-800");
+    expect(passButton.className).toContain("!border-slate-300");
+    expect(passButton).not.toBeDisabled();
+  });
 });

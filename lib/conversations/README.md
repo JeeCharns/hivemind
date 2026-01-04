@@ -77,21 +77,28 @@ Notes:
 - Imports are idempotent via `import_batch_id`.
 - Analysis runs asynchronously via the worker (`scripts/analysis-worker.ts`).
 
-## Clustering Algorithm (Adaptive K-Selection)
+## Clustering Algorithm (Adaptive K-Selection + Minimum Floor)
 
-The analysis pipeline uses k-means clustering with **data-driven k-selection** (no hard-coded minimum or maximum k).
+The analysis pipeline uses k-means clustering with **data-driven k-selection** followed by **post-processing enforcement** of a minimum cluster floor.
 
 ### Key Features
 
 - **Knee detection**: Chooses k by finding the maximum perpendicular distance from the distortion curve to the baseline line connecting k=1 and k=max
-- **Allows k=1**: Homogeneous data (identical or near-identical responses) results in a single cluster
-- **No forced floor/cap**: Previous hard constraints (k >= 2, k <= 6) removed; k is purely emergent from data
+- **Allows k=1 during auto-selection**: Homogeneous data (identical or near-identical responses) results in a single cluster from the knee detection algorithm
+- **Minimum cluster floor (post-processing)**: After knee detection, enforces a minimum cluster count via iterative splits:
+  - **n ≤ 40**: Target minimum 3 clusters (when feasible)
+  - **n ≥ 41**: Target minimum 5 clusters (when feasible)
+  - **Feasibility constraints**: Never exceeds n or floor(n / minForcedClusterSize)
+  - **Split policy**: Only splits clusters with size ≥ 2 × minForcedClusterSize (default: 2)
+  - **Split method**: k-means with k=2 within the largest eligible cluster
+  - **Ordering**: Forced splits occur **before** centroid/distance/outlier computations
+  - **Scope**: Applies only to **full analysis runs** (not incremental analysis)
 - **Adaptive search range**: maxK derived from data size using configurable minClusterSize (default varies with response count)
 - **Diagnostics**: Debug logging available via `ANALYSIS_DEBUG_CLUSTERING=1` env var
 
 ### Configuration
 
-Implementation: [lib/analysis/clustering/kmeans.ts](lib/analysis/clustering/kmeans.ts:66)
+**Knee Detection** (Implementation: [lib/analysis/clustering/kmeans.ts](lib/analysis/clustering/kmeans.ts:66)):
 
 - `minClusterSize` (default: adaptive): Minimum meaningful cluster size; used to derive maxK
   - Defaults to 8 (< 100 responses), 12 (≥ 100), 16 (≥ 200), 20 (≥ 400)
@@ -101,12 +108,36 @@ Implementation: [lib/analysis/clustering/kmeans.ts](lib/analysis/clustering/kmea
   - `ANALYSIS_MIN_CLUSTER_SIZE`: Forces the min cluster size used to derive maxK
   - `ANALYSIS_MAX_CLUSTERS`: Caps the maximum k evaluated during knee detection
 
+**Minimum Cluster Floor** (Implementation: [lib/conversations/domain/clusterEnforcement.ts](lib/conversations/domain/clusterEnforcement.ts)):
+
+- `MIN_CLUSTERS_SMALL` (default: 3): Target minimum clusters for n ≤ 40
+- `MIN_CLUSTERS_LARGE` (default: 5): Target minimum clusters for n ≥ 41
+- `MIN_FORCED_CLUSTER_SIZE` (default: 2): Minimum cluster size required to be eligible for splitting
+  - Clusters must have size ≥ 2 × this value to be split
+  - Lower values (2) enforce floor more strictly; higher values (3) favor stability
+
+**Thresholds Reference**: [lib/conversations/domain/thresholds.ts](lib/conversations/domain/thresholds.ts)
+
 ### Expected Behavior
 
-- **Homogeneous data** (all responses very similar): k=1
-- **Small diversity** (~20-50 varied responses): k=2-5 based on natural groupings
-- **High diversity** (~500+ responses): k selected via knee detection, typically 8-25 depending on response variance
+- **Homogeneous data** (all responses very similar):
+  - Knee detection returns k=1
+  - Post-processing enforces minimum floor (3 for n ≤ 40, 5 for n ≥ 41 when feasible)
+  - Result: May produce artificial splits for UX purposes even with similar responses
+- **Small diversity** (~20-50 varied responses):
+  - Knee detection returns k=2-5 based on natural groupings
+  - Post-processing may force additional splits to reach minimum floor (3 clusters)
+  - Result: At least 3 clusters for n ≥ 20 (when feasible)
+- **Medium diversity** (~50-100 varied responses):
+  - Knee detection returns k=3-8 based on natural groupings
+  - Post-processing may force additional splits to reach minimum floor (5 clusters for n ≥ 41)
+  - Result: At least 5 clusters for n ≥ 41 (when feasible)
+- **High diversity** (~500+ responses):
+  - Knee detection returns k=8-25 depending on response variance
+  - Post-processing typically no-op (already exceeds minimum floor)
+  - Result: Natural cluster count from knee detection
 - **No overlap forcing**: Clusters may overlap in 2D visualization; this is expected and reflects embedding space structure
+- **Outlier interaction**: Outlier reassignment to MISC_CLUSTER_INDEX occurs after forced splits, so final non-misc cluster count may drop below target (logged as warning)
 
 ## Auto-analysis (Understand sessions)
 
@@ -157,6 +188,15 @@ The system automatically chooses between incremental and full re-analysis:
   - Regenerates theme names and descriptions
   - Persists cluster models for future incremental updates
 
+### Job Retirement (Regenerate Mode)
+
+When triggering analysis with `mode: "regenerate"`, the system retires any active jobs before enqueueing a new one:
+
+- **Retirement behavior**: Updates all jobs with `status IN ('queued', 'running')` for the conversation to `status='failed'` with `last_error="superseded by regenerate"`
+- **Worker safety**: Workers check job status before persisting results; if the job was superseded, results are discarded
+- **Atomicity**: Retire + enqueue + conversation status update happen in a single transaction to prevent races
+- **Purpose**: Ensures only the latest regenerate request produces visible results, preventing stale analysis from overwriting newer runs
+
 ### API
 
 - Endpoint: `POST /api/conversations/[conversationId]/analyze`
@@ -176,6 +216,21 @@ The system automatically chooses between incremental and full re-analysis:
 - Full analysis pipeline: `lib/conversations/server/runConversationAnalysis.ts` (persists cluster models)
 - Incremental analysis pipeline: `lib/conversations/server/runConversationAnalysisIncremental.ts`
 - Optional external worker: `scripts/analysis-worker.ts` (branches on `strategy` field from job queue)
+
+### UI Integration (Partial Loading)
+
+When regenerating analysis, the UI shows partial loading to keep the response list interactive:
+
+- **Initial analysis** (no existing data): Full-page loading state while analysis runs
+- **Regenerate** (existing responses visible):
+  - Left column (theme map): Shows loading overlay while keeping the old map visible underneath
+  - Right column (response list): Remains fully interactive, users can continue voting
+  - Regenerate button: Hidden while analysis is in progress
+  - Realtime updates: Map refreshes automatically when analysis completes
+- **Implementation**:
+  - Container: [app/components/conversation/UnderstandViewContainer.tsx](../../app/components/conversation/UnderstandViewContainer.tsx:264)
+  - View: [app/components/conversation/UnderstandView.tsx](../../app/components/conversation/UnderstandView.tsx:445)
+  - Hook: [lib/conversations/react/useConversationAnalysisRealtime.ts](react/useConversationAnalysisRealtime.ts:52)
 
 ### Database Schema
 

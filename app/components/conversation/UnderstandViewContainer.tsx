@@ -42,6 +42,12 @@ export default function UnderstandViewContainer({
     newResponsesSinceAnalysis = 0,
   } = viewModel;
 
+  // Determine if analysis is actively running
+  const analysisInProgress =
+    analysisStatus === "not_started" ||
+    analysisStatus === "embedding" ||
+    analysisStatus === "analyzing";
+
   const shouldShowStaleBanner =
     analysisStatus === "ready" &&
     isAnalysisStale &&
@@ -75,19 +81,23 @@ export default function UnderstandViewContainer({
     debounceMs: 500,
   });
 
-  // Fallback: Poll if realtime connection fails
+  // Polling safety net: keep a low-frequency status check even when realtime is connected.
+  const shouldPollStatus = shouldSubscribe;
+  const statusPollingInterval = realtimeStatus === "connected" ? 15000 : 5000;
+
+  // Fallback: Show UI indicator only when realtime is unavailable
   const useFallbackPolling =
     shouldSubscribe && realtimeStatus === "error";
 
   const { data: statusData } = useAnalysisStatus({
     conversationId,
-    enabled: useFallbackPolling,
-    interval: 5000,
+    enabled: shouldPollStatus,
+    interval: statusPollingInterval,
   });
 
-  // Update from polling fallback
+  // Update from status polling
   useEffect(() => {
-    if (useFallbackPolling && statusData) {
+    if (shouldPollStatus && statusData) {
       setViewModel((prev) => ({
         ...prev,
         analysisStatus: statusData.analysisStatus,
@@ -100,7 +110,7 @@ export default function UnderstandViewContainer({
         fetchUnderstandData();
       }
     }
-  }, [statusData, useFallbackPolling, analysisStatus, fetchUnderstandData]);
+  }, [statusData, shouldPollStatus, fetchUnderstandData]);
 
   // Below threshold: show empty state
   if (responseCount < threshold) {
@@ -126,12 +136,10 @@ export default function UnderstandViewContainer({
     );
   }
 
-  // Analysis in progress: show loading state
-  if (
-    analysisStatus === "not_started" ||
-    analysisStatus === "embedding" ||
-    analysisStatus === "analyzing"
-  ) {
+  // Initial analysis (first time, no existing data): show full-page loading state
+  const hasNoExistingAnalysis = !viewModel.responses || viewModel.responses.length === 0;
+
+  if (analysisInProgress && hasNoExistingAnalysis) {
     const statusMessage =
       analysisStatus === "embedding"
         ? "Generating embeddings..."
@@ -255,10 +263,13 @@ export default function UnderstandViewContainer({
     }
   };
 
-  // Analysis ready: show normal view with optional regenerate banner
+  // Analysis ready or regenerating: show view with optional stale banner
+  // When regenerating, hide the banner and pass analysisInProgress to show left-column loading
+  const showRegenerateButton = shouldShowStaleBanner && !analysisInProgress;
+
   return (
     <>
-      {shouldShowStaleBanner && (
+      {showRegenerateButton && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-amber-600">
@@ -295,7 +306,11 @@ export default function UnderstandViewContainer({
           </Button>
         </div>
       )}
-      <UnderstandView viewModel={viewModel} conversationType={conversationType} />
+      <UnderstandView
+        viewModel={viewModel}
+        conversationType={conversationType}
+        analysisInProgress={analysisInProgress}
+      />
     </>
   );
 }

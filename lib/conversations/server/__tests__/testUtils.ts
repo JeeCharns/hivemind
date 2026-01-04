@@ -50,6 +50,7 @@ export type MockSupabaseChainable = {
   neq: jest.Mock;
   gt: jest.Mock;
   is: jest.Mock;
+  in: jest.Mock;
   or: jest.Mock;
   not: jest.Mock;
   order: jest.Mock;
@@ -70,6 +71,7 @@ export type MockSupabaseQueryClient = {
   neq: jest.Mock;
   gt: jest.Mock;
   is: jest.Mock;
+  in: jest.Mock;
   or: jest.Mock;
   not: jest.Mock;
   order: jest.Mock;
@@ -93,6 +95,7 @@ export function createMockSupabase(
     neq: jest.fn().mockReturnThis(),
     gt: jest.fn().mockReturnThis(),
     is: jest.fn().mockReturnThis(),
+    in: jest.fn().mockResolvedValue({ data: null, error: null }),
     or: jest.fn().mockReturnThis(),
     not: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),

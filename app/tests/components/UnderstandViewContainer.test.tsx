@@ -5,8 +5,12 @@ import type { UnderstandViewModel } from "@/types/conversation-understand";
 
 jest.mock("@/app/components/conversation/UnderstandView", () => ({
   __esModule: true,
-  default: function MockUnderstandView() {
-    return <div data-testid="understand-view" />;
+  default: function MockUnderstandView({ analysisInProgress }: { analysisInProgress?: boolean }) {
+    return (
+      <div data-testid="understand-view" data-analysis-in-progress={analysisInProgress}>
+        {analysisInProgress && <div>Left column loading overlay</div>}
+      </div>
+    );
   },
 }));
 
@@ -59,7 +63,7 @@ describe("UnderstandViewContainer", () => {
     expect(screen.getByText(/analysis out of date/i)).toBeInTheDocument();
   });
 
-  it("switches back to the analysis loading state when regenerate is clicked", async () => {
+  it("shows partial loading (left column only) when regenerate is clicked and responses exist", async () => {
     const previousFetch = (globalThis as unknown as { fetch?: unknown }).fetch;
     const fetchMock = jest.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -80,6 +84,16 @@ describe("UnderstandViewContainer", () => {
               makeViewModel({
                 analysisStatus: "not_started",
                 newResponsesSinceAnalysis: 10,
+                responses: [
+                  {
+                    id: "resp-1",
+                    responseText: "test response",
+                    tag: null,
+                    clusterIndex: 0,
+                    xUmap: 0.5,
+                    yUmap: 0.5,
+                  },
+                ],
               }),
           } as Response;
         }
@@ -93,14 +107,29 @@ describe("UnderstandViewContainer", () => {
 
     render(
       <UnderstandViewContainer
-        initialViewModel={makeViewModel({ newResponsesSinceAnalysis: 10 })}
+        initialViewModel={makeViewModel({
+          newResponsesSinceAnalysis: 10,
+          responses: [
+            {
+              id: "resp-1",
+              responseText: "test response",
+              tag: null,
+              clusterIndex: 0,
+              xUmap: 0.5,
+              yUmap: 0.5,
+            },
+          ],
+        })}
       />
     );
 
     await user.click(screen.getByRole("button", { name: /regenerate/i }));
 
-    expect(await screen.findByText(/generating theme map/i)).toBeInTheDocument();
-    expect(screen.queryByTestId("understand-view")).not.toBeInTheDocument();
+    // The view should still be rendered (partial loading, not full-page loading)
+    expect(screen.getByTestId("understand-view")).toBeInTheDocument();
+
+    // Verify the regenerate button is hidden while analysis is in progress
+    expect(screen.queryByRole("button", { name: /regenerate/i })).not.toBeInTheDocument();
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/conversations/conv-1/analyze",
@@ -111,5 +140,47 @@ describe("UnderstandViewContainer", () => {
       })
     );
     (globalThis as unknown as { fetch?: unknown }).fetch = previousFetch;
+  });
+
+  it("shows full-page loading when analysis is in progress with no existing responses", async () => {
+    render(
+      <UnderstandViewContainer
+        initialViewModel={makeViewModel({
+          analysisStatus: "analyzing",
+          responses: [],
+          newResponsesSinceAnalysis: 0,
+        })}
+      />
+    );
+
+    expect(screen.getByText(/generating theme map/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("understand-view")).not.toBeInTheDocument();
+  });
+
+  it("hides the regenerate button while analysis is in progress", () => {
+    render(
+      <UnderstandViewContainer
+        initialViewModel={makeViewModel({
+          analysisStatus: "analyzing",
+          newResponsesSinceAnalysis: 10,
+          responses: [
+            {
+              id: "resp-1",
+              responseText: "test response",
+              tag: null,
+              clusterIndex: 0,
+              xUmap: 0.5,
+              yUmap: 0.5,
+            },
+          ],
+        })}
+      />
+    );
+
+    // Regenerate button should not be shown while analysis is in progress
+    expect(screen.queryByRole("button", { name: /regenerate/i })).not.toBeInTheDocument();
+
+    // But the view should still be rendered (partial loading mode)
+    expect(screen.getByTestId("understand-view")).toBeInTheDocument();
   });
 });

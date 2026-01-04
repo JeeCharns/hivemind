@@ -115,71 +115,6 @@ export function offsetPolygon(points: Point[], offset: number): Point[] {
 }
 
 /**
- * Filter out visual outliers from a cluster's 2D points
- *
- * Removes points that are far from the cluster's 2D centroid using IQR-based
- * distance thresholding. This prevents long "spikey tails" in hull visualization
- * while keeping all points rendered individually.
- *
- * Algorithm:
- * 1. Calculate 2D centroid of all points
- * 2. Compute Euclidean distance from each point to centroid
- * 3. Calculate IQR (Interquartile Range) of distances
- * 4. Filter points beyond Q3 + threshold * IQR
- * 5. Ensure at least 50% of points remain (avoid over-filtering)
- *
- * @param points - Array of 2D points in the cluster
- * @param threshold - IQR multiplier for outlier detection (default: 2.5)
- * @returns Filtered points with visual outliers removed
- */
-export function filterVisualOutliers(
-  points: Point[],
-  threshold = 2.5
-): Point[] {
-  // Need at least 4 points to meaningfully detect outliers
-  if (points.length < 4) return points;
-
-  // Calculate 2D centroid
-  const cx = points.reduce((sum, p) => sum + p.x, 0) / points.length;
-  const cy = points.reduce((sum, p) => sum + p.y, 0) / points.length;
-
-  // Calculate Euclidean distances from each point to centroid
-  const distances = points.map((p) =>
-    Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2)
-  );
-
-  // Calculate quartiles for IQR method (robust to outliers)
-  const sorted = [...distances].sort((a, b) => a - b);
-  const q1Index = Math.floor(sorted.length * 0.25);
-  const q3Index = Math.floor(sorted.length * 0.75);
-  const q1 = sorted[q1Index];
-  const q3 = sorted[q3Index];
-  const iqr = q3 - q1;
-
-  // Distance threshold: Q3 + threshold * IQR
-  const maxDistance = q3 + threshold * iqr;
-
-  // Filter points within threshold
-  const filtered = points.filter((_, i) => distances[i] <= maxDistance);
-
-  // Safety check: ensure we don't filter too aggressively
-  // Always keep at least 50% of points to avoid collapsing the cluster
-  const minPointsToKeep = Math.ceil(points.length * 0.5);
-  if (filtered.length < minPointsToKeep) {
-    // If filtering is too aggressive, fall back to percentile approach
-    // Keep the closest 50% of points by distance
-    const indexedDistances = distances.map((d, i) => ({ d, i }));
-    indexedDistances.sort((a, b) => a.d - b.d);
-    const keepIndices = new Set(
-      indexedDistances.slice(0, minPointsToKeep).map((item) => item.i)
-    );
-    return points.filter((_, i) => keepIndices.has(i));
-  }
-
-  return filtered;
-}
-
-/**
  * Smooth polygon corners using quadratic Bézier curves
  * Smoothness: 0 = no smoothing, 1 = maximum smoothing
  */
@@ -242,20 +177,11 @@ export function smoothPolygon(points: Point[], smoothness = 0.3): string {
 
 /**
  * Generate smooth hull path for a cluster of points
- *
- * @param points - Array of 2D points in the cluster
- * @param padding - Outward padding distance from convex hull (default: 18)
- * @param smoothness - Bézier curve smoothness factor 0-1 (default: 0.3)
- * @param filterOutliers - Whether to filter visual outliers before hull generation (default: true)
- * @param outlierThreshold - IQR multiplier for outlier filtering (default: 2.5)
- * @returns SVG path string for the cluster hull
  */
 export function generateClusterHullPath(
   points: Point[],
   padding = 18,
-  smoothness = 0.3,
-  filterOutliers = true,
-  outlierThreshold = 2.5
+  smoothness = 0.3
 ): string {
   if (points.length === 0) return '';
 
@@ -282,14 +208,8 @@ export function generateClusterHullPath(
             A ${padding},${padding} 0 0,1 ${p1.x + nx},${p1.y + ny} Z`;
   }
 
-  // For 3+ points, filter visual outliers before generating hull
-  // This prevents long "spikey tails" from isolated points far from the main cluster
-  const filteredPoints = filterOutliers
-    ? filterVisualOutliers(points, outlierThreshold)
-    : points;
-
-  // Generate convex hull from filtered points
-  const hull = convexHull(filteredPoints);
+  // Standard convex hull for 3+ points
+  const hull = convexHull(points);
   const paddedHull = offsetPolygon(hull, padding);
   const smoothPath = smoothPolygon(paddedHull, smoothness);
 

@@ -24,6 +24,7 @@ type SupabaseBuilder = {
   select: jest.MockedFunction<() => SupabaseBuilder>;
   eq: jest.MockedFunction<() => SupabaseBuilder>;
   upsert: jest.MockedFunction<() => Promise<{ error: null }>>;
+  delete: jest.MockedFunction<() => SupabaseBuilder>;
   maybeSingle: jest.MockedFunction<() => Promise<QueryResult>>;
   then: QueryResultPromiseThen;
   catch: QueryResultPromiseCatch;
@@ -43,15 +44,26 @@ function createSupabaseMock() {
   };
 
   const makeBuilder = (table: string): SupabaseBuilder => {
+    let isDeleteQuery = false;
+
     const builder: SupabaseBuilder = {
       select: jest.fn(() => builder),
       eq: jest.fn(() => builder),
       upsert: jest.fn(async () => ({ error: null })),
+      delete: jest.fn(() => {
+        isDeleteQuery = true;
+        return builder;
+      }),
       maybeSingle: jest.fn(async () => {
         const next = ensure(table).maybeSingle.shift();
         return next ?? { data: null, error: null };
       }),
       then: (onFulfilled, onRejected) => {
+        // For delete queries, return { error: null }
+        if (isDeleteQuery) {
+          return Promise.resolve({ error: null } as QueryResult).then(onFulfilled, onRejected);
+        }
+        // For other queries, use the queue
         const next = ensure(table).then.shift() ?? { data: null, error: null };
         return Promise.resolve(next).then(onFulfilled, onRejected);
       },
@@ -109,6 +121,12 @@ describe("POST /api/conversations/[conversationId]/feedback", () => {
       error: null,
     });
 
+    // Existing feedback check (no existing feedback)
+    queueMaybeSingle("response_feedback", {
+      data: null,
+      error: null,
+    });
+
     // Count query result (await builder)
     queueThen("response_feedback", {
       data: [{ feedback: "agree" }, { feedback: "pass" }],
@@ -129,5 +147,51 @@ describe("POST /api/conversations/[conversationId]/feedback", () => {
 
     expect(response.status).toBe(200);
     expect(data.counts).toEqual({ agree: 1, pass: 1, disagree: 0 });
+  });
+
+  it("withdraws vote when clicking the same feedback again (toggle-off)", async () => {
+    const { supabase, queueMaybeSingle, queueThen } = createSupabaseMock();
+    mockSupabaseServerClient.mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+    );
+
+    // Conversation lookup
+    queueMaybeSingle("conversations", {
+      data: { hive_id: "hive-1", type: "understand" },
+      error: null,
+    });
+
+    // Response existence lookup
+    queueMaybeSingle("conversation_responses", {
+      data: { id: "123" },
+      error: null,
+    });
+
+    // Existing feedback check (user already voted "agree")
+    queueMaybeSingle("response_feedback", {
+      data: { feedback: "agree" },
+      error: null,
+    });
+
+    // Count query result after deletion (await builder)
+    queueThen("response_feedback", {
+      data: [{ feedback: "pass" }], // Only "pass" vote remains
+      error: null,
+    });
+
+    const request = new NextRequest(
+      "http://localhost/api/conversations/conv-1/feedback",
+      {
+        method: "POST",
+        body: JSON.stringify({ responseId: 123, feedback: "agree" }),
+      }
+    );
+
+    const params = Promise.resolve({ conversationId: "conv-1" });
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.counts).toEqual({ agree: 0, pass: 1, disagree: 0 });
   });
 });

@@ -52,6 +52,7 @@ export default function ConversationHeader({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -118,8 +119,41 @@ export default function ConversationHeader({
     });
   };
 
+  const isRegeneratingState = isRegenerating || regenerating;
+
+  const regenerateAnalysis = async () => {
+    if (isRegeneratingState) return;
+
+    setError(null);
+
+    if (onRegenerate) {
+      onRegenerate();
+      return;
+    }
+
+    setRegenerating(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "regenerate", strategy: "auto" }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "Failed to regenerate analysis");
+      }
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to regenerate analysis";
+      setError(msg);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   return (
-    <div className="pt-4">
+    <div className="pt-4 pb-4">
       <div className="mx-auto w-full max-w-7xl px-6 flex flex-col">
         <Link
           href={`/hives/${hiveKey}`}
@@ -129,9 +163,9 @@ export default function ConversationHeader({
           All sessions
         </Link>
 
-        <div className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-h2 text-text-primary">
+        <div className="flex flex-row items-start justify-between gap-6">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <h1 className="text-h2 text-text-primary wrap-break-word">
               {title}
             </h1>
             <div className="relative" ref={menuRef}>
@@ -139,7 +173,7 @@ export default function ConversationHeader({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="w-8 h-8 rounded-full text-[#566888] p-0"
+                className="h-8 w-8 rounded-full p-0 text-[#566888]"
                 onClick={() => {
                   setMenuOpen((o) => !o);
                   setError(null);
@@ -147,30 +181,51 @@ export default function ConversationHeader({
                 aria-label="Conversation actions"
               >
                 <DotsThreeOutlineVertical
-                  size={18}
-                  weight="regular"
-                  className="rotate-90"
+                  weight="fill"
+                  className="h-3 w-3 shrink-0 rotate-90"
                 />
               </Button>
               {menuOpen && (
-                <div className="absolute z-50 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg left-0">
+                <div className="absolute left-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start text-left px-3 py-2 text-body text-red-600 hover:bg-red-50 rounded-lg"
+                    className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50"
                     onClick={() => {
-                      setConfirmOpen(true);
                       setMenuOpen(false);
+                      regenerateAnalysis();
                     }}
+                    disabled={isRegeneratingState}
                   >
-                    Delete conversation
+                    <span className="flex items-center gap-2">
+                      <ArrowsClockwise
+                        size={16}
+                        className={isRegeneratingState ? "animate-spin" : ""}
+                      />
+                      {isRegeneratingState
+                        ? "Regenerating..."
+                        : "Regenerate analysis"}
+                    </span>
                   </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        setConfirmOpen(true);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Delete conversation
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-nowrap items-center gap-4 shrink-0">
             <div className="flex items-center gap-1 bg-white border border-white px-1 py-1 rounded-sm">
               {tabs.map((tab) => {
                 const isActive = activeSlug === tab.slug;
@@ -195,14 +250,14 @@ export default function ConversationHeader({
                 variant="ghost"
                 size="sm"
                 className="h-11 w-11 p-0 text-[#9498B0] hover:text-[#3A1DC8] disabled:opacity-50"
-                onClick={onRegenerate}
-                disabled={isRegenerating}
+                onClick={regenerateAnalysis}
+                disabled={isRegeneratingState}
                 title="Regenerate analysis with new responses"
                 aria-label="Regenerate analysis"
               >
                 <ArrowsClockwise
                   size={20}
-                  className={isRegenerating ? "animate-spin" : ""}
+                  className={isRegeneratingState ? "animate-spin" : ""}
                 />
               </Button>
             )}
@@ -218,17 +273,22 @@ export default function ConversationHeader({
             </Button>
           </div>
         </div>
-        {error && <Alert variant="error" className="mt-3">{error}</Alert>}
+        {error && (
+          <Alert variant="error" className="mt-3">
+            {error}
+          </Alert>
+        )}
       </div>
 
-      {confirmOpen && (
+      {confirmOpen && isAdmin && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-md p-6">
             <h3 className="text-h4 text-text-primary mb-2">
               Delete conversation?
             </h3>
             <p className="text-body text-text-muted mb-4">
-              Are you sure you want to delete the session? This is a destructive action and the session will not be recoverable.
+              Are you sure you want to delete the session? This is a destructive
+              action and the session will not be recoverable.
             </p>
             <div className="flex justify-end gap-3">
               <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
@@ -250,9 +310,7 @@ export default function ConversationHeader({
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-h4 text-text-primary">
-                Share to {title}
-              </h3>
+              <h3 className="text-h4 text-text-primary">Share to {title}</h3>
               <button
                 onClick={() => setShareModalOpen(false)}
                 className="text-slate-500 hover:text-slate-700 transition-colors"
@@ -265,7 +323,10 @@ export default function ConversationHeader({
             <HiveShareInvitePanel hiveKey={hiveKey} isAdmin={isAdmin} />
 
             <div className="mt-6 flex justify-end">
-              <Button variant="secondary" onClick={() => setShareModalOpen(false)}>
+              <Button
+                variant="secondary"
+                onClick={() => setShareModalOpen(false)}
+              >
                 Done
               </Button>
             </div>
