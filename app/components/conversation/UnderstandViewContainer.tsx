@@ -10,26 +10,66 @@
  * - Error state on analysis failure
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import type { UnderstandViewModel } from "@/types/conversation-understand";
 import UnderstandView from "./UnderstandView";
 import { useConversationAnalysisRealtime } from "@/lib/conversations/react/useConversationAnalysisRealtime";
 import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
 import { INCREMENTAL_THRESHOLD } from "@/lib/conversations/domain/thresholds";
 import Button from "@/app/components/button";
+import Alert from "@/app/components/alert";
 import { ArrowsClockwise } from "@phosphor-icons/react";
 
 export interface UnderstandViewContainerProps {
   initialViewModel: UnderstandViewModel;
   conversationType?: "understand" | "decide";
+  isAdmin?: boolean;
+}
+
+function AnalysisAlert({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <Alert
+      variant="warning"
+      className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div className="flex items-center gap-3">
+        <div className="text-amber-600">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-amber-900">{title}</p>
+          {subtitle && (
+            <p className="text-xs text-amber-700">{subtitle}</p>
+          )}
+        </div>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </Alert>
+  );
 }
 
 export default function UnderstandViewContainer({
   initialViewModel,
   conversationType = "understand",
+  isAdmin = false,
 }: UnderstandViewContainerProps) {
   const [viewModel, setViewModel] = useState(initialViewModel);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const lastReadyViewModelRef = useRef<UnderstandViewModel | null>(null);
 
   const {
@@ -40,18 +80,32 @@ export default function UnderstandViewContainer({
     threshold = 20,
     isAnalysisStale = false,
     newResponsesSinceAnalysis = 0,
+    analysisResponseCount = null,
   } = viewModel;
 
   // Determine if analysis is actively running
   const analysisInProgress =
-    analysisStatus === "not_started" ||
     analysisStatus === "embedding" ||
-    analysisStatus === "analyzing";
+    analysisStatus === "analyzing" ||
+    (analysisStatus === "not_started" &&
+      (analysisResponseCount !== null || isGenerating || isRegenerating));
 
   const shouldShowStaleBanner =
+    conversationType === "understand" &&
     analysisStatus === "ready" &&
     isAnalysisStale &&
     newResponsesSinceAnalysis >= INCREMENTAL_THRESHOLD;
+
+  const hasGeneratedAnalysis =
+    analysisStatus === "ready" ||
+    analysisResponseCount !== null ||
+    (viewModel.themes?.length ?? 0) > 0;
+
+  const shouldShowGenerateBanner =
+    conversationType === "understand" &&
+    responseCount >= threshold &&
+    !analysisInProgress &&
+    !hasGeneratedAnalysis;
 
   // Fetch fresh understand data
   const fetchUnderstandData = useCallback(async () => {
@@ -71,7 +125,9 @@ export default function UnderstandViewContainer({
   const shouldSubscribe =
     responseCount >= threshold &&
     analysisStatus !== "ready" &&
-    analysisStatus !== "error";
+    analysisStatus !== "error" &&
+    analysisStatus !== null &&
+    analysisStatus !== undefined;
 
   // Subscribe to realtime updates (primary mechanism)
   const { status: realtimeStatus } = useConversationAnalysisRealtime({
@@ -114,6 +170,10 @@ export default function UnderstandViewContainer({
 
   // Below threshold: show empty state
   if (responseCount < threshold) {
+    const nextStepsCopy = isAdmin
+      ? "Once you reach the minimum responses, you can generate a theme map from this tab."
+      : "Once you reach the minimum responses, an admin can generate a theme map from this tab.";
+
     return (
       <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)]">
         <div className="bg-white rounded-2xl p-12 text-center">
@@ -124,11 +184,10 @@ export default function UnderstandViewContainer({
             </h2>
             <p className="text-slate-600">
               You currently have {responseCount} response{responseCount !== 1 ? "s" : ""}.
-              Once you reach {threshold} responses, we&apos;ll automatically generate a theme map
-              and cluster your responses for analysis.
+              Once you reach {threshold} responses, a theme map can be generated for analysis.
             </p>
             <p className="text-sm text-slate-500 mt-4">
-              Add more responses in the Listen tab or upload a CSV to get started.
+              {nextStepsCopy} Add more responses in the Listen tab or upload a CSV to get started.
             </p>
           </div>
         </div>
@@ -210,20 +269,68 @@ export default function UnderstandViewContainer({
                 {analysisError}
               </p>
             )}
-            <Button
-              onClick={handleRetry}
-              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              Retry Analysis
-            </Button>
+            {isAdmin ? (
+              <Button
+                onClick={handleRetry}
+                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                Retry Analysis
+              </Button>
+            ) : (
+              <p className="text-sm text-slate-500 mt-4">
+                Ask an admin to retry the analysis.
+              </p>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
+  // Initial analysis handler
+  const handleGenerate = async () => {
+    if (!isAdmin) return;
+    lastReadyViewModelRef.current = viewModel;
+    try {
+      setIsGenerating(true);
+      setViewModel((prev) => ({
+        ...prev,
+        analysisStatus: "not_started",
+        analysisError: null,
+      }));
+
+      const res = await fetch(`/api/conversations/${conversationId}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "manual",
+          strategy: "auto",
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("[Generate] Failed:", data.error);
+        if (lastReadyViewModelRef.current) {
+          setViewModel(lastReadyViewModelRef.current);
+        }
+        return;
+      }
+
+      fetchUnderstandData();
+    } catch (err) {
+      console.error("[Generate] Error:", err);
+      if (lastReadyViewModelRef.current) {
+        setViewModel(lastReadyViewModelRef.current);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Regenerate handler
   const handleRegenerate = async () => {
+    if (!isAdmin) return;
     lastReadyViewModelRef.current = viewModel;
     try {
       setIsRegenerating(true);
@@ -269,42 +376,59 @@ export default function UnderstandViewContainer({
 
   return (
     <>
+      {shouldShowGenerateBanner && (
+        <AnalysisAlert
+          title="Ready to generate themes"
+          subtitle={
+            isAdmin
+              ? `You have ${responseCount} response${responseCount !== 1 ? "s" : ""}. Generate clusters to build the theme map.`
+              : `You have ${responseCount} response${responseCount !== 1 ? "s" : ""}. Ask an admin to generate the theme map.`
+          }
+          action={
+            isAdmin ? (
+              <Button
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+              >
+                {isGenerating ? "Generating..." : "Generate"}
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
       {showRegenerateButton && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-amber-600">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-amber-900">
-                Analysis out of date
-              </p>
-              <p className="text-xs text-amber-700">
-                {newResponsesSinceAnalysis} new response{newResponsesSinceAnalysis !== 1 ? "s" : ""} since last analysis
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={handleRegenerate}
-            disabled={isRegenerating}
-            size="sm"
-            className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
-          >
-            {isRegenerating ? (
-              <>
-                <ArrowsClockwise size={16} className="animate-spin mr-2" />
-                Regenerating...
-              </>
-            ) : (
-              <>
-                <ArrowsClockwise size={16} className="mr-2" />
-                Regenerate
-              </>
-            )}
-          </Button>
-        </div>
+        <AnalysisAlert
+          title="Analysis out of date"
+          subtitle={
+            isAdmin
+              ? `${newResponsesSinceAnalysis} new response${newResponsesSinceAnalysis !== 1 ? "s" : ""} since last analysis`
+              : `${newResponsesSinceAnalysis} new response${newResponsesSinceAnalysis !== 1 ? "s" : ""} since last analysis. Ask an admin to regenerate.`
+          }
+          action={
+            isAdmin ? (
+              <Button
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+              >
+                {isRegenerating ? (
+                  <>
+                    <ArrowsClockwise size={16} className="animate-spin mr-2" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <ArrowsClockwise size={16} className="mr-2" />
+                    Regenerate
+                  </>
+                )}
+              </Button>
+            ) : undefined
+          }
+        />
       )}
       <UnderstandView
         viewModel={viewModel}

@@ -239,7 +239,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 + text-subtitle text-slate-800
 ```
 
-### 8. app/(hives)/components/HiveCard.tsx & app/hives/components/HiveCard.tsx
+### 8. app/hives/components/HiveCard.tsx
 
 **Priority:** Medium
 **Complexity:** Low
@@ -306,12 +306,11 @@ Mark off as you complete each file:
 - [x] app/components/conversation/FrequentlyMentionedGroupCard.tsx ✅ Complete (~4 changes)
 - [x] app/components/new-session-wizard.tsx ✅ Complete (~20 changes)
 - [x] app/hives/HivesHome.tsx ✅ Complete (~3 changes)
-- [x] app/(hives)/components/HiveCard.tsx ✅ Complete (1 change)
 - [x] app/hives/components/HiveCard.tsx ✅ Complete (1 change)
 
 **Medium Priority (Remaining):**
-- [ ] app/(hives)/components/SettingsForm.tsx
-- [ ] app/(hives)/components/InviteForm.tsx
+- [ ] app/hives/components/SettingsForm.tsx
+- [ ] app/hives/components/InviteForm.tsx
 - [ ] app/settings/**/*.tsx (multiple files)
 
 ## Getting Help
@@ -323,7 +322,7 @@ If you encounter issues:
 3. Look at completed files for examples:
    - [app/components/input.tsx](../app/components/input.tsx) - Labels with Space Grotesk
    - [app/components/conversation/ConversationHeader.tsx](../app/components/conversation/ConversationHeader.tsx) - Headings and tabs
-   - [app/(hives)/[hiveId]/page.tsx](../app/(hives)/[hiveId]/page.tsx) - Page layout with stats
+   - [app/hives/[hiveId]/HiveHome.tsx](../app/hives/[hiveId]/HiveHome.tsx) - Page layout with stats
 
 ## Post-Migration
 

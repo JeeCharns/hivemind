@@ -187,26 +187,28 @@ export default function ConversationHeader({
               </Button>
               {menuOpen && (
                 <div className="absolute left-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      regenerateAnalysis();
-                    }}
-                    disabled={isRegeneratingState}
-                  >
-                    <span className="flex items-center gap-2">
-                      <ArrowsClockwise
-                        size={16}
-                        className={isRegeneratingState ? "animate-spin" : ""}
-                      />
-                      {isRegeneratingState
-                        ? "Regenerating..."
-                        : "Regenerate analysis"}
-                    </span>
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        regenerateAnalysis();
+                      }}
+                      disabled={isRegeneratingState}
+                    >
+                      <span className="flex items-center gap-2">
+                        <ArrowsClockwise
+                          size={16}
+                          className={isRegeneratingState ? "animate-spin" : ""}
+                        />
+                        {isRegeneratingState
+                          ? "Regenerating..."
+                          : "Regenerate analysis"}
+                      </span>
+                    </Button>
+                  )}
                   {isAdmin && (
                     <Button
                       variant="ghost"
@@ -245,7 +247,7 @@ export default function ConversationHeader({
               })}
             </div>
 
-            {showRegenerateButton && onRegenerate && (
+            {showRegenerateButton && onRegenerate && isAdmin && (
               <Button
                 variant="ghost"
                 size="sm"

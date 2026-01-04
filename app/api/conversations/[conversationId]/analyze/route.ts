@@ -3,7 +3,7 @@
  *
  * Trigger conversation analysis with intelligent strategy selection
  * Supports manual and regenerate modes with incremental/full strategies
- * Requires authentication and conversation access
+ * Requires authentication and hive admin access
  * Returns 202 Accepted with job status and strategy metadata
  */
 
@@ -51,7 +51,8 @@ export async function POST(
       supabase,
       conversationId,
       userId,
-      requestBody
+      requestBody,
+      { requireAdmin: true }
     );
 
     // Return 202 Accepted for queued jobs, 200 for already running/complete

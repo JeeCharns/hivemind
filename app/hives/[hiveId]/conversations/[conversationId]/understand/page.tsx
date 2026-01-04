@@ -10,6 +10,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveAndConversation } from "@/lib/conversations/server/resolveHiveAndConversation";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
+import { authorizeHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 import { getUnderstandViewModel } from "@/lib/conversations/server/getUnderstandViewModel";
 import UnderstandViewContainer from "@/app/components/conversation/UnderstandViewContainer";
 
@@ -41,19 +42,23 @@ export default async function UnderstandPage({ params }: UnderstandPageProps) {
   // 3. Verify membership (throws if not a member)
   await requireHiveMember(supabase, session.user.id, hive.id);
 
-  // 4. Build complete view model (includes staleness metadata)
+  // 4. Check admin privileges
+  const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hive.id);
+
+  // 5. Build complete view model (includes staleness metadata)
   const viewModel = await getUnderstandViewModel(
     supabase,
     conversation.id,
     session.user.id
   );
 
-  // 5. Render client container with view model
+  // 6. Render client container with view model
   return (
     <div className="mx-auto w-full max-w-7xl px-6">
       <UnderstandViewContainer
         initialViewModel={viewModel}
         conversationType={conversation.type as "understand" | "decide"}
+        isAdmin={isAdmin}
       />
     </div>
   );

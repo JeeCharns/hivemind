@@ -210,7 +210,6 @@ Used for:
 - [app/components/navbar/UserMenu.tsx](../app/components/navbar/UserMenu.tsx) - Navigation
 - [app/components/conversation/ConversationHeader.tsx](../app/components/conversation/ConversationHeader.tsx) - Conversation UI (headings use Space Grotesk)
 - [app/(auth)/login/LoginPageClient.tsx](../app/(auth)/login/LoginPageClient.tsx) - Auth pages (heading and subtitle use Space Grotesk)
-- [app/(hives)/[hiveId]/page.tsx](../app/(hives)/[hiveId]/page.tsx) - Hive overview (headings use Space Grotesk)
 - Documentation files created
 
 ## Files Still To Update
@@ -225,14 +224,13 @@ The following files contain typography that should be migrated to the new system
 - `app/components/conversation/FrequentlyMentionedGroupCard.tsx` - Group labels
 - `app/components/new-session-wizard.tsx` - Wizard steps, labels
 - `app/hives/HivesHome.tsx` - Page title, cards
-- `app/(hives)/[hiveId]/page.tsx` - Hive overview
-- `app/(hives)/components/HiveCard.tsx` - Card typography
-- `app/hives/components/HiveCard.tsx` - Card typography (duplicate?)
+- `app/hives/[hiveId]/HiveHome.tsx` - Hive overview
+- `app/hives/components/HiveCard.tsx` - Card typography
 
 ### Medium Priority (Settings & Forms)
 - `app/settings/**/*.tsx` - Settings pages
-- `app/(hives)/components/SettingsForm.tsx` - Form labels
-- `app/(hives)/components/InviteForm.tsx` - Form labels
+- `app/hives/components/SettingsForm.tsx` - Form labels
+- `app/hives/components/InviteForm.tsx` - Form labels
 
 ### Migration Pattern
 

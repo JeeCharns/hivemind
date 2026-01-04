@@ -95,7 +95,7 @@ export async function createConversation(
     title,
     description: description || null,
     phase: "listen_open",
-    analysis_status: "not_started",
+    analysis_status: null,
     created_by: userId,
   };
 

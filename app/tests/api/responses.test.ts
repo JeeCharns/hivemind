@@ -12,12 +12,10 @@ import { NextRequest } from "next/server";
 jest.mock("@/lib/supabase/serverClient");
 jest.mock("@/lib/auth/server/requireAuth");
 jest.mock("@/lib/conversations/server/requireHiveMember");
-jest.mock("@/lib/conversations/server/maybeEnqueueAutoAnalysis");
 
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
-import { maybeEnqueueAutoAnalysis } from "@/lib/conversations/server/maybeEnqueueAutoAnalysis";
 
 type SupabaseMock = {
   from: jest.Mock;
@@ -37,10 +35,6 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
   const mockRequireHiveMember = requireHiveMember as jest.MockedFunction<
     typeof requireHiveMember
   >;
-  const mockMaybeEnqueueAutoAnalysis =
-    maybeEnqueueAutoAnalysis as jest.MockedFunction<
-      typeof maybeEnqueueAutoAnalysis
-    >;
   const mockSupabaseServerClient = supabaseServerClient as jest.MockedFunction<
     typeof supabaseServerClient
   >;
@@ -56,11 +50,6 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
     });
 
     mockRequireHiveMember.mockResolvedValue(undefined);
-    mockMaybeEnqueueAutoAnalysis.mockResolvedValue({
-      triggered: false,
-      status: "skipped",
-      reason: "below_threshold",
-    });
 
     // Create mock Supabase client
     mockSupabase = {
@@ -242,118 +231,6 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
     });
   });
 
-  describe("auto-analysis trigger", () => {
-    const mockMaybeEnqueueAutoAnalysis =
-      maybeEnqueueAutoAnalysis as jest.MockedFunction<
-        typeof maybeEnqueueAutoAnalysis
-      >;
-
-    beforeEach(() => {
-      mockMaybeEnqueueAutoAnalysis.mockResolvedValue({
-        triggered: false,
-        status: "skipped",
-        reason: "below_threshold",
-      });
-    });
-
-    it("should call maybeEnqueueAutoAnalysis after creating response", async () => {
-      // Mock conversation check
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: { hive_id: "hive-456" },
-        error: null,
-      });
-
-      // Mock insert response
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: {
-          id: "resp-1",
-          response_text: "Test response",
-          tag: "proposal",
-          created_at: "2025-01-01T00:00:00Z",
-          user_id: "user-123",
-          is_anonymous: false,
-          profiles: {
-            display_name: "Test User",
-            avatar_path: null,
-          },
-        },
-        error: null,
-      });
-
-      const request = new NextRequest(
-        "http://localhost/api/conversations/conv-123/responses",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            text: "Test response",
-            tag: "proposal",
-            anonymous: false,
-          }),
-        }
-      );
-
-      const params = Promise.resolve({ conversationId: "conv-123" });
-      const response = await POST(request, { params });
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(mockMaybeEnqueueAutoAnalysis).toHaveBeenCalledWith(
-        expect.anything(),
-        "conv-123",
-        "user-123"
-      );
-      expect(data.analysis).toEqual({ triggered: false, status: "skipped" });
-    });
-
-    it("should return analysis status when threshold is met", async () => {
-      mockMaybeEnqueueAutoAnalysis.mockResolvedValueOnce({
-        triggered: true,
-        status: "queued",
-      });
-
-      // Mock conversation check
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: { hive_id: "hive-456" },
-        error: null,
-      });
-
-      // Mock insert response
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: {
-          id: "resp-20",
-          response_text: "20th response",
-          tag: "proposal",
-          created_at: "2025-01-01T00:00:00Z",
-          user_id: "user-123",
-          is_anonymous: false,
-          profiles: {
-            display_name: "Test User",
-            avatar_path: null,
-          },
-        },
-        error: null,
-      });
-
-      const request = new NextRequest(
-        "http://localhost/api/conversations/conv-123/responses",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            text: "20th response",
-            tag: "proposal",
-            anonymous: false,
-          }),
-        }
-      );
-
-      const params = Promise.resolve({ conversationId: "conv-123" });
-      const response = await POST(request, { params });
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.analysis).toEqual({ triggered: true, status: "queued" });
-    });
-  });
 });
 
 describe("GET /api/conversations/[conversationId]/responses", () => {

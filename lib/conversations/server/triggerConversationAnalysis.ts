@@ -10,6 +10,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TriggerAnalysisRequest, TriggerAnalysisResponse } from "../schemas";
 import { UNDERSTAND_MIN_RESPONSES, INCREMENTAL_THRESHOLD } from "../domain/thresholds";
 
+interface TriggerConversationAnalysisOptions {
+  requireAdmin?: boolean;
+}
+
 /**
  * Trigger conversation analysis with intelligent strategy selection
  *
@@ -23,6 +27,7 @@ import { UNDERSTAND_MIN_RESPONSES, INCREMENTAL_THRESHOLD } from "../domain/thres
  * @param conversationId - Conversation UUID
  * @param userId - User requesting the analysis
  * @param request - Request options (mode, strategy)
+ * @param options - Optional authorization controls
  * @returns Analysis job status with strategy metadata
  * @throws Error if conversation not found or unauthorized
  */
@@ -30,7 +35,8 @@ export async function triggerConversationAnalysis(
   supabase: SupabaseClient,
   conversationId: string,
   userId: string,
-  request: TriggerAnalysisRequest
+  request: TriggerAnalysisRequest,
+  options?: TriggerConversationAnalysisOptions
 ): Promise<TriggerAnalysisResponse> {
   console.log(
     `[triggerConversationAnalysis] conversationId=${conversationId} mode=${request.mode} strategy=${request.strategy}`
@@ -50,13 +56,17 @@ export async function triggerConversationAnalysis(
   // 2. Verify hive membership (authz boundary)
   const { data: membership, error: membershipError } = await supabase
     .from("hive_members")
-    .select("user_id")
+    .select("user_id, role")
     .eq("hive_id", conversation.hive_id)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (membershipError || !membership) {
     throw new Error("Unauthorized: not a hive member");
+  }
+
+  if (options?.requireAdmin && membership.role !== "admin") {
+    throw new Error("Unauthorized: Admin access required");
   }
 
   // 3. Count current responses

@@ -93,7 +93,7 @@ The following files have been fully migrated to use the new typography system:
    - Removed inline `fontFamily` styles
    - Uses color tokens: `text-text-primary`, `text-text-secondary`
 
-9. **[app/(hives)/[hiveId]/page.tsx](app/(hives)/[hiveId]/page.tsx)**
+9. **[app/hives/[hiveId]/HiveHome.tsx](app/hives/[hiveId]/HiveHome.tsx)**
    - Hive name: `text-h1`
    - Stats labels: `text-body`
    - Stats numbers: `text-h2`
@@ -203,12 +203,12 @@ The following files have been fully migrated to use the new typography system:
 8. ✅ **[app/components/conversation/ReportView.tsx](app/components/conversation/ReportView.tsx)** (~8 changes)
 9. ✅ **[app/components/conversation/UnderstandView.tsx](app/components/conversation/UnderstandView.tsx)** (~11 changes)
 10. ✅ **[app/components/new-session-wizard.tsx](app/components/new-session-wizard.tsx)** (~20 changes)
-11. ✅ **[app/(hives)/components/HiveCard.tsx](app/(hives)/components/HiveCard.tsx)** (1 change)
+11. ✅ **[app/hives/components/HiveCard.tsx](app/hives/components/HiveCard.tsx)** (1 change)
 12. ✅ **[app/hives/components/HiveCard.tsx](app/hives/components/HiveCard.tsx)** (1 change)
 
 **Batch 2.3 (4 files - Final):**
-13. ✅ **[app/(hives)/components/SettingsForm.tsx](app/(hives)/components/SettingsForm.tsx)** (3 changes)
-14. ✅ **[app/(hives)/components/InviteForm.tsx](app/(hives)/components/InviteForm.tsx)** (1 change)
+13. ✅ **[app/hives/components/SettingsForm.tsx](app/hives/components/SettingsForm.tsx)** (3 changes)
+14. ✅ **[app/hives/components/InviteForm.tsx](app/hives/components/InviteForm.tsx)** (1 change)
 15. ✅ **[app/settings/page.tsx](app/settings/page.tsx)** (2 changes)
 16. ✅ **[app/settings/AccountSettingsForm.tsx](app/settings/AccountSettingsForm.tsx)** (4 changes)
 

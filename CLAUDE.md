@@ -21,7 +21,7 @@ Then consult module READMEs as needed:
 - Shared contracts: `types/README.md`
 - Worker ops: `scripts/README.md`
 - Supabase schema/migrations: `supabase/README.md`
-- Route groups: `app/(auth)/README.md`, `app/(hives)/README.md`
+- Route groups: `app/(auth)/README.md`
 
 ## Documentation Ownership (Source of Truth)
 

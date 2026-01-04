@@ -46,6 +46,7 @@ describe("UnderstandViewContainer", () => {
     render(
       <UnderstandViewContainer
         initialViewModel={makeViewModel({ newResponsesSinceAnalysis: 9 })}
+        isAdmin
       />
     );
 
@@ -57,10 +58,46 @@ describe("UnderstandViewContainer", () => {
     render(
       <UnderstandViewContainer
         initialViewModel={makeViewModel({ newResponsesSinceAnalysis: 10 })}
+        isAdmin
       />
     );
 
     expect(screen.getByText(/analysis out of date/i)).toBeInTheDocument();
+  });
+
+  it("shows the generate banner for admins when analysis has not run", () => {
+    render(
+      <UnderstandViewContainer
+        initialViewModel={makeViewModel({
+          analysisStatus: null,
+          analysisResponseCount: null,
+          isAnalysisStale: false,
+          newResponsesSinceAnalysis: 0,
+          themes: [],
+        })}
+        isAdmin
+      />
+    );
+
+    expect(screen.getByText(/ready to generate themes/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /generate/i })).toBeInTheDocument();
+  });
+
+  it("shows the generate banner without the button for non-admins", () => {
+    render(
+      <UnderstandViewContainer
+        initialViewModel={makeViewModel({
+          analysisStatus: null,
+          analysisResponseCount: null,
+          isAnalysisStale: false,
+          newResponsesSinceAnalysis: 0,
+          themes: [],
+        })}
+      />
+    );
+
+    expect(screen.getByText(/ready to generate themes/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /generate/i })).not.toBeInTheDocument();
   });
 
   it("shows partial loading (left column only) when regenerate is clicked and responses exist", async () => {
@@ -120,6 +157,7 @@ describe("UnderstandViewContainer", () => {
             },
           ],
         })}
+        isAdmin
       />
     );
 
@@ -150,6 +188,7 @@ describe("UnderstandViewContainer", () => {
           responses: [],
           newResponsesSinceAnalysis: 0,
         })}
+        isAdmin
       />
     );
 
@@ -174,6 +213,7 @@ describe("UnderstandViewContainer", () => {
             },
           ],
         })}
+        isAdmin
       />
     );
 

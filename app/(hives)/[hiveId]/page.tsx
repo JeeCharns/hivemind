@@ -14,7 +14,11 @@ import Spinner from "@/app/components/spinner";
 import Button from "@/app/components/button";
 import HiveLogo from "@/app/components/hive-logo";
 
-export default function Page({ params }: { params: Promise<{ hiveId: string }> }) {
+export default function Page({
+  params,
+}: {
+  params: Promise<{ hiveId: string }>;
+}) {
   const { hiveId } = use(params);
   const router = useRouter();
   const { hive, stats, isLoading, error } = useHiveOverview(hiveId);
@@ -54,7 +58,9 @@ export default function Page({ params }: { params: Promise<{ hiveId: string }> }
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error?.message || "Hive not found"}</p>
+          <p className="text-red-600 mb-4">
+            {error?.message || "Hive not found"}
+          </p>
           <Button variant="secondary" onClick={() => router.push("/")}>
             Back to Hives
           </Button>
@@ -73,7 +79,9 @@ export default function Page({ params }: { params: Promise<{ hiveId: string }> }
               <HiveLogo src={logoSignedUrl} name={hive.name} size={64} />
               <div>
                 <h1 className="text-h1 text-text-primary">{hive.name}</h1>
-                <p className="text-body text-text-secondary">Hive ID: {hive.slug || hive.id}</p>
+                <p className="text-body text-text-secondary">
+                  Hive ID: {hive.slug || hive.id}
+                </p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -98,7 +106,9 @@ export default function Page({ params }: { params: Promise<{ hiveId: string }> }
           {stats && (
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-body text-text-secondary mb-1">Conversations</p>
+                <p className="text-body text-text-secondary mb-1">
+                  Conversations
+                </p>
                 <p className="text-h2 text-text-primary">
                   {stats.conversationsCount}
                 </p>

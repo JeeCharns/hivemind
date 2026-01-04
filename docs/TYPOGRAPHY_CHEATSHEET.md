@@ -191,6 +191,6 @@ Quick reference for the Hivemind typography system.
 ✅ Pages:
 - `app/components/conversation/ConversationHeader.tsx`
 - `app/(auth)/login/LoginPageClient.tsx`
-- `app/(hives)/[hiveId]/page.tsx`
+- `app/hives/[hiveId]/HiveHome.tsx`
 
 See [TYPOGRAPHY_MIGRATION_SUMMARY.md](../TYPOGRAPHY_MIGRATION_SUMMARY.md) for complete list and migration guide.

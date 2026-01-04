@@ -12,7 +12,6 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { jsonError } from "@/lib/api/errors";
 import { createResponseSchema } from "@/lib/conversations/schemas";
-import { maybeEnqueueAutoAnalysis } from "@/lib/conversations/server/maybeEnqueueAutoAnalysis";
 
 export async function GET(
   _req: NextRequest,
@@ -200,19 +199,8 @@ export async function POST(
       likedByMe: false,
     };
 
-    // 7. Maybe trigger auto-analysis at 20 responses
-    const analysisResult = await maybeEnqueueAutoAnalysis(
-      supabase,
-      conversationId,
-      session.user.id
-    );
-
     return NextResponse.json({
       response,
-      analysis: {
-        triggered: analysisResult.triggered,
-        status: analysisResult.status,
-      },
     });
   } catch (error) {
     console.error("[POST response] Error:", error);

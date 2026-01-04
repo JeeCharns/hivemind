@@ -266,13 +266,9 @@ describe("useNewSessionWizard", () => {
       const mockUpload = conversationApi.uploadConversationCsv as jest.MockedFunction<
         typeof conversationApi.uploadConversationCsv
       >;
-      const mockAnalyze = conversationApi.startConversationAnalysis as jest.MockedFunction<
-        typeof conversationApi.startConversationAnalysis
-      >;
 
       mockCreate.mockResolvedValue({ id: "conv-123" });
       mockUpload.mockResolvedValue({ importedCount: 5 });
-      mockAnalyze.mockResolvedValue({ status: "queued" });
 
       const { result } = renderHook(() => useNewSessionWizard(defaultProps));
 
@@ -303,7 +299,6 @@ describe("useNewSessionWizard", () => {
 
       expect(mockCreate).toHaveBeenCalled();
       expect(mockUpload).toHaveBeenCalledWith("conv-123", validFile);
-      expect(mockAnalyze).toHaveBeenCalledWith("conv-123");
     });
 
     it("should handle upload errors", async () => {
@@ -353,47 +348,6 @@ describe("useNewSessionWizard", () => {
       );
     });
 
-    it("should navigate even if analysis fails", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
-      const mockUpload = conversationApi.uploadConversationCsv as jest.MockedFunction<
-        typeof conversationApi.uploadConversationCsv
-      >;
-      const mockAnalyze = conversationApi.startConversationAnalysis as jest.MockedFunction<
-        typeof conversationApi.startConversationAnalysis
-      >;
-
-      mockCreate.mockResolvedValue({ id: "conv-123" });
-      mockUpload.mockResolvedValue({ importedCount: 5 });
-      mockAnalyze.mockRejectedValue(new Error("Analysis failed"));
-
-      const { result } = renderHook(() => useNewSessionWizard(defaultProps));
-
-      const validFile = new File(["response\ntest"], "test.csv", {
-        type: "text/csv",
-      });
-
-      act(() => {
-        result.current.setTitle("Test Session");
-        result.current.onFileSelected(validFile);
-      });
-
-      // Advance to step 2
-      await act(async () => {
-        await result.current.onContinue();
-      });
-
-      // Finish - should create, upload, and navigate despite analysis failure
-      await act(async () => {
-        await result.current.onFinish();
-      });
-
-      // Should still navigate despite analysis failure
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalled();
-      });
-    });
   });
 
   describe("Navigation", () => {

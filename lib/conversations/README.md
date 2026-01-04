@@ -54,7 +54,7 @@ Decision sessions (`type: "decide"`) support quadratic voting on proposals and o
   - Error codes: `BUDGET_EXCEEDED`, `NEGATIVE_VOTES`, `NOT_A_PROPOSAL`, `UNAUTHORIZED_USER`, `NOT_HIVE_MEMBER`, etc.
   - Includes hive membership validation via SECURITY DEFINER
 
-## New Session Flow (Create → Optional CSV → Analysis)
+## New Session Flow (Create → Optional CSV → Manual Analysis)
 
 UI entrypoints:
 
@@ -66,7 +66,7 @@ API + services:
 
 1. Create conversation: `app/api/conversations/route.ts` → `lib/conversations/server/createConversation.ts`
 2. Optional CSV import: `app/api/conversations/[conversationId]/upload/route.ts` → `lib/conversations/server/importResponsesFromCsv.ts`
-3. Trigger analysis: `app/api/conversations/[conversationId]/analyze/route.ts` → `lib/conversations/server/enqueueConversationAnalysis.ts`
+3. Admin triggers analysis from Understand tab: `app/api/conversations/[conversationId]/analyze/route.ts` → `lib/conversations/server/triggerConversationAnalysis.ts`
 
 Notes:
 
@@ -75,7 +75,7 @@ Notes:
 - Empty/whitespace-only tags are treated as `null` (no tag).
 - Unknown tags (not in the valid set) are treated as `null` (lenient mode - import continues without rejecting the row).
 - Imports are idempotent via `import_batch_id`.
-- Analysis runs asynchronously via the worker (`scripts/analysis-worker.ts`).
+- Analysis runs asynchronously via the worker (`scripts/analysis-worker.ts`) after an admin triggers it.
 
 ## Clustering Algorithm (Adaptive K-Selection + Minimum Floor)
 
@@ -139,21 +139,19 @@ The analysis pipeline uses k-means clustering with **data-driven k-selection** f
 - **No overlap forcing**: Clusters may overlap in 2D visualization; this is expected and reflects embedding space structure
 - **Outlier interaction**: Outlier reassignment to MISC_CLUSTER_INDEX occurs after forced splits, so final non-misc cluster count may drop below target (logged as warning)
 
-## Auto-analysis (Understand sessions)
+## Manual Analysis (Understand sessions)
 
-Understand sessions auto-trigger analysis once the conversation reaches **20 responses**.
+Understand sessions require an **admin** to manually trigger analysis once the conversation reaches **20 responses**.
 
-- Trigger points:
-  - After creating a response: `app/api/conversations/[conversationId]/responses/route.ts` → `lib/conversations/server/maybeEnqueueAutoAnalysis.ts`
-  - After CSV import completes: `lib/conversations/server/importResponsesFromCsv.ts` → `lib/conversations/server/maybeEnqueueAutoAnalysis.ts`
+- Trigger point:
+  - Understand tab "Generate" button: `app/components/conversation/UnderstandViewContainer.tsx` → `app/api/conversations/[conversationId]/analyze/route.ts`
 - Execution model:
-  - **Automatic background execution**: Analysis runs immediately when triggered (fire-and-forget pattern)
+  - **Manual background execution**: Analysis runs immediately when triggered (fire-and-forget pattern)
   - Jobs execute in background via `lib/conversations/server/runAnalysisInBackground.ts`
   - Uses dynamic imports to avoid blocking API responses
   - Optional: External worker (`scripts/analysis-worker.ts`) can handle jobs if auto-execution is disabled
 - Idempotency/concurrency:
   - The active-job unique index prevents duplicate queued/running jobs (`conversation_analysis_jobs`).
-  - `maybeEnqueueAutoAnalysis` skips when analysis is already "fresh" (`analysis_status=ready` and `analysis_response_count >= current response count`).
 - UI integration (realtime push-based updates):
   - **Primary**: Supabase Realtime subscription via `lib/conversations/react/useConversationAnalysisRealtime.ts`
     - Subscribes to `conversations` table UPDATE events (analysis status changes)
@@ -168,7 +166,7 @@ Understand sessions auto-trigger analysis once the conversation reaches **20 res
 
 ## Regenerate Analysis (Incremental vs Full)
 
-Understand sessions support intelligent re-analysis via the "Regenerate" button when the analysis is stale (new responses added since last analysis).
+Understand sessions support intelligent re-analysis via the admin-only "Regenerate" button when the analysis is stale (new responses added since last analysis).
 
 ### Strategy Selection
 

@@ -12,7 +12,6 @@ import type { ConversationType } from "@/types/conversations";
 import {
   createConversation,
   uploadConversationCsv,
-  startConversationAnalysis,
   ConversationApiError,
 } from "../client/conversationApi";
 
@@ -314,11 +313,6 @@ export function useNewSessionWizard({
 
       await uploadConversationCsv(finalConversationId, file);
       setUploadStatus("uploaded");
-
-      // Kick off analysis (fire-and-forget, failures are ok)
-      startConversationAnalysis(finalConversationId).catch(() => {
-        // Silently fail - analysis can be triggered later
-      });
 
       // Navigate to conversation
       navigateToConversation(finalConversationId);

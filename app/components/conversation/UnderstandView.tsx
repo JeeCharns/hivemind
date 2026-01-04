@@ -20,6 +20,7 @@ import type { Feedback } from "@/types/conversation-understand";
 import FrequentlyMentionedGroupCard from "./FrequentlyMentionedGroupCard";
 import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
 import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
+import { buildClusterSummaries } from "@/lib/conversations/domain/buildClusterSummaries";
 
 const palette = [
   "#4F46E5",
@@ -116,7 +117,9 @@ export default function UnderstandView({
     frequentlyMentionedGroups: initialGroups,
   } = viewModel;
 
-  const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
+  // Filter state: "all" | "unclustered" | cluster index (number)
+  type SelectedTheme = "all" | "unclustered" | number;
+  const [selectedTheme, setSelectedTheme] = useState<SelectedTheme>("all");
   const [hoveredCluster, setHoveredCluster] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   // ViewBox state for semantic zoom (x, y, width, height in SVG coordinates)
@@ -200,6 +203,12 @@ export default function UnderstandView({
 
   const points = useMemo(() => scalePoints(responses), [responses]);
 
+  // Build cluster summaries for "All themes" view
+  const clusterSummaries = useMemo(
+    () => buildClusterSummaries(responses, themes, items),
+    [responses, themes, items]
+  );
+
   // Determine current zoom tier for LOD rendering
   const zoomTier = useMemo(() => getZoomTier(zoom), [zoom]);
   const zoomConfig = ZOOM_CONFIGS[zoomTier];
@@ -245,20 +254,30 @@ export default function UnderstandView({
       });
   }, [clusters, themes]);
 
-  const filteredPoints =
-    selectedCluster === null
-      ? points
-      : points.filter((p) => p.clusterIndex === selectedCluster);
+  const filteredPoints = useMemo(() => {
+    if (selectedTheme === "all") {
+      return points;
+    } else if (selectedTheme === "unclustered") {
+      return points.filter((p) => p.clusterIndex === null);
+    } else {
+      return points.filter((p) => p.clusterIndex === selectedTheme);
+    }
+  }, [selectedTheme, points]);
 
-  const filteredItems =
-    selectedCluster === null
-      ? items
-      : items.filter((r) => r.clusterIndex === selectedCluster);
+  const filteredItems = useMemo(() => {
+    if (selectedTheme === "all") {
+      return items;
+    } else if (selectedTheme === "unclustered") {
+      return items.filter((r) => r.clusterIndex === null);
+    } else {
+      return items.filter((r) => r.clusterIndex === selectedTheme);
+    }
+  }, [selectedTheme, items]);
 
   // Debug logging
-  if (typeof window !== "undefined" && selectedCluster !== null) {
+  if (typeof window !== "undefined" && selectedTheme !== "all") {
     console.log("[UnderstandView] Filter debug:", {
-      selectedCluster,
+      selectedTheme,
       totalItems: items.length,
       filteredCount: filteredItems.length,
       clusterDistribution: items.reduce((acc, item) => {
@@ -273,11 +292,13 @@ export default function UnderstandView({
   const filteredGroups = useMemo(() => {
     if (!frequentlyMentionedGroups) return [];
     const groups =
-      selectedCluster === null
+      selectedTheme === "all"
         ? frequentlyMentionedGroups
-        : frequentlyMentionedGroups.filter(
-            (g) => g.clusterIndex === selectedCluster
-          );
+        : selectedTheme === "unclustered"
+          ? [] // Unclustered responses don't have groups
+          : frequentlyMentionedGroups.filter(
+              (g) => g.clusterIndex === selectedTheme
+            );
 
     // When viewing "All themes", prefer showing the most frequently mentioned groups first.
     // Also applies within a single theme for consistency.
@@ -289,7 +310,7 @@ export default function UnderstandView({
         return a.clusterIndex - b.clusterIndex;
       return a.groupId.localeCompare(b.groupId);
     });
-  }, [frequentlyMentionedGroups, selectedCluster]);
+  }, [frequentlyMentionedGroups, selectedTheme]);
 
   // Create set of grouped response IDs to avoid duplicate rendering
   const groupedResponseIds = useMemo(() => {
@@ -445,10 +466,11 @@ export default function UnderstandView({
 
   // Get selected theme label
   const selectedThemeLabel = useMemo(() => {
-    if (selectedCluster === null) return "All themes";
-    const theme = themes.find((t) => t.clusterIndex === selectedCluster);
-    return theme?.name || `Theme ${selectedCluster}`;
-  }, [selectedCluster, themes]);
+    if (selectedTheme === "all") return "All themes";
+    if (selectedTheme === "unclustered") return "Unclustered/New responses";
+    const theme = themes.find((t) => t.clusterIndex === selectedTheme);
+    return theme?.name || `Theme ${selectedTheme}`;
+  }, [selectedTheme, themes]);
 
   return (
     <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)] overflow-hidden">
@@ -530,7 +552,7 @@ export default function UnderstandView({
                     // Reset to "All themes" when clicking outside clusters
                     // Only if the target is the SVG element itself (background)
                     if (e.target === e.currentTarget) {
-                      setSelectedCluster(null);
+                      setSelectedTheme("all");
                     }
                   }}
                 >
@@ -560,7 +582,8 @@ export default function UnderstandView({
 
                   {clusterMeta.map((meta) => {
                     const active =
-                      selectedCluster === null || selectedCluster === meta.idx;
+                      selectedTheme === "all" ||
+                      selectedTheme === meta.idx;
                     const hover = hoveredCluster === meta.idx;
                     const borderOpacity = active ? (hover ? 0.4 : 0.3) : 0.2;
                     const fillOpacity = active ? 0.08 : 0.05;
@@ -571,8 +594,8 @@ export default function UnderstandView({
                         onMouseEnter={() => setHoveredCluster(meta.idx)}
                         onMouseLeave={() => setHoveredCluster(null)}
                         onClick={() =>
-                          setSelectedCluster((prev) =>
-                            prev === meta.idx ? null : meta.idx
+                          setSelectedTheme((prev) =>
+                            prev === meta.idx ? "all" : meta.idx
                           )
                         }
                       >
@@ -593,8 +616,9 @@ export default function UnderstandView({
                   })}
                   {points.map((p) => {
                     const active =
-                      selectedCluster === null ||
-                      p.clusterIndex === selectedCluster;
+                      selectedTheme === "all" ||
+                      (selectedTheme === "unclustered" && p.clusterIndex === null) ||
+                      p.clusterIndex === selectedTheme;
                     return (
                       <circle
                         key={p.id}
@@ -621,7 +645,7 @@ export default function UnderstandView({
                   {/* Cluster labels as SVG text */}
                   {clusterMeta.map((meta) => {
                     const active =
-                      selectedCluster === null || selectedCluster === meta.idx;
+                      selectedTheme === "all" || selectedTheme === meta.idx;
                     // Approximate text width (rough estimation: ~7px per character for 12px font)
                     const textWidth = meta.themeName.length * 7;
                     const padding = 12; // Reduced from 20px
@@ -686,11 +710,11 @@ export default function UnderstandView({
                   className="w-full flex items-center justify-between gap-2 px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-body"
                 >
                   <span className="flex items-center gap-2">
-                    {selectedCluster !== null && (
+                    {selectedTheme !== "all" && selectedTheme !== "unclustered" && (
                       <span
                         className="w-2 h-2 rounded-full"
                         style={{
-                          backgroundColor: getThemeColor(selectedCluster),
+                          backgroundColor: getThemeColor(selectedTheme),
                         }}
                       />
                     )}
@@ -716,13 +740,26 @@ export default function UnderstandView({
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedCluster(null);
+                        setSelectedTheme("all");
                         setDropdownOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
                     >
                       All themes
                     </button>
+                    {/* Show unclustered option only if there are unclustered responses */}
+                    {responses.some((r) => r.clusterIndex === null) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTheme("unclustered");
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
+                      >
+                        Unclustered/New responses
+                      </button>
+                    )}
                     {themes
                       .sort((a, b) => {
                         // Misc theme always last
@@ -735,7 +772,7 @@ export default function UnderstandView({
                           key={theme.clusterIndex}
                           type="button"
                           onClick={() => {
-                            setSelectedCluster(theme.clusterIndex);
+                            setSelectedTheme(theme.clusterIndex);
                             setDropdownOpen(false);
                           }}
                           className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
@@ -762,7 +799,78 @@ export default function UnderstandView({
               <div className="text-body text-slate-600">
                 No responses yet. Upload on Listen to get started.
               </div>
+            ) : selectedTheme === "all" ? (
+              /* Cluster summary cards for "All themes" view */
+              <div className="space-y-6">
+                {clusterSummaries.map((summary) => {
+                  const item = summary.representativeItem;
+                  const themeColor = summary.clusterIndex !== null
+                    ? getThemeColor(summary.clusterIndex)
+                    : "#94a3b8"; // slate for unclustered
+
+                  return (
+                    <div key={summary.key} className="rounded-2xl space-y-3">
+                      <div className="text-label uppercase tracking-[0.04em]" style={{ color: themeColor }}>
+                        {summary.title}
+                      </div>
+                      <p className="text-body text-slate-800 leading-relaxed line-clamp-3">
+                        {summary.representativeText}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0 h-auto underline text-slate-500 hover:text-slate-700"
+                          onClick={() => setSelectedTheme(summary.filterValue)}
+                        >
+                          Show {summary.responseCount} response{summary.responseCount !== 1 ? "s" : ""}
+                        </Button>
+                        {conversationType === "understand" && item && (
+                          <div className="flex gap-2">
+                            {(["agree", "pass", "disagree"] as Feedback[]).map(
+                              (fb) => {
+                                const active = item.current === fb;
+                                const hasVoted = item.current !== null;
+                                const isDisabled = hasVoted && !active;
+
+                                const activeStyles =
+                                  fb === "agree"
+                                    ? "!bg-emerald-100 !text-emerald-800 !border-emerald-300 hover:!bg-emerald-100"
+                                    : fb === "disagree"
+                                      ? "!bg-orange-100 !text-orange-800 !border-orange-300 hover:!bg-orange-100"
+                                      : "!bg-slate-200 !text-slate-800 !border-slate-300 hover:!bg-slate-200";
+                                const inactiveStyles =
+                                  "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
+                                const disabledStyles =
+                                  "!bg-slate-100 !text-slate-400 !border-slate-200 !cursor-not-allowed";
+
+                                return (
+                                  <Button
+                                    key={fb}
+                                    variant="secondary"
+                                    size="sm"
+                                    disabled={loadingId === item.id || isDisabled}
+                                    onClick={() => vote(item.id, fb)}
+                                    className={`transition-colors ${
+                                      active ? activeStyles : isDisabled ? disabledStyles : inactiveStyles
+                                    }`}
+                                  >
+                                    {fb === "agree" && "Agree"}
+                                    {fb === "pass" && "Pass"}
+                                    {fb === "disagree" && "Disagree"}
+                                  </Button>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
+              /* Regular response list for filtered views */
               <>
                 {/* Render frequently mentioned groups first */}
                 {filteredGroups.map((group) => (

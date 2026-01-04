@@ -1,5 +1,5 @@
 type AlertProps = {
-  variant?: "success" | "error" | "info";
+  variant?: "success" | "error" | "info" | "warning";
   children: React.ReactNode;
   className?: string;
 };
@@ -8,6 +8,7 @@ const variantStyles: Record<NonNullable<AlertProps["variant"]>, string> = {
   success: "bg-green-50 border-green-100 text-green-700",
   error: "bg-red-50 border-red-100 text-red-700",
   info: "bg-slate-50 border-slate-200 text-slate-700",
+  warning: "bg-amber-50 border-amber-200 text-amber-900",
 };
 
 export default function Alert({
