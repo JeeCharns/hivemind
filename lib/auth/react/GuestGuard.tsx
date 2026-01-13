@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "./useSession";
 
@@ -30,10 +30,23 @@ export function GuestGuard({
   const router = useRouter();
   const { isAuthenticated, isLoading } = useSession();
 
-  // Check if user just logged out (prevents redirect loop)
+  // Track whether we've mounted (to avoid hydration mismatch with URL params)
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate hydration guard pattern
+    setMounted(true);
+  }, []);
+
+  // Only read URL params after mount to avoid hydration mismatch
+  // (server renders with false, client may have different URL params)
   const justLoggedOut =
-    typeof window !== "undefined" &&
+    mounted &&
     Boolean(new URLSearchParams(window.location.search).get("logged_out"));
+
+  const hasNextParam =
+    mounted &&
+    Boolean(new URLSearchParams(window.location.search).get("next"));
 
   useEffect(() => {
     // Check if user just logged out (prevents redirect loop)
@@ -99,8 +112,10 @@ export function GuestGuard({
     }
   }, [isAuthenticated, isLoading, justLoggedOut, router, redirectTo]);
 
-  // Show fallback while loading or redirecting (but not if we just logged out)
-  if ((isLoading || isAuthenticated) && fallback && !justLoggedOut) {
+  // Show fallback while loading or redirecting (but not if we just logged out or have a next param)
+  // When hasNextParam is true, we're likely in a post-logout redirect scenario where middleware
+  // redirected an unauthenticated request to /login?next=... - we should show the login form
+  if ((isLoading || isAuthenticated) && fallback && !justLoggedOut && !hasNextParam) {
     return <>{fallback}</>;
   }
 

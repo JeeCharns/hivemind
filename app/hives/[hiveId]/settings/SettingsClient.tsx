@@ -12,7 +12,8 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { validateImageFile } from "@/lib/storage/validation";
-import { updateHiveNameAction, updateHiveLogoAction, deleteHiveAction } from "./actions";
+import { updateHiveNameAction, updateHiveLogoAction, updateHiveVisibilityAction, deleteHiveAction } from "./actions";
+import type { HiveVisibility } from "@/types/hives-api";
 import Alert from "@/app/components/alert";
 import Button from "@/app/components/button";
 
@@ -20,12 +21,14 @@ interface SettingsClientProps {
   hiveId: string;
   initialName: string;
   initialLogoUrl: string | null;
+  initialVisibility: HiveVisibility;
 }
 
 export default function SettingsClient({
   hiveId,
   initialName,
   initialLogoUrl,
+  initialVisibility,
 }: SettingsClientProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -34,6 +37,7 @@ export default function SettingsClient({
   const [name, setName] = useState(initialName);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<HiveVisibility>(initialVisibility);
 
   // UI feedback state
   const [logoError, setLogoError] = useState<string | null>(null);
@@ -123,6 +127,33 @@ export default function SettingsClient({
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to update name.");
+      } finally {
+        setLoading(false);
+      }
+    });
+  };
+
+  const saveVisibility = async (newVisibility: HiveVisibility) => {
+    if (newVisibility === initialVisibility) return;
+
+    setLoading(true);
+    setMessage(null);
+    setError(null);
+    setVisibility(newVisibility);
+
+    startTransition(async () => {
+      try {
+        const result = await updateHiveVisibilityAction(hiveId, newVisibility);
+
+        if (!result.success) {
+          setError(result.error);
+          setVisibility(initialVisibility); // Revert on error
+        } else {
+          setMessage(result.message || "Visibility updated.");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to update visibility.");
+        setVisibility(initialVisibility); // Revert on error
       } finally {
         setLoading(false);
       }
@@ -226,6 +257,56 @@ export default function SettingsClient({
           >
             Save
           </Button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Hive Visibility
+        </h2>
+        <p className="text-sm text-slate-600">
+          Control who can discover and join this hive.
+        </p>
+        <div className="flex flex-col gap-3 max-w-xl">
+          <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === "public" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}>
+            <input
+              type="radio"
+              name="visibility"
+              value="public"
+              checked={visibility === "public"}
+              onChange={() => saveVisibility("public")}
+              disabled={loading}
+              className="w-4 h-4 mt-0.5"
+            />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-[#172847]">
+                Public
+              </span>
+              <span className="text-xs text-slate-500">
+                Anyone can search for and join this hive.
+              </span>
+            </div>
+          </label>
+
+          <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === "private" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}>
+            <input
+              type="radio"
+              name="visibility"
+              value="private"
+              checked={visibility === "private"}
+              onChange={() => saveVisibility("private")}
+              disabled={loading}
+              className="w-4 h-4 mt-0.5"
+            />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-[#172847]">
+                Private
+              </span>
+              <span className="text-xs text-slate-500">
+                Only people with an invite link can join. This hive won&apos;t appear in search.
+              </span>
+            </div>
+          </label>
         </div>
       </div>
 

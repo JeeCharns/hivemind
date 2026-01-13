@@ -21,7 +21,6 @@ interface HiveHomeProps {
   hiveName: string;
   conversations: ConversationCardData[];
   logoUrl?: string | null;
-  memberCount?: number | null;
 }
 
 export default function HiveHome({
@@ -30,7 +29,6 @@ export default function HiveHome({
   hiveName,
   conversations,
   logoUrl = null,
-  memberCount = null,
 }: HiveHomeProps) {
   const [logo, setLogo] = useState<{
     logoUrl: string;
@@ -38,7 +36,6 @@ export default function HiveHome({
   } | null>(null);
   const logoSignedUrl =
     logoUrl && logo?.logoUrl === logoUrl ? logo.signedUrl : null;
-  const conversationCount = conversations.length;
 
   useEffect(() => {
     if (!logoUrl) return;
@@ -67,24 +64,10 @@ export default function HiveHome({
             <p className="text-body text-text-secondary">
               Your organisation&apos;s collective intelligence sessions live here
             </p>
-            <p className="text-body text-text-secondary">Hive ID: {hiveKey}</p>
           </div>
         </div>
         <NewSessionLauncher hiveId={hiveId} hiveSlug={hiveKey} />
       </header>
-
-      {memberCount !== null && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="bg-slate-50 rounded-lg p-4">
-            <p className="text-body text-text-secondary mb-1">Conversations</p>
-            <p className="text-h2 text-text-primary">{conversationCount}</p>
-          </div>
-          <div className="bg-slate-50 rounded-lg p-4">
-            <p className="text-body text-text-secondary mb-1">Members</p>
-            <p className="text-h2 text-text-primary">{memberCount}</p>
-          </div>
-        </div>
-      )}
 
       {/* Conversations Grid */}
       {conversations.length === 0 ? (

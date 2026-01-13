@@ -13,6 +13,7 @@ import {
   mockDataQuery,
   mockInsert,
   mockUpdate,
+  mockNoExistingJobs,
   generateConversation,
   generateMembership,
   expectStrategyDecision,
@@ -77,6 +78,9 @@ describe("triggerConversationAnalysis (simplified examples)", () => {
       // Mock response count
       mockCountQuery(supabase, 25);
 
+      // Mock existing jobs check (no active jobs)
+      mockNoExistingJobs(supabase);
+
       // Mock cluster models check (prerequisite for incremental)
       mockCountQuery(supabase, 3);
 
@@ -116,6 +120,9 @@ describe("triggerConversationAnalysis (simplified examples)", () => {
       // 25 current responses (5 new)
       mockCountQuery(supabase, 25);
 
+      // Mock existing jobs check (no active jobs)
+      mockNoExistingJobs(supabase);
+
       // 3 cluster models exist (prerequisites met)
       mockCountQuery(supabase, 3);
 
@@ -148,6 +155,9 @@ describe("triggerConversationAnalysis (simplified examples)", () => {
       // 35 current responses (15 new)
       mockCountQuery(supabase, 35);
 
+      // Mock existing jobs check (no active jobs)
+      mockNoExistingJobs(supabase);
+
       mockInsert(supabase);
       mockUpdate(supabase);
 
@@ -177,6 +187,9 @@ describe("triggerConversationAnalysis (simplified examples)", () => {
 
       // 25 current responses (5 new, normally incremental)
       mockCountQuery(supabase, 25);
+
+      // Mock existing jobs check (no active jobs)
+      mockNoExistingJobs(supabase);
 
       // 0 cluster models (prerequisites missing)
       mockCountQuery(supabase, 0);
@@ -274,7 +287,7 @@ describe("triggerConversationAnalysis (simplified examples)", () => {
   });
 
   describe("concurrency", () => {
-    it("returns already_running on duplicate job insert", async () => {
+    it("returns already_running when job already exists", async () => {
       const supabase = createMockSupabase();
 
       mockDataQuery(
@@ -286,10 +299,19 @@ describe("triggerConversationAnalysis (simplified examples)", () => {
       );
       mockDataQuery(supabase, generateMembership(userId), false);
       mockCountQuery(supabase, 25);
-      mockCountQuery(supabase, 3);
 
-      // Simulate unique constraint violation
-      mockInsert(supabase, { code: "23505" });
+      // Mock existing jobs check - returns an active job (step 8 in triggerConversationAnalysis)
+      const existingJobsChain = {
+        from: supabase.from,
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue({
+          data: [{ id: "existing-job-123", status: "queued" }],
+          error: null,
+        }),
+      };
+      supabase.from.mockReturnValueOnce(existingJobsChain);
 
       const result = await triggerConversationAnalysis(
         supabase,

@@ -387,7 +387,13 @@ describe("runConversationAnalysisIncremental", () => {
       error: null,
     });
 
-    // Cluster counts query results in 3 members total
+    // Existing cluster sizes query inside loadClusterModels
+    queueResult("conversation_responses", "select", {
+      data: [{ cluster_index: 0 }, { cluster_index: 0 }],
+      error: null,
+    });
+
+    // Cluster counts query for updateThemeSizes - results in 3 members total
     queueResult("conversation_responses", "select", {
       data: [{ cluster_index: 0 }, { cluster_index: 0 }, { cluster_index: 0 }],
       error: null,

@@ -87,6 +87,7 @@ export default async function HiveSettingsPage({
             hiveId={hiveId}
             initialName={settings.name}
             initialLogoUrl={settings.logoUrl}
+            initialVisibility={settings.visibility}
           />
         </div>
       </div>

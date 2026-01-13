@@ -6,21 +6,22 @@ import Alert from "@/app/components/alert";
 import Button from "@/app/components/button";
 import ImageUpload from "@/app/components/ImageUpload";
 import Input from "@/app/components/input";
-import Spinner from "@/app/components/spinner";
+import HiveShareInvitePanel from "@/app/hives/components/HiveShareInvitePanel";
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
-type CreateHiveResponse = {
+type HiveVisibility = "public" | "private";
+
+type CreatedHive = {
   id: string;
   slug?: string | null;
 };
 
 /**
- * NewHiveWizard - 3-step hive creation flow
+ * NewHiveWizard - 2-step hive creation flow
  *
- * Step 1: Collect hive details (name + optional logo)
- * Step 2: Draft invite emails (pre-create)
- * Step 3: Create hive + send invites (loading orchestration)
+ * Step 1: Collect hive details (name + optional logo + visibility)
+ * Step 2: Show invite link for sharing
  */
 export default function NewHiveWizard() {
   const router = useRouter();
@@ -30,85 +31,38 @@ export default function NewHiveWizard() {
   const [step, setStep] = useState<Step>(1);
   const [name, setName] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [inviteEmailsText, setInviteEmailsText] = useState("");
+  const [visibility, setVisibility] = useState<HiveVisibility>("public");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdHive, setCreatedHive] = useState<CreatedHive | null>(null);
 
   // Step 1 validation
   const nameValid = useMemo(() => name.trim().length > 0, [name]);
 
-  // Step 2 email parsing and validation
-  const inviteEmails = useMemo(() => {
-    return inviteEmailsText
-      .split(",")
-      .map((email) => email.trim())
-      .filter((email) => email.length > 0);
-  }, [inviteEmailsText]);
-
-  const emailCount = inviteEmails.length;
-  const emailsValid = emailCount <= 10;
-
-  // Lightweight client-side email validation
-  const hasInvalidEmails = useMemo(() => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return inviteEmails.some((email) => !emailRegex.test(email));
-  }, [inviteEmails]);
-
-  // Step 1: Continue to invite step
-  const handleContinueToInvite = (e: React.FormEvent) => {
+  // Step 1: Create hive and continue to Step 2
+  const handleCreateHive = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameValid) return;
-    setError(null);
-    setStep(2);
-  };
+    if (!nameValid || inFlightRef.current) return;
 
-  // Step 1: Cancel
-  const handleCancel = () => {
-    router.push("/hives");
-  };
-
-  // Step 2: Back to step 1
-  const handleBack = () => {
-    setError(null);
-    setStep(1);
-  };
-
-  // Step 2: Skip invites
-  const handleSkipInvites = () => {
-    setInviteEmailsText("");
-    handleContinueToCreate();
-  };
-
-  // Step 2: Continue to create
-  const handleContinueToCreate = () => {
-    setError(null);
-    setStep(3);
-    // Orchestration starts immediately
-    handleOrchestration();
-  };
-
-  // Step 3: Orchestration (create hive + send invites)
-  const handleOrchestration = async () => {
-    // Guard against double-submit
-    if (inFlightRef.current) return;
     inFlightRef.current = true;
     setIsSubmitting(true);
+    setError(null);
 
     try {
-      // 1. Create hive
       const formData = new FormData();
       formData.append("name", name.trim());
+      formData.append("visibility", visibility);
       if (logoFile) {
         formData.append("logo", logoFile);
       }
 
-      const createResponse = await fetch("/api/hives", {
+      const response = await fetch("/api/hives", {
         method: "POST",
         body: formData,
       });
 
-      if (!createResponse.ok) {
-        const errorData = await createResponse.json().catch(() => null);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
         const message =
           errorData && typeof errorData === "object" && "error" in errorData
             ? String((errorData as { error: unknown }).error)
@@ -116,50 +70,35 @@ export default function NewHiveWizard() {
         throw new Error(message);
       }
 
-      const hiveData = (await createResponse.json().catch(() => null)) as
-        | CreateHiveResponse
+      const hiveData = (await response.json().catch(() => null)) as
+        | CreatedHive
         | null;
 
       if (!hiveData?.id) {
         throw new Error("Hive created but response was invalid");
       }
 
-      const hiveKey = hiveData.slug || hiveData.id;
-
-      // 2. Send invites (if any)
-      if (inviteEmails.length > 0) {
-        const inviteResponse = await fetch(`/api/hives/${hiveKey}/invite`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ emails: inviteEmails }),
-        });
-
-        if (!inviteResponse.ok) {
-          // Hive created but invites failed - redirect to invite page with error
-          const errorData = await inviteResponse.json().catch(() => null);
-          const inviteError =
-            errorData && typeof errorData === "object" && "error" in errorData
-              ? String((errorData as { error: unknown }).error)
-              : "Failed to send invites";
-
-          // Redirect to invite page with error message via query param
-          router.replace(`/hives/${hiveKey}/invite?error=${encodeURIComponent(inviteError)}`);
-          return;
-        }
-      }
-
-      // 3. Success - redirect to hive homepage
-      router.replace(`/hives/${hiveKey}`);
+      setCreatedHive(hiveData);
+      setStep(2);
     } catch (err) {
-      console.error("[NewHiveWizard] Orchestration failed:", err);
+      console.error("[NewHiveWizard] Create hive failed:", err);
       setError(err instanceof Error ? err.message : "Failed to create hive");
-      setStep(1); // Return to step 1 on failure
     } finally {
       setIsSubmitting(false);
       inFlightRef.current = false;
     }
+  };
+
+  // Step 1: Cancel
+  const handleCancel = () => {
+    router.push("/hives");
+  };
+
+  // Step 2: Go to hive
+  const handleGoToHive = () => {
+    if (!createdHive) return;
+    const hiveKey = createdHive.slug || createdHive.id;
+    router.push(`/hives/${hiveKey}`);
   };
 
   return (
@@ -169,7 +108,7 @@ export default function NewHiveWizard() {
         {step === 1 && (
           <>
             <div className="w-full space-y-2">
-              <p className="text-xs text-slate-500">Step 1 of 3</p>
+              <p className="text-xs text-slate-500">Step 1 of 2</p>
               <h1 className="text-xl font-semibold text-[#172847]">
                 Create a new Hive
               </h1>
@@ -184,7 +123,7 @@ export default function NewHiveWizard() {
               </div>
             )}
 
-            <form onSubmit={handleContinueToInvite} className="w-full space-y-6">
+            <form onSubmit={handleCreateHive} className="w-full space-y-6">
               <div className="w-full">
                 <ImageUpload
                   label="Hive Logo (optional)"
@@ -205,12 +144,62 @@ export default function NewHiveWizard() {
                 required
               />
 
+              {/* Visibility Selection */}
+              <div className="flex flex-col gap-3">
+                <label className="text-sm font-medium text-[#172847]">
+                  Hive Visibility
+                </label>
+
+                <div className="flex flex-col gap-3">
+                  <label className="flex items-start gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value="public"
+                      checked={visibility === "public"}
+                      onChange={() => setVisibility("public")}
+                      disabled={isSubmitting}
+                      className="w-4 h-4 mt-0.5"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-[#172847]">
+                        Public
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        Anyone can search for and join this hive.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value="private"
+                      checked={visibility === "private"}
+                      onChange={() => setVisibility("private")}
+                      disabled={isSubmitting}
+                      className="w-4 h-4 mt-0.5"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-[#172847]">
+                        Private
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        Only people with an invite link can join. This hive
+                        won&apos;t appear in search.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <Button
                 type="submit"
                 className="w-full"
                 disabled={!nameValid || isSubmitting}
               >
-                Continue
+                {isSubmitting ? "Creating..." : "Continue"}
               </Button>
 
               <Button
@@ -226,85 +215,31 @@ export default function NewHiveWizard() {
           </>
         )}
 
-        {/* Step 2: Draft Invite Members */}
-        {step === 2 && (
+        {/* Step 2: Invite Friends (Link Sharing) */}
+        {step === 2 && createdHive && (
           <>
             <div className="w-full space-y-2">
-              <p className="text-xs text-slate-500">Step 2 of 3</p>
+              <p className="text-xs text-slate-500">Step 2 of 2</p>
               <h1 className="text-xl font-semibold text-[#172847]">
-                Invite members
+                Invite friends
               </h1>
               <p className="text-sm text-slate-600">
-                Add up to 10 email addresses to invite to your hive.
+                Share this link to invite people to your hive.
               </p>
             </div>
 
-            {error && (
-              <div className="w-full">
-                <Alert variant="error">{error}</Alert>
-              </div>
-            )}
-
-            <form onSubmit={(e) => { e.preventDefault(); handleContinueToCreate(); }} className="w-full space-y-6">
-              <Input
-                label="Email Addresses (comma-separated)"
-                value={inviteEmailsText}
-                onChange={(e) => setInviteEmailsText(e.target.value)}
-                placeholder="user1@example.com, user2@example.com"
-                disabled={isSubmitting}
-                helperText={`Enter up to 10 email addresses separated by commas. (${emailCount} entered)`}
+            <div className="w-full">
+              <HiveShareInvitePanel
+                hiveKey={createdHive.slug || createdHive.id}
+                isAdmin={true}
+                linkOnly={true}
               />
-
-              {hasInvalidEmails && emailCount > 0 && (
-                <div className="text-sm text-red-600 px-2">
-                  Some email addresses appear to be invalid. Please check the format.
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={
-                  isSubmitting ||
-                  emailCount === 0 ||
-                  !emailsValid ||
-                  hasInvalidEmails
-                }
-              >
-                Continue
-              </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full"
-                disabled={isSubmitting}
-                onClick={handleSkipInvites}
-              >
-                Skip
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                disabled={isSubmitting}
-                onClick={handleBack}
-              >
-                Back
-              </Button>
-            </form>
-          </>
-        )}
-
-        {/* Step 3: Creating Hive (Loading) */}
-        {step === 3 && (
-          <div className="w-full flex flex-col items-center gap-4 py-12">
-            <div className="text-lg font-semibold text-[#172847]">
-              Creating Hive...
             </div>
-            <Spinner />
-          </div>
+
+            <Button type="button" className="w-full" onClick={handleGoToHive}>
+              Go to hive
+            </Button>
+          </>
         )}
       </div>
     </div>

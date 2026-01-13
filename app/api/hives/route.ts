@@ -7,6 +7,7 @@ import {
   createHiveJsonBodySchema,
   createHiveNameSchema,
   hiveLogoFileSchema,
+  hiveVisibilitySchema,
 } from "@/lib/hives/schemas";
 
 /**
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
     let logoUrl: string | null = null;
     let logoFile: { buffer: Buffer; fileName: string; contentType: string } | null =
       null;
+    let visibility: "public" | "private" = "public";
 
     if (contentType.includes("application/json")) {
       const body = await req.json().catch(() => null);
@@ -82,6 +84,7 @@ export async function POST(req: NextRequest) {
       }
       name = parsed.data.name;
       logoUrl = parsed.data.logo_url ?? null;
+      visibility = parsed.data.visibility ?? "public";
     } else {
       let formData: FormData;
       try {
@@ -103,6 +106,13 @@ export async function POST(req: NextRequest) {
       }
 
       name = parsed.data.name;
+
+      // Parse visibility from form data
+      const visibilityRaw = formData.get("visibility");
+      const visibilityParsed = hiveVisibilitySchema.safeParse(visibilityRaw);
+      if (visibilityParsed.success) {
+        visibility = visibilityParsed.data;
+      }
 
       const file = formData.get("logo");
       if (file && file instanceof File) {
@@ -137,6 +147,7 @@ export async function POST(req: NextRequest) {
       name,
       logoUrl,
       logoFile,
+      visibility,
     });
 
     return NextResponse.json(hive);

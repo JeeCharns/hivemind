@@ -1,19 +1,18 @@
-# Spec: Create Hive Wizard (3-Step)
+# Spec: Create Hive Wizard (2-Step)
 
 ## Goal
 
-Implement a 3-step setup wizard at `/hives/new` that lets a signed-in user:
+Implement a 2-step setup wizard at `/hives/new` that lets a signed-in user:
 
-1. Enter a hive name and upload an optional logo
-2. Draft invite emails for up to 10 members (pre-create)
-3. Create the hive + send invites in a single orchestrated flow
+1. Enter a hive name, upload an optional logo, and choose visibility (public/private)
+2. Get a shareable invite link to invite members
 
 Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
 
 ## Non-goals
 
 - Do not copy any backend logic from `temp/`.
-- Do not change the existing `/hives/[hiveId]/invite` page behavior (wizard must reuse its logic, not fork it).
+- Do not change the existing `/hives/[hiveId]/invite` page behavior.
 - Do not introduce new authz rules; reuse existing admin gates.
 
 ## User Journey
@@ -21,84 +20,45 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
 ### Step 1: Create Hive Details
 
 **UI Components:**
-- Step indicator: "Step 1 of 3"
+- Step indicator: "Step 1 of 2"
 - Title: "Create a new Hive"
 - Description: "Add your hive name and logo to get started."
 - Fields:
   - **Hive Logo** (optional): Image upload using `app/components/ImageUpload.tsx` (same UX as avatar upload)
   - **Hive Name** (required): Text input, max 100 characters
+  - **Hive Visibility** (required radio):
+    - **Public**: "Anyone can search for and join this hive."
+    - **Private**: "Only people with an invite link can join. This hive won't appear in search."
 - Actions:
-  - **Continue** (primary) → proceeds to Step 2
+  - **Continue** (primary) → creates hive and proceeds to Step 2
   - **Cancel** (ghost) → returns to `/hives`
 
 **Validation:**
 - Name must be non-empty after trimming
 - Logo file must be under 2MB and in supported format (JPEG, PNG, WebP, GIF)
-
-**State:**
-- Collects `name` and optional `logoFile` in wizard state
-- Does not create the hive yet (draft state)
-
-### Step 2: Invite Members (Pre-Create Draft)
-
-**UI Components:**
-- Step indicator: "Step 2 of 3"
-- Title: "Invite members"
-- Description: "Add up to 10 email addresses to invite to your hive."
-- Fields:
-  - **Email Addresses** (comma-separated): Text input with helper text showing count
-- Actions:
-  - **Continue** (primary) → proceeds to Step 3 with invites
-  - **Skip** (secondary) → proceeds to Step 3 without invites
-  - **Back** (ghost) → returns to Step 1
-
-**Validation:**
-- Client-side email format validation (lightweight regex)
-- Maximum 10 emails enforced in UI
-- Shows error if invalid email format detected
+- Visibility must be "public" or "private" (defaults to "public")
 
 **Behavior:**
-- This is a draft invite step (no API calls yet, no hiveId)
-- Parses comma-separated emails: trim, ignore empties, validate format
-- Stores `inviteEmails: string[]` in wizard state
-- User can skip this step entirely
+- On Continue: `POST /api/hives` with `{ name, logo?, visibility }`
+- If create fails: stay on Step 1 and show error in Alert
+- If create succeeds: extract `hiveKey = slug ?? id` and proceed to Step 2
 
-**Parity with Existing Invite Page:**
-- Same UX patterns as `app/hives/[hiveId]/invite/page.tsx`
-- Same input format and count display
-- Does not show pending invites list (since hive doesn't exist yet)
-
-### Step 3: Creating Hive... (Loading + Orchestration)
+### Step 2: Invite Friends (Link Sharing)
 
 **UI Components:**
-- No step indicator or title block
-- Text: "Creating Hive..."
-- Spinner animation centered beneath
+- Step indicator: "Step 2 of 2"
+- Title: "Invite friends"
+- Description: "Share this link to invite people to your hive."
+- Content:
+  - Copy link UI (reusing `HiveShareInvitePanel` in link-only mode)
+  - Share link displayed with "Copy link" button
+- Actions:
+  - **Go to hive** (primary) → navigates to `/hives/:hiveKey`
 
-**Orchestration Sequence:**
-
-1. **Create Hive:**
-   - `POST /api/hives` with `multipart/form-data`
-   - Payload: `name` (required), `logo` file (optional)
-   - On success: Extract `hiveKey = slug ?? id`
-   - On failure: Return to Step 1, show error in Alert, preserve user inputs
-
-2. **Send Invites (if any):**
-   - Only if `inviteEmails.length > 0`
-   - `POST /api/hives/:hiveKey/invite` with JSON body
-   - Payload: `{ emails: inviteEmails }`
-   - Uses existing invite route (same validation, same admin authz)
-   - On failure (after hive created): Redirect to `/hives/:hiveKey/invite?error=...`
-     - Hive is already created (no rollback)
-     - User can retry invites from invite page
-
-3. **Success Redirect:**
-   - Navigate to `/hives/:hiveKey` (hive homepage)
-
-**Idempotency & Safety:**
-- Prevents double-submit with `inFlightRef` guard
-- Disables all navigation/actions while Step 3 is running
-- Step 3 cannot be entered more than once per wizard session
+**Behavior:**
+- Uses existing share-link system to fetch/create a tokenized join URL
+- No email-entry field in this step (link-only mode)
+- Reuses `HiveShareInvitePanel` component with `linkOnly={true}` prop
 
 ## Routes
 
@@ -121,121 +81,108 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
 - Preferred: `multipart/form-data`
   - `name`: string (required)
   - `logo`: file (optional, max 2MB, JPEG/PNG/WebP/GIF)
+  - `visibility`: "public" | "private" (optional, default "public")
 - Backward compat: `application/json`
-  - `{ name: string, logo_url?: string | null }`
+  - `{ name: string, logo_url?: string | null, visibility?: "public" | "private" }`
 
 **Validation:**
 - `createHiveNameSchema` (name: trim, min 1, max 100)
 - `hiveLogoFileSchema` (size, type)
+- `hiveVisibilitySchema` (enum: "public" | "private")
 
 **Behavior:**
-- Creates hive row with unique slug
+- Creates hive row with unique slug and visibility
 - Inserts creator as admin in `hive_members`
 - Uploads logo to Supabase Storage (`logos/<hiveId>/<uuid>.<ext>`) if provided
 
 **Response:**
-- `200 OK` with `{ id, slug?, name, logo_url? }`
+- `200 OK` with `{ id, slug?, name, logo_url?, visibility }`
 
 **Errors:**
 - `401` Unauthorized
 - `400` VALIDATION_ERROR / UPLOAD_FAILED
 - `500` INTERNAL_ERROR
 
-### Invite Members
+### Share Link (for Step 2)
 
-**Route:** `POST /api/hives/[hiveId]/invite`
+**Route:** `GET /api/hives/[hiveId]/share-link`
 
-**Implementation:** `app/api/hives/[hiveId]/invite/route.ts`
+**Implementation:** `app/api/hives/[hiveId]/share-link/route.ts`
 
-**Auth:** Requires authenticated session + admin membership
-
-**Request:**
-- `Content-Type: application/json`
-- Body: `{ emails: string[] }` (min 1, max 10, valid email format)
-
-**Validation:**
-- `inviteEmailsSchema` from `lib/hives/data/hiveSchemas.ts`
-
-**Authorization:**
-- Uses `resolveHiveId` (slug/UUID support)
-- Verifies user is admin of the hive
-
-**Behavior:**
-- Creates pending invite records in `hive_invites`
-- Does not send emails yet (TODO in production)
+**Auth:** Requires authenticated session + hive membership
 
 **Response:**
-- `200 OK` with `{ message: "Invites created", count: number }`
+- `200 OK` with `{ url, accessMode, hiveName }`
 
-**Errors:**
-- `401` Unauthorized
-- `403` Forbidden (non-admin)
-- `404` Hive not found
-- `400` Invalid input
+## Data Model
+
+### Hive Visibility
+
+The `hives` table includes a `visibility` column:
+
+```sql
+visibility TEXT NOT NULL DEFAULT 'public'
+CHECK (visibility IN ('public', 'private'))
+```
+
+**Security expectations:**
+- Private hives do not appear in join search results (`GET /api/hives/search`)
+- Private hives cannot be joined via `POST /api/hives/[hiveId]/join` (returns 403 `HIVE_PRIVATE`)
+- Private hives can still be joined via invite link flow (`/invite/[token]`)
 
 ## Error Handling
 
 ### Step 1 Errors
 - Invalid name: Caught by client validation (Continue button disabled)
 - Invalid logo: Caught by client validation (file selection rejected with alert)
-- Create API error: Caught in Step 3, return to Step 1 with error message
+- Create API error: Show error in Alert, stay on Step 1
 
 ### Step 2 Errors
-- Invalid email format: Show inline error, disable Continue button
-- Too many emails (>10): Disable Continue button
-
-### Step 3 Errors
-- **Hive creation fails:** Return to Step 1 with error message, preserve all user inputs
-- **Hive succeeds, invites fail:** Redirect to `/hives/:hiveKey/invite?error=...`
-  - User sees error on invite page and can retry
-  - Hive is not deleted (creation is permanent)
+- Share link fetch error: Shown in HiveShareInvitePanel Alert
 
 ## State Management
 
 All state managed in `NewHiveWizard` component (`app/hives/new/new-hive-wizard.tsx`):
 
 ```typescript
-step: 1 | 2 | 3
+step: 1 | 2
 name: string
 logoFile: File | null
-inviteEmailsText: string      // raw input
-inviteEmails: string[]        // parsed (computed via useMemo)
+visibility: "public" | "private"
 error: string | null
 isSubmitting: boolean
+createdHive: { id: string; slug?: string | null } | null
 inFlightRef: React.MutableRefObject<boolean>
 ```
 
 ## Design Decisions
 
-### Why Draft Invites in Step 2?
+### Why Create Hive on Step 1?
 
-The invite API requires:
-1. A hive to exist (hiveId parameter)
-2. Admin membership verification
+Previously, hive creation happened in Step 3 (loading step). Now it happens at the end of Step 1:
+- Simpler flow with fewer steps (2 instead of 3)
+- Immediate feedback on creation success/failure
+- Step 2 can fetch the share link for the already-created hive
 
-Since the hive doesn't exist until Step 3, Step 2 collects draft invite emails in local state. Once the hive is created in Step 3, the wizard immediately calls the invite API with the new hiveKey.
+### Why Link-Only in Step 2?
 
-### Why Not Delete Hive on Invite Failure?
+- Matches the spec requirement to replace email entry with link sharing
+- Reuses existing `HiveShareInvitePanel` component with `linkOnly={true}` prop
+- Simpler UX: copy link and share however you prefer
 
-- Hive creation is a significant action (DB writes, membership creation, potential logo upload)
-- Rollback adds complexity and risk of inconsistent state
-- Better UX: redirect to invite page where user can retry without losing the hive
-- Aligns with typical SaaS patterns (core resource creation succeeds, optional steps can be retried)
+### Why Public Default?
 
-### Why Redirect with Query Param for Invite Errors?
-
-- Simple, stateless error passing
-- Invite page can read `?error=...` and display it
-- Avoids complex error state management across routes
-- User lands on the correct page to retry the failed action
+- Backward compatible with existing hives
+- Most hives are intended to be discoverable
+- Users who want privacy must explicitly choose it
 
 ## Implementation Notes
 
-- Business logic: `lib/hives/server/createHive.ts` (dependency-injected Supabase client)
-- Validation schemas: `lib/hives/schemas.ts` and `lib/hives/data/hiveSchemas.ts`
-- Invite logic: `app/api/hives/[hiveId]/invite/route.ts` (reused, not duplicated)
-- Logo storage: Supabase Storage bucket `logos`, path format `<hiveId>/<uuid>.<ext>`
-- Signed URLs: `lib/hives/server/getHivesWithSignedUrls.ts`
+- Business logic: `lib/hives/server/createHive.ts` (accepts visibility)
+- Validation schemas: `lib/hives/schemas.ts` (includes `hiveVisibilitySchema`)
+- Join filtering: `lib/hives/server/joinHive.ts` (blocks private hive joins)
+- Search filtering: `lib/hives/server/searchJoinableHives.ts` (only returns public hives)
+- Share panel: `app/hives/components/HiveShareInvitePanel.tsx` (supports `linkOnly` prop)
 
 ## Testing Coverage
 
@@ -243,48 +190,31 @@ Since the hive doesn't exist until Step 3, Step 2 collects draft invite emails i
 - **`app/tests/api/hives-create.test.ts`**: Hive creation API
   - Unauthenticated rejection
   - Invalid JSON body
-  - Valid JSON creation
+  - Valid JSON creation (with default public visibility)
+  - Valid JSON creation with private visibility
+  - Valid multipart creation with private visibility
   - Invalid logo file type
-  - Valid multipart with logo
-- **`app/tests/api/hives-invite.test.ts`**: Invite API
-  - Unauthenticated rejection
-  - Invalid email format
-  - More than 10 emails
-  - Empty emails array
-  - Non-existent hive
-  - Non-admin member rejection
-  - Non-member rejection
-  - Successful invite creation for admin
+  - Invalid visibility defaults to public
+- **`app/tests/api/hives-join.test.ts`**: Join API
+  - Private hive rejection with 403 HIVE_PRIVATE
 
 ### Manual Testing Scenarios
-1. **Happy path:** Create hive with name + logo + 3 invites → Success, redirect to hive homepage
-2. **Skip invites:** Create hive with name only, skip Step 2 → Success, redirect to hive homepage
-3. **No logo:** Create hive with name only (no logo) → Success
-4. **Invalid email:** Enter invalid email in Step 2 → Continue button disabled, inline error shown
-5. **Too many emails:** Enter 11 emails in Step 2 → Continue button disabled
-6. **Hive creation fails:** API error in Step 3 → Return to Step 1 with error in Alert
-7. **Invite fails after hive created:** Step 3 creates hive successfully, invites fail → Redirect to `/hives/:hiveKey/invite?error=...`
-8. **Cancel from Step 1:** Click Cancel → Return to `/hives`
-9. **Back from Step 2:** Click Back → Return to Step 1 with preserved inputs
-10. **Double-submit protection:** Rapid clicks on Continue in Step 2 → Only one orchestration runs
+1. **Happy path (public):** Create public hive with name + logo → Step 2 shows link → Go to hive
+2. **Happy path (private):** Create private hive → Step 2 shows link → Go to hive
+3. **Skip logo:** Create hive with name only (no logo) → Success
+4. **Hive creation fails:** API error in Step 1 → Stay on Step 1 with error in Alert
+5. **Cancel from Step 1:** Click Cancel → Return to `/hives`
+6. **Copy link:** In Step 2, copy link → Toast confirmation
+7. **Search excludes private:** Create private hive → Search for it → Not found
+8. **Join blocked for private:** Try to join private hive directly → 403 error
 
 ## Acceptance Criteria
 
 - From `/hives`, **Create a New Hive** opens `/hives/new`
-- Step 1: Collect name + optional logo, validate, navigate to Step 2
-- Step 2: Collect draft invites (max 10), skip option, back option
-- Step 3: Create hive + send invites sequentially, handle errors gracefully
+- Step 1: Collect name + optional logo + visibility, create hive, show errors if any
+- Step 2: Show shareable link with copy button, "Go to hive" navigates to hive
 - Unauthorized users redirected to `/login` when visiting `/hives/new`
-- Hive creation failure returns to Step 1 with error
-- Invite failure (after hive created) redirects to invite page with error
-- All inputs preserved when navigating back from Step 2 to Step 1
-- No double-submit issues (idempotent orchestration)
-- API contracts unchanged (reuse existing routes)
-
-## Future Enhancements
-
-- Send actual invitation emails (currently just DB records)
-- Generate invite tokens for public invite links
-- Bulk invite from CSV upload
-- Member role selection during invite
-- Invite preview/confirmation step before Step 3
+- Private hives don't appear in search
+- Private hives can't be joined directly (must use invite link)
+- All inputs preserved on error (stay on Step 1)
+- No double-submit issues (idempotent orchestration via `inFlightRef`)

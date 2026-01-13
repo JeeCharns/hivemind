@@ -35,10 +35,10 @@ export async function joinHive(
   // 0. Ensure profile exists (hive_members.user_id has FK to profiles in this schema)
   await ensureProfileExists(supabase, user);
 
-  // 1. Confirm hive exists
+  // 1. Confirm hive exists and check visibility
   const { data: hive, error: hiveError } = await supabase
     .from("hives")
-    .select("id, slug")
+    .select("id, slug, visibility")
     .eq("id", hiveId)
     .maybeSingle();
 
@@ -51,7 +51,12 @@ export async function joinHive(
     throw new Error("Hive not found");
   }
 
-  // 2. Upsert membership (idempotent - onConflict handles existing memberships)
+  // 2. Block direct joins for private hives (must use invite link)
+  if (hive.visibility === "private") {
+    throw new Error("Hive is private");
+  }
+
+  // 3. Upsert membership (idempotent - onConflict handles existing memberships)
   const { error: upsertError } = await supabase
     .from("hive_members")
     .upsert(
@@ -68,7 +73,7 @@ export async function joinHive(
     throw new Error(`Failed to join hive: ${upsertError.message}`);
   }
 
-  // 3. Return hive identifiers for routing
+  // 4. Return hive identifiers for routing
   return {
     hiveId: hive.id,
     hiveKey: hive.slug ?? hive.id,

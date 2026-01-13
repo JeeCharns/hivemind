@@ -16,10 +16,13 @@ export type CreateHiveLogoFile = {
   contentType: string;
 };
 
+export type HiveVisibility = "public" | "private";
+
 export type CreateHiveInput = {
   name: string;
   logoFile?: CreateHiveLogoFile | null;
   logoUrl?: string | null;
+  visibility?: HiveVisibility;
 };
 
 function slugify(input: string): string {
@@ -44,7 +47,7 @@ function isUniqueViolation(error: unknown): boolean {
 
 async function insertHiveWithUniqueSlug(
   supabase: SupabaseClient,
-  input: { name: string; logo_url: string | null }
+  input: { name: string; logo_url: string | null; visibility: HiveVisibility }
 ) {
   const slugBase = slugify(input.name);
 
@@ -53,7 +56,12 @@ async function insertHiveWithUniqueSlug(
 
     const { data, error } = await supabase
       .from("hives")
-      .insert({ name: input.name, slug, logo_url: input.logo_url })
+      .insert({
+        name: input.name,
+        slug,
+        logo_url: input.logo_url,
+        visibility: input.visibility,
+      })
       .select()
       .single();
 
@@ -119,10 +127,12 @@ export async function createHive(
 ) {
   const name = input.name.trim();
   const initialLogoUrl = input.logoFile ? null : input.logoUrl ?? null;
+  const visibility = input.visibility ?? "public";
 
   const hive = await insertHiveWithUniqueSlug(supabase, {
     name,
     logo_url: initialLogoUrl,
+    visibility,
   });
 
   const { error: memberError } = await supabase

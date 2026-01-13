@@ -238,4 +238,25 @@ describe("POST /api/hives/[hiveId]/join", () => {
     expect(data.error).toBe("Invalid hive ID");
     expect(data.code).toBe("VALIDATION_ERROR");
   });
+
+  it("should reject join for private hive with 403 HIVE_PRIVATE", async () => {
+    mockJoinHive.mockRejectedValue(new Error("Hive is private"));
+
+    const request = new NextRequest(
+      "http://localhost/api/hives/11111111-1111-4111-8111-111111111111/join",
+      {
+        method: "POST",
+      }
+    );
+
+    const params = Promise.resolve({
+      hiveId: "11111111-1111-4111-8111-111111111111",
+    });
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe("This hive is private. Ask for an invite link.");
+    expect(data.code).toBe("HIVE_PRIVATE");
+  });
 });

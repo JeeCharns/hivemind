@@ -34,10 +34,11 @@ export async function searchJoinableHives(
 ): Promise<HiveSearchResult[]> {
   const { term, limit = 5 } = options;
 
-  // 1. Search hives by name (case-insensitive partial match)
+  // 1. Search hives by name (case-insensitive partial match, public only)
   const { data: hives, error: hivesError } = await supabase
     .from("hives")
     .select("id, name, slug")
+    .eq("visibility", "public")
     .ilike("name", `%${term}%`)
     .limit(limit);
 

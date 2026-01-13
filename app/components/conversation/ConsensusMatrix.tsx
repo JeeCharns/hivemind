@@ -18,17 +18,13 @@ type ChartRow = ConsensusItem & {
   score: number;
 };
 
-function truncateLabel(text: string, maxChars: number): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= maxChars) return trimmed;
-  return `${trimmed.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
-}
-
-function barColor(score: number): string {
-  if (score > 75) return "bg-emerald-500";
-  if (score > 50) return "bg-amber-500";
-  return "bg-red-500";
-}
+// Segment colors for the stacked bar
+const SEGMENT_COLORS = {
+  agree: "bg-emerald-500",
+  pass: "bg-slate-400",
+  disagree: "bg-orange-500",
+  notVoted: "bg-slate-200",
+};
 
 export default function ConsensusMatrix({
   items,
@@ -86,7 +82,7 @@ function ConsensusMatrixContent({
         return {
           ...item,
           score,
-          label: truncateLabel(item.responseText, 40) || "Untitled",
+          label: item.responseText || "Untitled",
         };
       });
 
@@ -120,6 +116,12 @@ function ConsensusMatrixContent({
       return acc + consensus;
     }, 0);
     return Math.round(sum / items.length);
+  }, [items]);
+
+  // Use the response with the most votes as a proxy for total participants
+  const maxVotes = useMemo(() => {
+    if (items.length === 0) return 0;
+    return Math.max(...items.map((item) => item.totalVotes));
   }, [items]);
 
   return (
@@ -184,31 +186,63 @@ function ConsensusMatrixContent({
           {chartData.map((row) => (
             <div
               key={row.id}
-              className="relative flex items-center gap-3 group"
+              className="relative flex items-start gap-3 group"
             >
               <div
-                className="w-[120px] text-pill text-slate-500"
+                className="w-[45%] shrink-0 text-pill text-text-secondary line-clamp-3"
               >
                 {row.label}
               </div>
 
-              <div className="flex-1">
-                <div
-                  className="relative h-5 rounded-md bg-slate-100 overflow-hidden"
-                >
-                  <div
-                    className={`h-full ${barColor(row.score)}`}
-                    style={{ width: `${row.score}%` }}
-                  />
-                  <div className="absolute left-[75%] top-0 bottom-0 w-px border-l border-dashed border-emerald-400/70 pointer-events-none" />
-                </div>
+              <div className="flex-1 min-w-0 mt-0.5">
+                {(() => {
+                  // Calculate percentages relative to maxVotes (proxy for total participants)
+                  const scale = maxVotes > 0 ? 100 / maxVotes : 0;
+                  const agreeWidth = row.agreeVotes * scale;
+                  const passWidth = row.passVotes * scale;
+                  const disagreeWidth = row.disagreeVotes * scale;
+                  const notVotedWidth = 100 - agreeWidth - passWidth - disagreeWidth;
+
+                  return (
+                    <div className="relative h-5 rounded-md overflow-hidden flex">
+                      {/* Agree segment */}
+                      {agreeWidth > 0 && (
+                        <div
+                          className={`h-full ${SEGMENT_COLORS.agree}`}
+                          style={{ width: `${agreeWidth}%` }}
+                        />
+                      )}
+                      {/* Pass segment */}
+                      {passWidth > 0 && (
+                        <div
+                          className={`h-full ${SEGMENT_COLORS.pass}`}
+                          style={{ width: `${passWidth}%` }}
+                        />
+                      )}
+                      {/* Disagree segment */}
+                      {disagreeWidth > 0 && (
+                        <div
+                          className={`h-full ${SEGMENT_COLORS.disagree}`}
+                          style={{ width: `${disagreeWidth}%` }}
+                        />
+                      )}
+                      {/* Not voted segment */}
+                      {notVotedWidth > 0 && (
+                        <div
+                          className={`h-full ${SEGMENT_COLORS.notVoted}`}
+                          style={{ width: `${notVotedWidth}%` }}
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
-              <div className="w-10 text-pill text-slate-400 text-right tabular-nums">
+              <div className="w-10 text-pill text-slate-400 text-right tabular-nums mt-0.5">
                 {row.score}%
               </div>
 
-              <div className="hidden group-hover:block absolute z-20 left-[130px] right-0 bottom-full mb-2">
+              <div className="hidden group-hover:block absolute z-20 left-[46%] right-0 bottom-full mb-2">
                 <div className="max-w-xl rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg">
                   <div className="text-subtitle text-slate-900">
                     {row.responseText}
@@ -233,10 +267,23 @@ function ConsensusMatrixContent({
           ))}
         </div>
 
-        <div className="mt-6 flex justify-between text-pill md:text-label text-slate-400 uppercase tracking-widest px-2 md:px-10">
-          <span>Controversial</span>
-          <span>Mixed</span>
-          <span>Strong Consensus</span>
+        <div className="mt-6 flex flex-wrap justify-center gap-4 text-pill md:text-label text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <div className={`w-3 h-3 rounded-sm ${SEGMENT_COLORS.agree}`} />
+            <span>Agree</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className={`w-3 h-3 rounded-sm ${SEGMENT_COLORS.pass}`} />
+            <span>Pass</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className={`w-3 h-3 rounded-sm ${SEGMENT_COLORS.disagree}`} />
+            <span>Disagree</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className={`w-3 h-3 rounded-sm ${SEGMENT_COLORS.notVoted}`} />
+            <span>Not voted</span>
+          </div>
         </div>
 
         {sortedRows.length > visibleCount ? (

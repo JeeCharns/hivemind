@@ -45,20 +45,7 @@ export default async function HivePage({
   // 4. Fetch conversations (includes membership check)
   const conversations = await listHiveConversations(supabase, hiveId, session.user.id);
 
-  // 5. Fetch member count (best-effort)
-  let memberCount: number | null = null;
-  const { count, error: memberError } = await supabase
-    .from("hive_members")
-    .select("user_id", { count: "exact", head: true })
-    .eq("hive_id", hiveId);
-
-  if (memberError) {
-    console.error("[HivePage] Failed to fetch member count:", memberError);
-  } else {
-    memberCount = count ?? 0;
-  }
-
-  // 6. Render with data
+  // 5. Render with data
   return (
     <HiveHome
       hiveId={hiveId}
@@ -66,7 +53,6 @@ export default async function HivePage({
       hiveName={hive.name}
       conversations={conversations}
       logoUrl={hive.logo_url}
-      memberCount={memberCount}
     />
   );
 }

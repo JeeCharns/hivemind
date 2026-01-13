@@ -54,6 +54,14 @@ export async function POST(
         return jsonError("Hive not found", 404);
       }
 
+      if (message.includes("private")) {
+        return jsonError(
+          "This hive is private. Ask for an invite link.",
+          403,
+          "HIVE_PRIVATE"
+        );
+      }
+
       if (message.includes("Failed to initialize profile")) {
         return jsonError(
           "Failed to initialize user profile",

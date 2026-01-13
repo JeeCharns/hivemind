@@ -14,6 +14,7 @@ import { requireHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 import { uploadLogo } from "@/lib/storage/server/logoStorage";
 import { validateImageFile } from "@/lib/storage/validation";
 import type { SettingsActionResult } from "@/types/hive-settings";
+import { hiveVisibilitySchema } from "@/lib/hives/schemas";
 
 /**
  * Update hive name
@@ -150,6 +151,66 @@ export async function updateHiveLogoAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update logo",
+    };
+  }
+}
+
+/**
+ * Update hive visibility
+ *
+ * Security:
+ * - Requires requester to be an admin
+ * - Validates visibility is valid enum value
+ *
+ * @param hiveId - Hive UUID
+ * @param visibility - New visibility value ("public" | "private")
+ */
+export async function updateHiveVisibilityAction(
+  hiveId: string,
+  visibility: string
+): Promise<SettingsActionResult> {
+  try {
+    // 1. Validate inputs
+    if (!hiveId) {
+      return { success: false, error: "Invalid input: missing hive ID" };
+    }
+
+    const parsed = hiveVisibilitySchema.safeParse(visibility);
+    if (!parsed.success) {
+      return { success: false, error: "Invalid visibility value" };
+    }
+
+    // 2. Verify authentication
+    const session = await getServerSession();
+    if (!session) {
+      return { success: false, error: "Unauthorized: Not authenticated" };
+    }
+
+    const supabase = await supabaseServerClient();
+
+    // 3. Verify requester is an admin
+    await requireHiveAdmin(supabase, session.user.id, hiveId);
+
+    // 4. Update the visibility
+    const { error: updateError } = await supabase
+      .from("hives")
+      .update({ visibility: parsed.data })
+      .eq("id", hiveId);
+
+    if (updateError) {
+      console.error("[updateHiveVisibilityAction] Update failed:", updateError);
+      return { success: false, error: "Failed to update visibility" };
+    }
+
+    // 5. Revalidate the page to show updated data
+    revalidatePath(`/hives/${hiveId}/settings`);
+
+    return { success: true, message: "Visibility updated." };
+  } catch (error) {
+    console.error("[updateHiveVisibilityAction] Error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update visibility",
     };
   }
 }

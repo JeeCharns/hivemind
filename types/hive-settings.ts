@@ -5,6 +5,8 @@
  * Follows SRP: types are separate from logic
  */
 
+import type { HiveVisibility } from "./hives-api";
+
 /**
  * View model for displaying hive settings
  */
@@ -12,6 +14,7 @@ export interface HiveSettingsViewModel {
   hiveId: string;
   name: string;
   logoUrl: string | null; // Signed URL or public URL, ready for display
+  visibility: HiveVisibility;
 }
 
 /**

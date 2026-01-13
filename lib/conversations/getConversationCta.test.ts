@@ -22,7 +22,7 @@ describe("getConversationCta", () => {
   };
 
   describe("Report ready state", () => {
-    it("should return 'Result ready' CTA when report_json exists", () => {
+    it("should return 'Result ready' label but navigate to listen when report_json exists", () => {
       const conversation: ConversationCardData = {
         ...baseConversation,
         report_json: { some: "data" },
@@ -33,11 +33,11 @@ describe("getConversationCta", () => {
 
       expect(result).toEqual({
         label: "Result ready",
-        href: "/hives/test-hive/conversations/test-conv/result",
+        href: "/hives/test-hive/conversations/test-conv/listen",
       });
     });
 
-    it("should prioritize report over analysis status", () => {
+    it("should prioritize report label over analysis status label", () => {
       const conversation: ConversationCardData = {
         ...baseConversation,
         report_json: { some: "data" },
@@ -47,12 +47,12 @@ describe("getConversationCta", () => {
       const result = getConversationCta(hiveKey, conversation);
 
       expect(result.label).toBe("Result ready");
-      expect(result.href).toContain("/result");
+      expect(result.href).toContain("/listen");
     });
   });
 
   describe("Analysis ready state", () => {
-    it("should return 'Analysis complete' CTA when analysis is ready", () => {
+    it("should return 'Analysis complete' label but navigate to listen when analysis is ready", () => {
       const conversation: ConversationCardData = {
         ...baseConversation,
         analysis_status: "ready",
@@ -63,11 +63,11 @@ describe("getConversationCta", () => {
 
       expect(result).toEqual({
         label: "Analysis complete",
-        href: "/hives/test-hive/conversations/test-conv/understand",
+        href: "/hives/test-hive/conversations/test-conv/listen",
       });
     });
 
-    it("should not show analysis CTA when status is embedding", () => {
+    it("should not show analysis label when status is embedding", () => {
       const conversation: ConversationCardData = {
         ...baseConversation,
         analysis_status: "embedding",
@@ -76,6 +76,7 @@ describe("getConversationCta", () => {
       const result = getConversationCta(hiveKey, conversation);
 
       expect(result.label).not.toBe("Analysis complete");
+      expect(result.href).toContain("/listen");
     });
   });
 

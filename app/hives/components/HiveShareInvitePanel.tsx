@@ -19,6 +19,7 @@ import Toast from "@/app/components/toast";
 interface HiveShareInvitePanelProps {
   hiveKey: string;
   isAdmin: boolean;
+  linkOnly?: boolean;
   onInvitesUpdated?: () => void;
 }
 
@@ -27,6 +28,7 @@ type AccessMode = "anyone" | "invited_only";
 export default function HiveShareInvitePanel({
   hiveKey,
   isAdmin,
+  linkOnly = false,
   onInvitesUpdated,
 }: HiveShareInvitePanelProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -191,49 +193,51 @@ export default function HiveShareInvitePanel({
         )}
       </div>
 
-      {/* Access Mode Section */}
-      <div className="flex flex-col gap-3">
-        <label className="text-sm font-medium text-[#172847]">
-          Who has access
-        </label>
-
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="accessMode"
-              value="anyone"
-              checked={accessMode === "anyone"}
-              onChange={(e) => updateAccessMode(e.target.value as AccessMode)}
-              disabled={!isAdmin}
-              className="w-4 h-4"
-            />
-            <span className="text-sm text-[#172847]">Anyone</span>
+      {/* Access Mode Section (hidden in linkOnly mode) */}
+      {!linkOnly && (
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium text-[#172847]">
+            Who has access
           </label>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="accessMode"
-              value="invited_only"
-              checked={accessMode === "invited_only"}
-              onChange={(e) => updateAccessMode(e.target.value as AccessMode)}
-              disabled={!isAdmin}
-              className="w-4 h-4"
-            />
-            <span className="text-sm text-[#172847]">Invited only</span>
-          </label>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="accessMode"
+                value="anyone"
+                checked={accessMode === "anyone"}
+                onChange={(e) => updateAccessMode(e.target.value as AccessMode)}
+                disabled={!isAdmin}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-[#172847]">Anyone</span>
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="accessMode"
+                value="invited_only"
+                checked={accessMode === "invited_only"}
+                onChange={(e) => updateAccessMode(e.target.value as AccessMode)}
+                disabled={!isAdmin}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-[#172847]">Invited only</span>
+            </label>
+          </div>
+
+          {!isAdmin && (
+            <p className="text-xs text-slate-500">
+              Only admins can change access settings.
+            </p>
+          )}
         </div>
+      )}
 
-        {!isAdmin && (
-          <p className="text-xs text-slate-500">
-            Only admins can change access settings.
-          </p>
-        )}
-      </div>
-
-      {/* Invited-only Email Input */}
-      {accessMode === "invited_only" && isAdmin && (
+      {/* Invited-only Email Input (hidden in linkOnly mode) */}
+      {!linkOnly && accessMode === "invited_only" && isAdmin && (
         <div className="flex flex-col gap-3 p-4 bg-slate-50 border border-slate-200 rounded-md">
           <p className="text-sm text-slate-600">
             You still need to copy and share the link. These people will need

@@ -23,6 +23,7 @@ Supabase Dashboard → SQL Editor, run these in order:
 7. `supabase/migrations/007_create_hive_invite_links.sql`
 8. `supabase/migrations/008_allow_public_invite_preview.sql`
 9. `supabase/migrations/009_remove_public_invite_preview_policy.sql`
+10. `supabase/migrations/018_add_hive_visibility.sql`
 
 ## What These Migrations Enable
 
@@ -32,6 +33,7 @@ Supabase Dashboard → SQL Editor, run these in order:
 - Theme + clustering results (`conversation_themes`, response `x/y/cluster_index`)
 - Hive invite links via `hive_invite_links` (token-based join links)
 - Profile avatars via `profiles.avatar_path`
+- Hive visibility via `hives.visibility` (public/private; private hives hidden from search and require invite link to join)
 
 ## Notes
 

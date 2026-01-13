@@ -1,8 +1,11 @@
 import type { ApiErrorShape } from "./api";
 
+export type HiveVisibility = "public" | "private";
+
 export type CreateHiveRequest = {
   name: string;
   logo_url?: string;
+  visibility?: HiveVisibility;
 };
 
 export type HiveRow = {
@@ -10,6 +13,7 @@ export type HiveRow = {
   slug?: string | null;
   name: string;
   logo_url?: string | null;
+  visibility: HiveVisibility;
   created_at?: string;
   updated_at?: string;
 };

@@ -16,7 +16,7 @@ export default function BrandLogo({
       width={size * 4}
       height={size}
       className={className ?? ""}
-      style={{ width: "auto", height: "auto" }}
+      style={{ height: size, width: "auto" }}
       priority
     />
   );

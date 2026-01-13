@@ -151,7 +151,8 @@ export function createMockSupabaseQuery(overrides?: {
   const defaultResults: Record<SupabaseOp, SupabaseQueryResult> = {
     select: { data: null, error: null, count: null },
     update: { error: null },
-    insert: { error: null },
+    // Default insert returns mock IDs to support .insert().select("id") patterns
+    insert: { data: Array.from({ length: 100 }, (_, i) => ({ id: `mock-id-${i}` })), error: null },
     upsert: { error: null },
     delete: { error: null },
     ...(overrides?.defaultResults ?? {}),
@@ -473,6 +474,30 @@ export function mockInsert(supabase: { from: jest.Mock }, error: unknown = null)
 
     supabase.from.mockReturnValueOnce(verifyChain);
   }
+}
+
+/**
+ * Helper to mock the existing jobs check
+ *
+ * triggerConversationAnalysis checks for existing queued/running jobs before inserting.
+ * This helper mocks that check to return no existing jobs (allowing the insert to proceed).
+ *
+ * @example
+ * const supabase = createMockSupabase();
+ * mockNoExistingJobs(supabase); // no existing jobs
+ */
+export function mockNoExistingJobs(supabase: { from: jest.Mock }): void {
+  const existingJobsChain = {
+    from: supabase.from,
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockResolvedValue({
+      data: [],
+      error: null,
+    }),
+  };
+  supabase.from.mockReturnValueOnce(existingJobsChain);
 }
 
 /**

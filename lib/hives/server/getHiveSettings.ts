@@ -40,7 +40,7 @@ export async function getHiveSettings(
   // 2. Fetch hive settings
   const { data: hive, error } = await supabase
     .from("hives")
-    .select("id, name, logo_url")
+    .select("id, name, logo_url, visibility")
     .eq("id", hiveId)
     .maybeSingle();
 
@@ -69,5 +69,6 @@ export async function getHiveSettings(
     hiveId: hive.id,
     name: hive.name,
     logoUrl,
+    visibility: (hive.visibility as "public" | "private") ?? "public",
   };
 }

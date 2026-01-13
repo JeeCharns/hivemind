@@ -6,6 +6,8 @@
 
 import { z } from "zod";
 
+export const hiveVisibilitySchema = z.enum(["public", "private"]);
+
 export const createHiveNameSchema = z.object({
   name: z
     .string()
@@ -17,6 +19,7 @@ export const createHiveNameSchema = z.object({
 export const createHiveJsonBodySchema = createHiveNameSchema.extend({
   // Prefer storage paths (e.g. "hiveId/uuid.png"); allow full URLs for backward compatibility.
   logo_url: z.string().trim().min(1).max(500).optional().nullable(),
+  visibility: hiveVisibilitySchema.optional(),
 });
 
 export const hiveLogoFileSchema = z.object({

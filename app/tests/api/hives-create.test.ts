@@ -91,7 +91,7 @@ describe("POST /api/hives", () => {
     expect(mockCreateHive).toHaveBeenCalledWith(
       expect.anything(),
       "user-123",
-      { name: "Test Hive", logoUrl: null, logoFile: null }
+      { name: "Test Hive", logoUrl: null, logoFile: null, visibility: "public" }
     );
   });
 
@@ -155,6 +155,96 @@ describe("POST /api/hives", () => {
       expect.objectContaining({
         fileName: "logo.png",
         contentType: "image/png",
+      })
+    );
+  });
+
+  it("should create hive with private visibility from JSON", async () => {
+    mockCreateHive.mockResolvedValue({
+      id: "hive-1",
+      slug: "test-hive",
+      name: "Test Hive",
+      logo_url: null,
+      visibility: "private",
+    } as unknown as Awaited<ReturnType<typeof createHive>>);
+
+    const request = new NextRequest("http://localhost/api/hives", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Test Hive", visibility: "private" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockCreateHive).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-123",
+      expect.objectContaining({
+        name: "Test Hive",
+        visibility: "private",
+      })
+    );
+  });
+
+  it("should create hive with private visibility from multipart form", async () => {
+    mockCreateHive.mockResolvedValue({
+      id: "hive-1",
+      slug: "test-hive",
+      name: "Test Hive",
+      logo_url: null,
+      visibility: "private",
+    } as unknown as Awaited<ReturnType<typeof createHive>>);
+
+    const formData = new FormData();
+    formData.append("name", "Test Hive");
+    formData.append("visibility", "private");
+
+    const request = new NextRequest("http://localhost/api/hives", {
+      method: "POST",
+      body: formData,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockCreateHive).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-123",
+      expect.objectContaining({
+        name: "Test Hive",
+        visibility: "private",
+      })
+    );
+  });
+
+  it("should default to public for invalid visibility value in form data", async () => {
+    mockCreateHive.mockResolvedValue({
+      id: "hive-1",
+      slug: "test-hive",
+      name: "Test Hive",
+      logo_url: null,
+      visibility: "public",
+    } as unknown as Awaited<ReturnType<typeof createHive>>);
+
+    const formData = new FormData();
+    formData.append("name", "Test Hive");
+    formData.append("visibility", "invalid");
+
+    const request = new NextRequest("http://localhost/api/hives", {
+      method: "POST",
+      body: formData,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockCreateHive).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-123",
+      expect.objectContaining({
+        name: "Test Hive",
+        visibility: "public",
       })
     );
   });

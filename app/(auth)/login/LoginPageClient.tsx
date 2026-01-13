@@ -118,7 +118,7 @@ function LoginPageContent() {
     >
       <div className="min-h-screen w-full bg-[#F0F0F5] flex flex-col items-center justify-center relative overflow-hidden px-4 py-12">
         <div className="mb-12">
-          <BrandLogo size={42} />
+          <BrandLogo size={32} />
         </div>
 
         <CenteredCard
@@ -133,16 +133,12 @@ function LoginPageContent() {
             </div>
           ) : (
             <>
-              <h1
-                className="text-center text-text-primary text-h2 font-display"
-              >
+              <h1 className="text-center text-text-primary text-h2 font-display">
                 {intent === "join" && hiveName
                   ? `Enter your email address to join ${hiveName}`
                   : "Sign Up or Create Account"}
               </h1>
-              <p
-                className="text-center text-text-secondary text-body max-w-md font-display"
-              >
+              <p className="text-center text-text-secondary text-body max-w-md font-display">
                 Let us know your email address, click the link we send you and
                 we&apos;ll do the rest!
               </p>
@@ -208,7 +204,10 @@ function getMagicLinkError(err: unknown): {
   }
 
   if (!message) {
-    return { message: "Failed to send magic link. Please try again.", isRateLimit: false };
+    return {
+      message: "Failed to send magic link. Please try again.",
+      isRateLimit: false,
+    };
   }
 
   return { message, isRateLimit: false };
@@ -217,4 +216,3 @@ function getMagicLinkError(err: unknown): {
 export default function LoginPageClient() {
   return <LoginPageContent />;
 }
-
