@@ -317,7 +317,7 @@ export default function UnderstandViewContainer({
         return;
       }
 
-      fetchUnderstandData();
+      await fetchUnderstandData();
     } catch (err) {
       console.error("[Generate] Error:", err);
       if (lastReadyViewModelRef.current) {
@@ -359,7 +359,7 @@ export default function UnderstandViewContainer({
       }
 
       // Ensure we start polling/realtime immediately even if we missed the first update.
-      fetchUnderstandData();
+      await fetchUnderstandData();
     } catch (err) {
       console.error("[Regenerate] Error:", err);
       if (lastReadyViewModelRef.current) {
