@@ -318,9 +318,75 @@ SELECT * FROM conversations WHERE id = '<conversation-id>';
 - `auth.uid()` in RLS policies checks authenticated user
 - Unauthenticated users receive no events (RLS blocks)
 
+## Live Feed Broadcast Channel
+
+The Listen tab uses a **Supabase Broadcast channel** for real-time response updates. This is different from postgres_changes and optimized for high-concurrency scenarios (200+ concurrent users).
+
+### Why Broadcast Instead of postgres_changes?
+
+| Aspect | postgres_changes | Broadcast |
+|--------|------------------|-----------|
+| Payload | Raw table columns only | Complete LiveResponse with user data |
+| Client action | Must refetch to get full data | Append directly, no API call |
+| At 200 users | 40,000 API calls per submission | 1 API call (submitter only) |
+
+### Architecture
+
+```
+User submits → API inserts → API broadcasts complete LiveResponse → Clients append
+```
+
+### Implementation
+
+**Server-side broadcast:**
+- Location: [lib/conversations/server/broadcastResponse.ts](../lib/conversations/server/broadcastResponse.ts)
+- Called from: `POST /api/conversations/[conversationId]/responses` after successful insert
+- Channel name: `feed:{conversationId}`
+- Event: `new_response`
+- Fire-and-forget: errors logged but don't fail the API
+
+**Client-side subscription:**
+- Location: [lib/conversations/react/useConversationFeedRealtime.ts](../lib/conversations/react/useConversationFeedRealtime.ts)
+- Subscribes to broadcast channel for new responses
+- Subscribes to postgres_changes for like updates (debounced)
+- Reports connection status for UI indicator
+
+**Background sync:**
+- 30-second interval when tab visible
+- Ensures eventual consistency for missed broadcasts
+- Uses `silentRefresh()` (no loading state)
+
+### Configuration
+
+**No database configuration required** - Broadcast channels don't use postgres replication or RLS.
+
+**Environment variables required:**
+- `NEXT_PUBLIC_SUPABASE_URL` - For client subscription
+- `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`) - For server-side broadcast
+
+### Testing
+
+1. Open Listen tab in two browsers
+2. Submit a response in one
+3. Verify it appears instantly in the other (no loading flash)
+4. Check browser console for connection status
+
+### Troubleshooting
+
+**Responses not appearing in real-time:**
+1. Check browser console for WebSocket errors
+2. Verify `SUPABASE_SECRET_KEY` is set in server environment
+3. Background sync at 30s ensures eventual consistency
+
+**Duplicate responses:**
+- `appendResponse()` deduplicates by ID
+- Submitter has optimistic update, broadcast is ignored
+
 ## References
 
 - [Supabase Realtime Docs](https://supabase.com/docs/guides/realtime)
+- [Supabase Broadcast](https://supabase.com/docs/guides/realtime/broadcast)
 - [Postgres Replication](https://supabase.com/docs/guides/realtime/postgres-changes)
 - [Row Level Security](https://supabase.com/docs/guides/auth/row-level-security)
 - [useConversationAnalysisRealtime Hook](../lib/conversations/react/useConversationAnalysisRealtime.ts)
+- [useConversationFeedRealtime Hook](../lib/conversations/react/useConversationFeedRealtime.ts)

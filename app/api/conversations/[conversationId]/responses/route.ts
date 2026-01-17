@@ -12,6 +12,7 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { jsonError } from "@/lib/api/errors";
 import { createResponseSchema } from "@/lib/conversations/schemas";
+import { broadcastResponse } from "@/lib/conversations/server/broadcastResponse";
 
 export async function GET(
   _req: NextRequest,
@@ -198,6 +199,12 @@ export async function POST(
       likeCount: 0,
       likedByMe: false,
     };
+
+    // 7. Broadcast response to all feed subscribers (fire-and-forget)
+    // This enables real-time updates without requiring clients to refetch
+    broadcastResponse({ conversationId, response }).catch((err) => {
+      console.error("[POST response] Broadcast error (non-fatal):", err);
+    });
 
     return NextResponse.json({
       response,

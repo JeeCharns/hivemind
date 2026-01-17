@@ -14,6 +14,7 @@ import type {
   FeedbackCounts,
   Feedback,
   FrequentlyMentionedGroup,
+  ClusterBucket,
 } from "@/types/conversation-understand";
 import { requireHiveMember } from "./requireHiveMember";
 import { UNDERSTAND_MIN_RESPONSES } from "../domain/thresholds";
@@ -52,6 +53,27 @@ interface ConversationResponseGroupRow {
   group_size: number;
   params: unknown;
   conversation_response_group_members?: ConversationResponseGroupMemberRow[] | null;
+}
+
+interface ConsolidatedStatementRow {
+  group_id: string;
+  synthesized_statement: string;
+  combined_response_ids: number[];
+  combined_responses: string;
+}
+
+interface ClusterBucketRow {
+  id: string;
+  cluster_index: number;
+  bucket_name: string;
+  bucket_index: number;
+  consolidated_statement: string;
+  response_count: number;
+  conversation_cluster_bucket_members?: Array<{ response_id: string | number }>;
+}
+
+interface UnconsolidatedResponseRow {
+  response_id: string | number;
 }
 
 function parseAnalysisStatus(value: unknown): UnderstandViewModel["analysisStatus"] {
@@ -131,7 +153,7 @@ export async function getUnderstandViewModel(
   await requireHiveMember(supabase, userId, conversation.hive_id);
 
   // 3. Fetch all data in parallel
-  const [responsesResult, themesResult, feedbackResult, countResult, groupsResult] = await Promise.all([
+  const [responsesResult, themesResult, feedbackResult, countResult, groupsResult, statementsResult, bucketsResult, unconsolidatedResult] = await Promise.all([
     // Fetch responses with UMAP coordinates
     supabase
       .from("conversation_responses")
@@ -158,7 +180,7 @@ export async function getUnderstandViewModel(
       .select("id", { count: "exact", head: true })
       .eq("conversation_id", conversationId),
 
-    // Fetch frequently mentioned groups
+    // Fetch frequently mentioned groups (legacy)
     supabase
       .from("conversation_response_groups")
       .select(`
@@ -171,6 +193,34 @@ export async function getUnderstandViewModel(
       `)
       .eq("conversation_id", conversationId)
       .order("cluster_index", { ascending: true }),
+
+    // Fetch consolidated statements for groups (legacy)
+    supabase
+      .from("conversation_consolidated_statements")
+      .select("group_id, synthesized_statement, combined_response_ids, combined_responses")
+      .eq("conversation_id", conversationId),
+
+    // Fetch cluster buckets (new LLM-driven consolidation)
+    supabase
+      .from("conversation_cluster_buckets")
+      .select(`
+        id,
+        cluster_index,
+        bucket_name,
+        bucket_index,
+        consolidated_statement,
+        response_count,
+        conversation_cluster_bucket_members(response_id)
+      `)
+      .eq("conversation_id", conversationId)
+      .order("cluster_index", { ascending: true })
+      .order("bucket_index", { ascending: true }),
+
+    // Fetch unconsolidated response IDs
+    supabase
+      .from("conversation_unconsolidated_responses")
+      .select("response_id")
+      .eq("conversation_id", conversationId),
   ]);
 
   if (responsesResult.error) {
@@ -194,11 +244,35 @@ export async function getUnderstandViewModel(
     // Don't throw - groups are optional feature
   }
 
+  if (statementsResult.error) {
+    console.error("[getUnderstandViewModel] Failed to fetch consolidated statements:", statementsResult.error);
+    // Don't throw - statements are optional feature
+  }
+
+  if (bucketsResult.error) {
+    console.error("[getUnderstandViewModel] Failed to fetch cluster buckets:", bucketsResult.error);
+    // Don't throw - buckets are optional feature
+  }
+
+  if (unconsolidatedResult.error) {
+    console.error("[getUnderstandViewModel] Failed to fetch unconsolidated responses:", unconsolidatedResult.error);
+    // Don't throw - optional feature
+  }
+
   const responses = (responsesResult.data || []) as ResponseRow[];
   const themes = (themesResult.data || []) as ThemeDbRow[];
   const feedbackRows = (feedbackResult.data || []) as FeedbackRow[];
   const responseCount = countResult.count ?? 0;
   const groupsData = (groupsResult.data || []) as ConversationResponseGroupRow[];
+  const statementsData = (statementsResult.data || []) as ConsolidatedStatementRow[];
+  const bucketsData = (bucketsResult.data || []) as ClusterBucketRow[];
+  const unconsolidatedData = (unconsolidatedResult.data || []) as UnconsolidatedResponseRow[];
+
+  // Build lookup map for consolidated statements by group_id
+  const statementsMap = new Map<string, ConsolidatedStatementRow>();
+  for (const statement of statementsData) {
+    statementsMap.set(String(statement.group_id), statement);
+  }
 
   // Normalize response IDs to strings (Supabase can return BIGINT ids as numbers)
   const normalizedResponses = responses.map((r) => ({
@@ -278,6 +352,7 @@ export async function getUnderstandViewModel(
 
   // 9. Build frequently mentioned groups
   const frequentlyMentionedGroups: FrequentlyMentionedGroup[] = groupsData.map((group) => {
+    const groupId = String(group.id);
     const representativeId = String(group.representative_response_id);
     const representative = normalizedResponses.find((r) => r.id === representativeId);
     const representativeFeedback = feedbackByResponse.get(representativeId);
@@ -302,8 +377,11 @@ export async function getUnderstandViewModel(
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
 
+    // Look up consolidated statement for this group
+    const statement = statementsMap.get(groupId);
+
     return {
-      groupId: String(group.id),
+      groupId,
       clusterIndex: group.cluster_index,
       representative: {
         id: representativeId,
@@ -315,16 +393,58 @@ export async function getUnderstandViewModel(
       similarResponses,
       size: group.group_size,
       params: normalizeGroupingParams(group.params),
+      // Consolidated statement data (if available)
+      consolidatedStatement: statement?.synthesized_statement || null,
+      combinedResponseIds: statement?.combined_response_ids?.map(String) || [],
+      combinedResponses: statement?.combined_responses || "",
     };
   });
 
-  // 10. Return complete view model with staleness metadata
+  // 10. Build cluster buckets (new LLM-driven consolidation)
+  const clusterBuckets: ClusterBucket[] = bucketsData.map((bucket) => {
+    // Get member response IDs from join table
+    const memberIds: string[] = (bucket.conversation_cluster_bucket_members || []).map(
+      (m) => String(m.response_id)
+    );
+
+    // Build response details for each member
+    const bucketResponses = memberIds
+      .map((id) => {
+        const resp = normalizedResponses.find((r) => r.id === id);
+        return resp
+          ? {
+              id: resp.id,
+              responseText: resp.response_text,
+              tag: resp.tag,
+            }
+          : null;
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    return {
+      bucketId: String(bucket.id),
+      clusterIndex: bucket.cluster_index,
+      bucketName: bucket.bucket_name,
+      consolidatedStatement: bucket.consolidated_statement,
+      responses: bucketResponses,
+      responseCount: bucket.response_count,
+    };
+  });
+
+  // 11. Get unconsolidated response IDs
+  const unconsolidatedResponseIds = unconsolidatedData.map((r) =>
+    String(r.response_id)
+  );
+
+  // 12. Return complete view model with staleness metadata
   return {
     conversationId,
     responses: responsePoints,
     themes: themeRows,
     feedbackItems,
     frequentlyMentionedGroups,
+    clusterBuckets,
+    unconsolidatedResponseIds,
     analysisStatus: parseAnalysisStatus(conversation.analysis_status),
     analysisError: conversation.analysis_error,
     responseCount,

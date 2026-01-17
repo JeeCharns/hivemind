@@ -9,19 +9,31 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ResponseGroup, GroupingParams } from "../domain/similarityGrouping";
 
 /**
+ * Saved group with database ID
+ */
+export interface SavedGroup {
+  groupId: string;
+  clusterIndex: number;
+  representativeId: string;
+  memberIds: string[];
+  size: number;
+}
+
+/**
  * Save response groups to database
  *
  * @param supabase - Supabase client (service role)
  * @param conversationId - Conversation UUID
  * @param groups - Response groups from similarity grouping
  * @param params - Grouping parameters for observability
+ * @returns Saved groups with their database IDs
  */
 export async function saveResponseGroups(
   supabase: SupabaseClient,
   conversationId: string,
   groups: ResponseGroup[],
   params: GroupingParams
-): Promise<void> {
+): Promise<SavedGroup[]> {
   console.log(
     `[saveResponseGroups] Saving ${groups.length} groups for ${conversationId}`
   );
@@ -39,7 +51,7 @@ export async function saveResponseGroups(
 
   if (groups.length === 0) {
     console.log("[saveResponseGroups] No groups to save");
-    return;
+    return [];
   }
 
   // Insert new groups
@@ -121,4 +133,13 @@ export async function saveResponseGroups(
     totalResponsesGrouped,
     sizeDistribution: groupSizeDistribution,
   });
+
+  // Return saved groups with their database IDs
+  return groups.map((group, i) => ({
+    groupId: insertedGroups[i].id,
+    clusterIndex: group.clusterIndex,
+    representativeId: group.representativeId,
+    memberIds: group.memberIds,
+    size: group.size,
+  }));
 }

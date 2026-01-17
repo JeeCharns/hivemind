@@ -136,7 +136,7 @@ export default function ConversationHeader({
       const res = await fetch(`/api/conversations/${conversationId}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "regenerate", strategy: "auto" }),
+        body: JSON.stringify({ mode: "regenerate", strategy: "full" }),
       });
 
       if (!res.ok) {

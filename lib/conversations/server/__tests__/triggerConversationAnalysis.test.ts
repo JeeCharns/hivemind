@@ -534,7 +534,7 @@ describe("triggerConversationAnalysis", () => {
 
       mockDataQuery(supabase, [], false); // no existing jobs
 
-      mockCountQuery(supabase, 3); // cluster models exist
+      // Note: cluster models check is skipped for regenerate mode (always uses full strategy)
 
       // Mock the update call to retire active jobs
       mockUpdate(supabase);
@@ -550,7 +550,8 @@ describe("triggerConversationAnalysis", () => {
       );
 
       expect(result.status).toBe("queued");
-      expect(result.strategy).toBe("incremental");
+      // Regenerate mode with auto strategy now defaults to full (not incremental)
+      expect(result.strategy).toBe("full");
     });
 
     it("does not retire jobs in manual mode", async () => {

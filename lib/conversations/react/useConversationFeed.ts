@@ -6,7 +6,7 @@
  * Testable: accepts injected clients for mocking
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { LiveResponse, SubmitResponseInput } from "../domain/listen.types";
 import type { IConversationResponsesClient } from "../data/responsesClient";
 import type { IResponseLikesClient } from "../data/likesClient";
@@ -24,9 +24,15 @@ interface UseConversationFeedReturn {
   isLoadingFeed: boolean;
   isSubmitting: boolean;
   error: string | null;
+  /** Whether initial load has completed (used to prevent loading skeleton on refreshes) */
+  hasLoadedOnce: boolean;
   submit: (input: SubmitResponseInput) => Promise<void>;
   toggleLike: (responseId: string) => Promise<void>;
   refresh: () => Promise<void>;
+  /** Append a single response without loading state (for realtime updates) */
+  appendResponse: (response: LiveResponse) => void;
+  /** Refresh feed without showing loading state (for background sync) */
+  silentRefresh: () => Promise<void>;
 }
 
 /**
@@ -36,6 +42,8 @@ interface UseConversationFeedReturn {
  * - Loads feed on mount
  * - Submits new responses with optimistic prepend
  * - Toggles likes with optimistic update and revert on failure
+ * - Supports realtime updates via appendResponse (no loading state)
+ * - Supports background sync via silentRefresh (no loading state)
  *
  * @param options - Hook configuration
  * @returns Feed state and actions
@@ -53,6 +61,10 @@ export function useConversationFeed({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track whether initial load has completed
+  const hasLoadedOnceRef = useRef(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
   // Load feed on mount
   const loadFeed = useCallback(async () => {
     try {
@@ -60,6 +72,11 @@ export function useConversationFeed({
       setError(null);
       const responses = await client.list(conversationId);
       setFeed(responses);
+      // Mark as loaded once after first successful load
+      if (!hasLoadedOnceRef.current) {
+        hasLoadedOnceRef.current = true;
+        setHasLoadedOnce(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load feed");
     } finally {
@@ -68,6 +85,9 @@ export function useConversationFeed({
   }, [conversationId, client]);
 
   useEffect(() => {
+    // Reset hasLoadedOnce when conversationId changes
+    hasLoadedOnceRef.current = false;
+    setHasLoadedOnce(false);
     loadFeed();
   }, [loadFeed]);
 
@@ -140,13 +160,41 @@ export function useConversationFeed({
     await loadFeed();
   }, [loadFeed]);
 
+  // Silent refresh - refresh without showing loading state (for background sync)
+  const silentRefresh = useCallback(async () => {
+    try {
+      setError(null);
+      const responses = await client.list(conversationId);
+      setFeed(responses);
+    } catch (err) {
+      // Don't set error for silent refresh - it's a background operation
+      console.error("[useConversationFeed] Silent refresh failed:", err);
+    }
+  }, [conversationId, client]);
+
+  // Append a single response without loading state (for realtime updates)
+  const appendResponse = useCallback((response: LiveResponse) => {
+    setFeed((prev) => {
+      // Deduplicate: if response already exists, don't add again
+      // This handles the case where the submitter already has it via optimistic update
+      if (prev.some((r) => r.id === response.id)) {
+        return prev;
+      }
+      // Prepend new response (newest first)
+      return [response, ...prev];
+    });
+  }, []);
+
   return {
     feed,
     isLoadingFeed,
     isSubmitting,
     error,
+    hasLoadedOnce,
     submit,
     toggleLike,
     refresh,
+    appendResponse,
+    silentRefresh,
   };
 }

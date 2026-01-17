@@ -97,6 +97,37 @@ export interface FrequentlyMentionedGroup {
     minGroupSize: number;
     algorithmVersion: string;
   };
+  /**
+   * LLM-synthesized consolidated statement (if available)
+   * When present, this should be displayed instead of the representative's text
+   */
+  consolidatedStatement?: string | null;
+  /**
+   * IDs of responses that were combined into the consolidated statement
+   */
+  combinedResponseIds?: string[];
+  /**
+   * Original responses in "id: text | id: text" format for traceability
+   */
+  combinedResponses?: string;
+}
+
+/**
+ * A semantic bucket within a cluster (LLM-generated)
+ * Groups responses that express similar ideas
+ */
+export interface ClusterBucket {
+  bucketId: string;
+  clusterIndex: number;
+  bucketName: string;
+  consolidatedStatement: string;
+  /** Original responses that were consolidated into this bucket */
+  responses: Array<{
+    id: string;
+    responseText: string;
+    tag: string | null;
+  }>;
+  responseCount: number;
 }
 
 /**
@@ -109,6 +140,10 @@ export interface UnderstandViewModel {
   themes: ThemeRow[];
   feedbackItems: FeedbackItem[];
   frequentlyMentionedGroups?: FrequentlyMentionedGroup[];
+  /** LLM-generated semantic buckets per cluster */
+  clusterBuckets?: ClusterBucket[];
+  /** Response IDs that couldn't be consolidated */
+  unconsolidatedResponseIds?: string[];
   analysisStatus?: "not_started" | "embedding" | "analyzing" | "ready" | "error" | null;
   analysisError?: string | null;
   responseCount?: number;

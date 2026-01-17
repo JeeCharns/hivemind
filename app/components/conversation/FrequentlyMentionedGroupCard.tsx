@@ -35,7 +35,16 @@ export default function FrequentlyMentionedGroupCard({
   conversationType = "understand",
 }: FrequentlyMentionedGroupCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { representative, similarResponses } = group;
+  const { representative, similarResponses, consolidatedStatement } = group;
+
+  // Use consolidated statement if available, otherwise fall back to representative text
+  const displayText = consolidatedStatement || representative.responseText;
+  const hasConsolidation = !!consolidatedStatement;
+
+  // When consolidated, all original responses (including representative) should be shown in dropdown
+  const totalCombinedCount = hasConsolidation
+    ? similarResponses.length + 1 // Include representative in count
+    : similarResponses.length;
 
   return (
     <div className="rounded-2xl space-y-3">
@@ -43,7 +52,7 @@ export default function FrequentlyMentionedGroupCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center py-1 text-label rounded-full text-indigo-700">
-            Frequently mentioned
+            {hasConsolidation ? "Consolidated view" : "Frequently mentioned"}
           </span>
           {representative.tag && (
             <span
@@ -61,9 +70,9 @@ export default function FrequentlyMentionedGroupCard({
         </span>
       </div>
 
-      {/* Representative response text */}
+      {/* Display text - consolidated statement or representative */}
       <p className="text-subtitle text-slate-800 leading-relaxed">
-        {representative.responseText}
+        {displayText}
       </p>
 
       {/* Voting buttons */}
@@ -112,7 +121,7 @@ export default function FrequentlyMentionedGroupCard({
       )}
 
       {/* Expand/collapse toggle */}
-      {similarResponses.length > 0 && (
+      {totalCombinedCount > 0 && (
         <div className="pt-2">
           <Button
             variant="ghost"
@@ -121,8 +130,9 @@ export default function FrequentlyMentionedGroupCard({
             className="w-full flex items-center justify-between text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg transition"
           >
             <span className="text-subtitle">
-              {isExpanded ? "Hide" : "Show"} {similarResponses.length} similar{" "}
-              {similarResponses.length === 1 ? "response" : "responses"}
+              {isExpanded ? "Hide" : "Show"} {totalCombinedCount}{" "}
+              {hasConsolidation ? "combined" : "similar"}{" "}
+              {totalCombinedCount === 1 ? "response" : "responses"}
             </span>
             <CaretDown
               size={16}
@@ -131,9 +141,26 @@ export default function FrequentlyMentionedGroupCard({
             />
           </Button>
 
-          {/* Expanded similar responses */}
+          {/* Expanded responses */}
           {isExpanded && (
             <div className="mt-3 space-y-3 pl-4 border-l-2 border-indigo-200">
+              {/* When consolidated, show representative first as part of combined responses */}
+              {hasConsolidation && (
+                <div className="space-y-1">
+                  {representative.tag && (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 text-label rounded-full border ${getTagColors(
+                        representative.tag
+                      )}`}
+                    >
+                      {representative.tag}
+                    </span>
+                  )}
+                  <p className="text-body text-slate-700 leading-relaxed">
+                    {representative.responseText}
+                  </p>
+                </div>
+              )}
               {similarResponses.map((similar) => (
                 <div key={similar.id} className="space-y-1">
                   {similar.tag && (

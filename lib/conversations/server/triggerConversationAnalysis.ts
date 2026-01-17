@@ -111,8 +111,8 @@ export async function triggerConversationAnalysis(
     `[triggerConversationAnalysis] currentCount=${currentCount} analyzedCount=${analyzedCount} newCount=${newCount} isFresh=${isFresh} isStale=${isStale}`
   );
 
-  // 7. If fresh, no-op
-  if (isFresh) {
+  // 7. If fresh, no-op (unless regenerate mode, which forces re-analysis)
+  if (isFresh && request.mode !== "regenerate") {
     return {
       status: "already_complete",
       reason: "fresh",
@@ -150,6 +150,7 @@ export async function triggerConversationAnalysis(
   }
 
   // 9. Decide strategy
+  // Regenerate mode with auto strategy defaults to full for complete re-analysis
   let chosenStrategy: "incremental" | "full" = "full";
 
   if (request.strategy === "full") {
@@ -157,8 +158,10 @@ export async function triggerConversationAnalysis(
   } else if (request.strategy === "incremental") {
     chosenStrategy = "incremental";
   } else {
-    // auto mode
-    if (isStale && newCount < INCREMENTAL_THRESHOLD) {
+    // auto mode - regenerate defaults to full, manual uses threshold logic
+    if (request.mode === "regenerate") {
+      chosenStrategy = "full";
+    } else if (isStale && newCount < INCREMENTAL_THRESHOLD) {
       // Check prerequisites for incremental
       const hasPrereqs = await checkIncrementalPrerequisites(
         supabase,

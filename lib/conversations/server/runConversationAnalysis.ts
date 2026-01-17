@@ -14,6 +14,8 @@ import { generateThemes, type Theme } from "@/lib/analysis/openai/themeGenerator
 import { groupResponsesBySimilarity, DEFAULT_GROUPING_PARAMS } from "../domain/similarityGrouping";
 import { saveResponseEmbeddings } from "./saveResponseEmbeddings";
 import { saveResponseGroups } from "./saveResponseGroups";
+import { consolidateClusters, type ClusterResponse } from "@/lib/analysis/openai/clusterConsolidator";
+import { saveClusterConsolidation } from "./saveClusterConsolidation";
 import { computeMADZScores, detectOutliersPerCluster } from "../domain/outlierDetection";
 import {
   MISC_CLUSTER_INDEX,
@@ -255,6 +257,36 @@ export async function runConversationAnalysis(
     await saveResponseGroups(supabase, conversationId, groups, DEFAULT_GROUPING_PARAMS);
 
     console.log(`[runConversationAnalysis] Created ${groups.length} frequently mentioned groups`);
+
+    // 12a. Consolidate clusters using LLM-driven semantic bucketing
+    // Build map of cluster index to responses (excluding misc/outliers)
+    const clusterResponses = new Map<number, ClusterResponse[]>();
+    for (let i = 0; i < responses.length; i++) {
+      const clusterIndex = clusterIndices[i];
+      // Skip misc/outlier responses (cluster index -1)
+      if (clusterIndex === MISC_CLUSTER_INDEX) continue;
+
+      if (!clusterResponses.has(clusterIndex)) {
+        clusterResponses.set(clusterIndex, []);
+      }
+      clusterResponses.get(clusterIndex)!.push({
+        id: String(responses[i].id), // Ensure string for consistent comparison
+        text: responses[i].text,
+      });
+    }
+
+    if (clusterResponses.size > 0) {
+      console.log(
+        `[runConversationAnalysis] Consolidating ${clusterResponses.size} clusters`
+      );
+
+      const consolidationResults = await consolidateClusters(openai, clusterResponses);
+      await saveClusterConsolidation(supabase, conversationId, consolidationResults);
+
+      console.log(
+        `[runConversationAnalysis] Saved cluster consolidation for ${consolidationResults.length} clusters`
+      );
+    }
 
     // 13. Update status to 'ready' with tracking metadata
     await updateAnalysisStatus(supabase, conversationId, "ready");

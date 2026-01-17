@@ -365,4 +365,173 @@ describe("useConversationFeed", () => {
     expect(result.current.feed.length).toBe(2);
     expect(mockResponsesClient.listCalls).toHaveLength(2);
   });
+
+  it("should set hasLoadedOnce after initial load", async () => {
+    const mockResponses: LiveResponse[] = [
+      {
+        id: "1",
+        text: "First response",
+        tag: "need",
+        createdAt: "2025-01-01T00:00:00Z",
+        user: { name: "User 1", avatarUrl: null },
+        likeCount: 5,
+        likedByMe: false,
+      },
+    ];
+
+    mockResponsesClient.setResponses(mockResponses);
+
+    const { result } = renderHook(() =>
+      useConversationFeed({
+        conversationId: "conv-1",
+        responsesClient: mockResponsesClient,
+        likesClient: mockLikesClient,
+      })
+    );
+
+    // Initially false
+    expect(result.current.hasLoadedOnce).toBe(false);
+
+    await waitFor(() => {
+      expect(result.current.isLoadingFeed).toBe(false);
+    });
+
+    // After load, should be true
+    expect(result.current.hasLoadedOnce).toBe(true);
+  });
+
+  it("should append response without duplicates", async () => {
+    const existingResponse: LiveResponse = {
+      id: "existing-1",
+      text: "Existing response",
+      tag: "need",
+      createdAt: "2025-01-01T00:00:00Z",
+      user: { name: "User 1", avatarUrl: null },
+      likeCount: 5,
+      likedByMe: false,
+    };
+
+    mockResponsesClient.setResponses([existingResponse]);
+
+    const { result } = renderHook(() =>
+      useConversationFeed({
+        conversationId: "conv-1",
+        responsesClient: mockResponsesClient,
+        likesClient: mockLikesClient,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoadingFeed).toBe(false);
+    });
+
+    const newResponse: LiveResponse = {
+      id: "new-1",
+      text: "New response",
+      tag: "data",
+      createdAt: "2025-01-02T00:00:00Z",
+      user: { name: "User 2", avatarUrl: null },
+      likeCount: 0,
+      likedByMe: false,
+    };
+
+    // Append new response
+    act(() => {
+      result.current.appendResponse(newResponse);
+    });
+
+    expect(result.current.feed.length).toBe(2);
+    expect(result.current.feed[0].id).toBe("new-1"); // Prepended
+
+    // Try to append same response again (should be deduplicated)
+    act(() => {
+      result.current.appendResponse(newResponse);
+    });
+
+    expect(result.current.feed.length).toBe(2); // Still 2, not 3
+  });
+
+  it("should silent refresh without setting loading state", async () => {
+    const mockResponses: LiveResponse[] = [
+      {
+        id: "1",
+        text: "First response",
+        tag: "need",
+        createdAt: "2025-01-01T00:00:00Z",
+        user: { name: "User 1", avatarUrl: null },
+        likeCount: 5,
+        likedByMe: false,
+      },
+    ];
+
+    mockResponsesClient.setResponses(mockResponses);
+
+    const { result } = renderHook(() =>
+      useConversationFeed({
+        conversationId: "conv-1",
+        responsesClient: mockResponsesClient,
+        likesClient: mockLikesClient,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoadingFeed).toBe(false);
+    });
+
+    // Add another response to mock data
+    mockResponses.push({
+      id: "2",
+      text: "Second response",
+      tag: "data",
+      createdAt: "2025-01-02T00:00:00Z",
+      user: { name: "User 2", avatarUrl: null },
+      likeCount: 0,
+      likedByMe: false,
+    });
+
+    // Silent refresh - should NOT set isLoadingFeed to true
+    let loadingDuringRefresh = false;
+    const checkLoading = () => {
+      if (result.current.isLoadingFeed) {
+        loadingDuringRefresh = true;
+      }
+    };
+
+    await act(async () => {
+      const refreshPromise = result.current.silentRefresh();
+      checkLoading();
+      await refreshPromise;
+    });
+
+    expect(loadingDuringRefresh).toBe(false);
+    expect(result.current.feed.length).toBe(2);
+  });
+
+  it("should not show error on silent refresh failure", async () => {
+    mockResponsesClient.setResponses([]);
+
+    const { result } = renderHook(() =>
+      useConversationFeed({
+        conversationId: "conv-1",
+        responsesClient: mockResponsesClient,
+        likesClient: mockLikesClient,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoadingFeed).toBe(false);
+    });
+
+    // Make next call fail
+    mockResponsesClient.list = async () => {
+      throw new Error("Network error");
+    };
+
+    // Silent refresh should not set error
+    await act(async () => {
+      await result.current.silentRefresh();
+    });
+
+    expect(result.current.error).toBeNull();
+  });
 });

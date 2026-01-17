@@ -6,11 +6,15 @@
  * Left column: Response composer with textarea, tag chips, and "Post as" dropdown
  * Right column: Live feed of responses with likes
  * Follows SRP: UI only, business logic in useConversationFeed hook
+ *
+ * Real-time updates:
+ * - Uses broadcast channel for instant response appends (no loading state)
+ * - Background sync every 30s ensures eventual consistency
+ * - Like updates trigger debounced silent refresh
  */
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ThumbsUp, PaperPlaneTilt, CaretDown, FileText, DownloadSimple } from "@phosphor-icons/react";
-import { supabase } from "@/lib/supabase/client";
 import {
   getTagColors,
   getTagHoverClasses,
@@ -21,6 +25,7 @@ import {
 import type { AnalysisStatus } from "@/types/conversations";
 import type { ListenTag, SubmitResponseInput } from "@/lib/conversations/domain/listen.types";
 import { useConversationFeed } from "@/lib/conversations/react/useConversationFeed";
+import { useConversationFeedRealtime } from "@/lib/conversations/react/useConversationFeedRealtime";
 import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
 import Button from "@/app/components/button";
 import Link from "next/link";
@@ -51,8 +56,17 @@ export default function ListenView({
     conversationId: string;
   }>();
 
-  const { feed, isLoadingFeed, isSubmitting, error, submit, toggleLike, refresh } =
-    useConversationFeed({ conversationId });
+  const {
+    feed,
+    isLoadingFeed,
+    isSubmitting,
+    error,
+    hasLoadedOnce,
+    submit,
+    toggleLike,
+    appendResponse,
+    silentRefresh,
+  } = useConversationFeed({ conversationId });
 
   const [text, setText] = useState("");
   const [tag, setTag] = useState<ListenTag | null>(null);
@@ -66,6 +80,39 @@ export default function ListenView({
   const postAsRef = useRef<HTMLDivElement | null>(null);
 
   const displayName = currentUserDisplayName || "User";
+
+  // Memoize callbacks for realtime hook to prevent unnecessary re-subscriptions
+  const handleNewResponse = useCallback(
+    (response: Parameters<typeof appendResponse>[0]) => {
+      appendResponse(response);
+    },
+    [appendResponse]
+  );
+
+  const handleLikeUpdate = useCallback(() => {
+    silentRefresh();
+  }, [silentRefresh]);
+
+  // Real-time subscription via broadcast channel (no loading state on updates)
+  const { status: realtimeStatus } = useConversationFeedRealtime({
+    conversationId,
+    enabled: hasLoadedOnce,
+    onNewResponse: handleNewResponse,
+    onLikeUpdate: handleLikeUpdate,
+  });
+
+  // Background sync every 30 seconds when tab is visible (eventual consistency)
+  useEffect(() => {
+    if (!hasLoadedOnce) return;
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        silentRefresh();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [hasLoadedOnce, silentRefresh]);
 
   // Poll for analysis status
   const { data: statusData } = useAnalysisStatus({
@@ -116,38 +163,6 @@ export default function ListenView({
     }
     return () => window.removeEventListener("click", onClickAway);
   }, [postAsOpen]);
-
-  // Real-time subscription to refresh feed on new responses or likes
-  useEffect(() => {
-    if (!supabase) return;
-
-    const channel = supabase
-      .channel(`conversation-${conversationId}-responses`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "conversation_responses",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        () => refresh()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "response_likes",
-        },
-        () => refresh()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, refresh]);
 
   const TagButtons = useMemo(
     () =>
@@ -372,13 +387,22 @@ export default function ListenView({
           {/* Right column: Live feed */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 h-full overflow-y-auto max-h-[calc(100vh-220px)] space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-h4 text-slate-900">Live Feed</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-h4 text-slate-900">Live Feed</h3>
+                {realtimeStatus === "connected" && (
+                  <span className="flex items-center gap-1 text-xs text-emerald-600">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                    Live
+                  </span>
+                )}
+              </div>
               {showSpinner && (
                 <span className="inline-block w-4 h-4 aspect-square border-2 border-indigo-200 border-t-indigo-600 spinner-round animate-spin" />
               )}
             </div>
 
-            {isLoadingFeed ? (
+            {/* Only show skeleton on initial load, not on subsequent refreshes */}
+            {isLoadingFeed && !hasLoadedOnce ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div

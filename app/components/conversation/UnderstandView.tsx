@@ -18,6 +18,7 @@ import { getTagColors } from "@/lib/conversations/domain/tags";
 import Button from "@/app/components/button";
 import type { Feedback } from "@/types/conversation-understand";
 import FrequentlyMentionedGroupCard from "./FrequentlyMentionedGroupCard";
+import ClusterBucketCard from "./ClusterBucketCard";
 import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
 import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
 import { buildClusterSummaries } from "@/lib/conversations/domain/buildClusterSummaries";
@@ -115,6 +116,8 @@ export default function UnderstandView({
     themes,
     feedbackItems,
     frequentlyMentionedGroups: initialGroups,
+    clusterBuckets,
+    unconsolidatedResponseIds,
   } = viewModel;
 
   // Filter state: "all" | "unclustered" | cluster index (number)
@@ -288,7 +291,7 @@ export default function UnderstandView({
     });
   }
 
-  // Filter groups for selected theme
+  // Filter groups for selected theme (legacy - used when no cluster buckets available)
   const filteredGroups = useMemo(() => {
     if (!frequentlyMentionedGroups) return [];
     const groups =
@@ -312,20 +315,49 @@ export default function UnderstandView({
     });
   }, [frequentlyMentionedGroups, selectedTheme]);
 
+  // Filter cluster buckets for selected theme (new LLM-driven consolidation)
+  const filteredBuckets = useMemo(() => {
+    if (!clusterBuckets || clusterBuckets.length === 0) return [];
+    if (selectedTheme === "all") return clusterBuckets;
+    if (selectedTheme === "unclustered") return [];
+    return clusterBuckets.filter((b) => b.clusterIndex === selectedTheme);
+  }, [clusterBuckets, selectedTheme]);
+
+  // Determine if we should use cluster buckets (new) vs groups (legacy)
+  const useClusterBuckets = filteredBuckets.length > 0;
+
   // Create set of grouped response IDs to avoid duplicate rendering
   const groupedResponseIds = useMemo(() => {
     const ids = new Set<string>();
-    filteredGroups.forEach((group) => {
-      ids.add(group.representative.id);
-      group.similarResponses.forEach((resp) => ids.add(resp.id));
-    });
-    return ids;
-  }, [filteredGroups]);
 
-  // Filter out responses that are already in groups
+    // Add IDs from cluster buckets (new system)
+    if (useClusterBuckets) {
+      filteredBuckets.forEach((bucket) => {
+        bucket.responses.forEach((resp) => ids.add(resp.id));
+      });
+    } else {
+      // Fallback to legacy groups
+      filteredGroups.forEach((group) => {
+        ids.add(group.representative.id);
+        group.similarResponses.forEach((resp) => ids.add(resp.id));
+      });
+    }
+    return ids;
+  }, [filteredGroups, filteredBuckets, useClusterBuckets]);
+
+  // Filter out responses that are already in groups/buckets
+  // When using cluster buckets, show unconsolidated responses as "ungrouped"
   const ungroupedItems = useMemo(() => {
-    return filteredItems.filter((item) => !groupedResponseIds.has(item.id));
-  }, [filteredItems, groupedResponseIds]);
+    const base = filteredItems.filter((item) => !groupedResponseIds.has(item.id));
+
+    // If using cluster buckets, also filter to only show unconsolidated items
+    if (useClusterBuckets && unconsolidatedResponseIds && unconsolidatedResponseIds.length > 0) {
+      const unconsolidatedSet = new Set(unconsolidatedResponseIds);
+      return base.filter((item) => unconsolidatedSet.has(item.id));
+    }
+
+    return base;
+  }, [filteredItems, groupedResponseIds, useClusterBuckets, unconsolidatedResponseIds]);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -872,8 +904,17 @@ export default function UnderstandView({
             ) : (
               /* Regular response list for filtered views */
               <>
-                {/* Render frequently mentioned groups first */}
-                {filteredGroups.map((group) => (
+                {/* Render cluster buckets (new LLM-driven consolidation) */}
+                {useClusterBuckets && filteredBuckets.map((bucket) => (
+                  <ClusterBucketCard
+                    key={bucket.bucketId}
+                    bucket={bucket}
+                    themeColor={getThemeColor(bucket.clusterIndex)}
+                  />
+                ))}
+
+                {/* Fallback: Render frequently mentioned groups (legacy) */}
+                {!useClusterBuckets && filteredGroups.map((group) => (
                   <FrequentlyMentionedGroupCard
                     key={group.groupId}
                     group={group}
@@ -883,7 +924,7 @@ export default function UnderstandView({
                   />
                 ))}
 
-                {/* Render ungrouped responses */}
+                {/* Render ungrouped/unconsolidated responses */}
                 {ungroupedItems.map((resp) => (
                   <div key={resp.id} className="rounded-2xl space-y-3">
                     <div className="flex items-center justify-between">

@@ -51,3 +51,15 @@ export interface LikeToggleResult {
   likeCount?: number;
   error?: string;
 }
+
+/**
+ * Broadcast event payload for new responses
+ */
+export interface FeedBroadcastPayload {
+  response: LiveResponse;
+}
+
+/**
+ * Realtime connection status
+ */
+export type RealtimeStatus = "connecting" | "connected" | "error" | "disconnected";
