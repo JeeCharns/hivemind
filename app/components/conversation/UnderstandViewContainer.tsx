@@ -345,7 +345,7 @@ export default function UnderstandViewContainer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "regenerate",
-          strategy: "auto",
+          strategy: "full",
         }),
       });
 

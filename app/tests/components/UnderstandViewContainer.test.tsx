@@ -174,7 +174,7 @@ describe("UnderstandViewContainer", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "regenerate", strategy: "auto" }),
+        body: JSON.stringify({ mode: "regenerate", strategy: "full" }),
       })
     );
     (globalThis as unknown as { fetch?: unknown }).fetch = previousFetch;

@@ -331,7 +331,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 // Start worker
-if (require.main === module) {
+const isMainModule =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith("analysis-worker.ts");
+
+if (isMainModule) {
   runWorker().catch((error) => {
     logger.error("Worker crashed", {
       error: error instanceof Error ? error.message : "Unknown error",
