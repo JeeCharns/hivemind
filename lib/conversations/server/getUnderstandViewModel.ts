@@ -138,6 +138,8 @@ export async function getUnderstandViewModel(
   conversationId: string,
   userId: string
 ): Promise<UnderstandViewModel> {
+  console.log("[getUnderstandViewModel] START - conversationId:", conversationId);
+
   // 1. Verify conversation exists and get hive_id + analysis metadata
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
