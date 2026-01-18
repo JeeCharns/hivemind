@@ -86,7 +86,18 @@ export function useConversationAnalysisRealtime({
           filter: `id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log("[realtime] conversations update:", payload);
+          const newStatus = (payload.new as { analysis_status?: string })?.analysis_status;
+          console.log("[Analysis] Realtime: conversation updated");
+          console.log("[Analysis] → analysis_status:", newStatus);
+          if (newStatus === "embedding") {
+            console.log("[Analysis] → Step 1/3: Generating embeddings...");
+          } else if (newStatus === "analyzing") {
+            console.log("[Analysis] → Step 2/3: Clustering and generating themes...");
+          } else if (newStatus === "ready") {
+            console.log("[Analysis] → Step 3/3: Analysis complete!");
+          } else if (newStatus === "error") {
+            console.log("[Analysis] → Analysis failed with error");
+          }
           // Trigger refresh when analysis status changes
           debouncedRefresh();
         }
@@ -100,18 +111,21 @@ export function useConversationAnalysisRealtime({
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log("[realtime] conversation_themes change:", payload);
+          console.log("[Analysis] Realtime: themes updated");
+          console.log("[Analysis] → event:", payload.eventType);
           // Trigger refresh when themes are inserted/updated/deleted
           debouncedRefresh();
         }
       )
       .subscribe((status) => {
-        console.log("[realtime] subscription status:", status);
+        console.log("[Analysis] Realtime subscription:", status);
 
         if (status === "SUBSCRIBED") {
+          console.log("[Analysis] ✓ Live updates enabled - listening for changes...");
           setStatus("connected");
           setError(undefined);
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.log("[Analysis] ✗ Realtime connection failed, falling back to polling");
           setStatus("error");
           setError(`Realtime connection ${status.toLowerCase()}`);
         } else if (status === "CLOSED") {

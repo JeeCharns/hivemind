@@ -208,8 +208,14 @@ export default function UnderstandView({
 
   // Build cluster summaries for "All themes" view
   const clusterSummaries = useMemo(
-    () => buildClusterSummaries(responses, themes, items),
-    [responses, themes, items]
+    () => buildClusterSummaries(responses, themes, items, clusterBuckets),
+    [responses, themes, items, clusterBuckets]
+  );
+
+  // Create a map of response IDs to feedback items for ClusterBucketCard voting
+  const feedbackById = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items]
   );
 
   // Determine current zoom tier for LOD rendering
@@ -283,11 +289,14 @@ export default function UnderstandView({
       selectedTheme,
       totalItems: items.length,
       filteredCount: filteredItems.length,
-      clusterDistribution: items.reduce((acc, item) => {
-        const key = item.clusterIndex === null ? "null" : item.clusterIndex;
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-      }, {} as Record<string | number, number>),
+      clusterDistribution: items.reduce(
+        (acc, item) => {
+          const key = item.clusterIndex === null ? "null" : item.clusterIndex;
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string | number, number>
+      ),
     });
   }
 
@@ -348,16 +357,27 @@ export default function UnderstandView({
   // Filter out responses that are already in groups/buckets
   // When using cluster buckets, show unconsolidated responses as "ungrouped"
   const ungroupedItems = useMemo(() => {
-    const base = filteredItems.filter((item) => !groupedResponseIds.has(item.id));
+    const base = filteredItems.filter(
+      (item) => !groupedResponseIds.has(item.id)
+    );
 
     // If using cluster buckets, also filter to only show unconsolidated items
-    if (useClusterBuckets && unconsolidatedResponseIds && unconsolidatedResponseIds.length > 0) {
+    if (
+      useClusterBuckets &&
+      unconsolidatedResponseIds &&
+      unconsolidatedResponseIds.length > 0
+    ) {
       const unconsolidatedSet = new Set(unconsolidatedResponseIds);
       return base.filter((item) => unconsolidatedSet.has(item.id));
     }
 
     return base;
-  }, [filteredItems, groupedResponseIds, useClusterBuckets, unconsolidatedResponseIds]);
+  }, [
+    filteredItems,
+    groupedResponseIds,
+    useClusterBuckets,
+    unconsolidatedResponseIds,
+  ]);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -612,109 +632,141 @@ export default function UnderstandView({
                     />
                   </g>
 
-                  {clusterMeta.map((meta) => {
-                    const active =
-                      selectedTheme === "all" ||
-                      selectedTheme === meta.idx;
-                    const hover = hoveredCluster === meta.idx;
-                    const borderOpacity = active ? (hover ? 0.4 : 0.3) : 0.2;
-                    const fillOpacity = active ? 0.08 : 0.05;
-                    return (
-                      <g
-                        key={meta.idx}
-                        className="cursor-pointer"
-                        onMouseEnter={() => setHoveredCluster(meta.idx)}
-                        onMouseLeave={() => setHoveredCluster(null)}
-                        onClick={() =>
-                          setSelectedTheme((prev) =>
-                            prev === meta.idx ? "all" : meta.idx
-                          )
-                        }
-                      >
-                        <path
-                          d={meta.hullPath}
-                          fill={meta.color}
-                          fillOpacity={fillOpacity}
-                          stroke={meta.color}
-                          strokeOpacity={borderOpacity}
-                          strokeWidth={
-                            active
-                              ? zoomConfig.clusterStrokeWidth
-                              : zoomConfig.clusterStrokeWidth * 0.5
+                  {/* Render dots that don't belong to the hovered cluster (below clusters) */}
+                  {points
+                    .filter((p) => p.clusterIndex !== hoveredCluster)
+                    .map((p) => {
+                      const active =
+                        selectedTheme === "all" ||
+                        (selectedTheme === "unclustered" &&
+                          p.clusterIndex === null) ||
+                        p.clusterIndex === selectedTheme;
+                      return (
+                        <circle
+                          key={p.id}
+                          cx={p.sx}
+                          cy={p.sy}
+                          r={zoomConfig.dotRadius}
+                          fill={
+                            p.clusterIndex === MISC_CLUSTER_INDEX
+                              ? MISC_COLOR
+                              : p.clusterIndex !== null
+                                ? palette[p.clusterIndex % palette.length]
+                                : "#94a3b8"
                           }
-                        />
-                      </g>
-                    );
-                  })}
-                  {points.map((p) => {
-                    const active =
-                      selectedTheme === "all" ||
-                      (selectedTheme === "unclustered" && p.clusterIndex === null) ||
-                      p.clusterIndex === selectedTheme;
-                    return (
-                      <circle
-                        key={p.id}
-                        cx={p.sx}
-                        cy={p.sy}
-                        r={zoomConfig.dotRadius}
-                        fill={
-                          p.clusterIndex === MISC_CLUSTER_INDEX
-                            ? MISC_COLOR
-                            : p.clusterIndex !== null
-                              ? palette[p.clusterIndex % palette.length]
-                              : "#94a3b8"
-                        }
-                        opacity={active ? 0.9 : 0.15}
-                      >
-                        <title suppressHydrationWarning>
-                          {p.responseText.slice(0, 80)}
-                          {p.responseText.length > 80 ? "…" : ""}{" "}
-                          {p.tag ? `(${p.tag})` : ""}
-                        </title>
-                      </circle>
-                    );
-                  })}
-                  {/* Cluster labels as SVG text */}
-                  {clusterMeta.map((meta) => {
-                    const active =
-                      selectedTheme === "all" || selectedTheme === meta.idx;
-                    // Approximate text width (rough estimation: ~7px per character for 12px font)
-                    const textWidth = meta.themeName.length * 7;
-                    const padding = 12; // Reduced from 20px
-                    const rectWidth = textWidth + padding;
-                    const rectHeight = 20;
-
-                    return (
-                      <g key={`label-${meta.idx}`}>
-                        {/* Background pill */}
-                        <rect
-                          x={meta.cx - rectWidth / 2}
-                          y={meta.cy - rectHeight / 2}
-                          width={rectWidth}
-                          height={rectHeight}
-                          rx={10}
-                          fill="rgba(255,255,255,0.95)"
-                          stroke={meta.color}
-                          strokeOpacity={0.2}
-                          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.08))"
-                        />
-                        {/* Label text */}
-                        <text
-                          x={meta.cx}
-                          y={meta.cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill={meta.color}
-                          fontSize="12"
-                          fontWeight="500"
-                          opacity={active ? 1 : 0.6}
-                          pointerEvents="none"
+                          opacity={active ? 0.9 : 0.15}
                         >
-                          {meta.themeName}
-                        </text>
-                      </g>
-                    );
-                  })}
+                          <title suppressHydrationWarning>
+                            {p.responseText.slice(0, 80)}
+                            {p.responseText.length > 80 ? "…" : ""}{" "}
+                            {p.tag ? `(${p.tag})` : ""}
+                          </title>
+                        </circle>
+                      );
+                    })}
+
+                  {/* Sort clusters so hovered one renders last (on top in SVG) */}
+                  {[...clusterMeta]
+                    .sort((a, b) => {
+                      if (hoveredCluster === a.idx) return 1;
+                      if (hoveredCluster === b.idx) return -1;
+                      return 0;
+                    })
+                    .map((meta) => {
+                      const active =
+                        selectedTheme === "all" || selectedTheme === meta.idx;
+                      const hover = hoveredCluster === meta.idx;
+                      const borderOpacity = active ? (hover ? 0.6 : 0.3) : 0.2;
+                      const fillOpacity = active ? (hover ? 0.12 : 0.08) : 0.05;
+                      const strokeWidth = hover
+                        ? zoomConfig.clusterStrokeWidth * 2.5
+                        : active
+                          ? zoomConfig.clusterStrokeWidth
+                          : zoomConfig.clusterStrokeWidth * 0.5;
+
+                      // Label dimensions
+                      const textWidth = meta.themeName.length * 7;
+                      const padding = 12;
+                      const rectWidth = textWidth + padding;
+                      const rectHeight = 20;
+
+                      // Get dots for this cluster (only rendered for hovered cluster)
+                      const clusterDots = hover
+                        ? points.filter((p) => p.clusterIndex === meta.idx)
+                        : [];
+
+                      return (
+                        <g
+                          key={meta.idx}
+                          className="cursor-pointer"
+                          onMouseEnter={() => setHoveredCluster(meta.idx)}
+                          onMouseLeave={() => setHoveredCluster(null)}
+                          onClick={() =>
+                            setSelectedTheme((prev) =>
+                              prev === meta.idx ? "all" : meta.idx
+                            )
+                          }
+                        >
+                          {/* Cluster shape */}
+                          <path
+                            d={meta.hullPath}
+                            fill={meta.color}
+                            fillOpacity={fillOpacity}
+                            stroke={meta.color}
+                            strokeOpacity={borderOpacity}
+                            strokeWidth={strokeWidth}
+                            className="transition-all duration-150"
+                          />
+                          {/* Dots for hovered cluster (render above shape but below label) */}
+                          {clusterDots.map((p) => {
+                            const dotActive =
+                              selectedTheme === "all" ||
+                              p.clusterIndex === selectedTheme;
+                            return (
+                              <circle
+                                key={p.id}
+                                cx={p.sx}
+                                cy={p.sy}
+                                r={zoomConfig.dotRadius}
+                                fill={palette[meta.idx % palette.length]}
+                                opacity={dotActive ? 0.9 : 0.15}
+                              >
+                                <title suppressHydrationWarning>
+                                  {p.responseText.slice(0, 80)}
+                                  {p.responseText.length > 80 ? "…" : ""}{" "}
+                                  {p.tag ? `(${p.tag})` : ""}
+                                </title>
+                              </circle>
+                            );
+                          })}
+                          {/* Cluster label */}
+                          <rect
+                            x={meta.cx - rectWidth / 2}
+                            y={meta.cy - rectHeight / 2}
+                            width={rectWidth}
+                            height={rectHeight}
+                            rx={10}
+                            fill="rgba(255,255,255,0.95)"
+                            stroke={meta.color}
+                            strokeOpacity={0.2}
+                            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.08))"
+                          />
+                          <text
+                            x={meta.cx}
+                            y={meta.cy}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill={meta.color}
+                            fontSize="12"
+                            fontWeight="500"
+                            opacity={active ? 1 : 0.6}
+                            pointerEvents="none"
+                          >
+                            {meta.themeName}
+                          </text>
+                        </g>
+                      );
+                    })}
                 </svg>
                 {filteredPoints.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center text-body text-slate-500">
@@ -730,103 +782,48 @@ export default function UnderstandView({
 
         {/* Right column: Response list */}
         <div className="bg-white space-y-4 p-8 rounded-2xl h-full overflow-y-auto shadow-sm border border-slate-100">
-          <div className="space-y-3">
+          {/* Back button and theme title - shown when viewing a specific theme */}
+          {selectedTheme !== "all" && (
             <div className="flex items-center gap-3">
-              <label className="text-subtitle text-slate-700 whitespace-nowrap">
-                Filter by theme:
-              </label>
-              <div className="relative flex-1" ref={dropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="w-full flex items-center justify-between gap-2 px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-body"
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="p-2! aspect-square"
+                onClick={() => setSelectedTheme("all")}
+                aria-label="Back to all themes"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <span className="flex items-center gap-2">
-                    {selectedTheme !== "all" && selectedTheme !== "unclustered" && (
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{
-                          backgroundColor: getThemeColor(selectedTheme),
-                        }}
-                      />
-                    )}
-                    <span className="text-subtitle">{selectedThemeLabel}</span>
-                  </span>
-                  <svg
-                    className={`w-4 h-4 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {dropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50 max-h-80 overflow-y-auto">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTheme("all");
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
-                    >
-                      All themes
-                    </button>
-                    {/* Show unclustered option only if there are unclustered responses */}
-                    {responses.some((r) => r.clusterIndex === null) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedTheme("unclustered");
-                          setDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
-                      >
-                        Unclustered/New responses
-                      </button>
-                    )}
-                    {themes
-                      .sort((a, b) => {
-                        // Misc theme always last
-                        if (a.clusterIndex === MISC_CLUSTER_INDEX) return 1;
-                        if (b.clusterIndex === MISC_CLUSTER_INDEX) return -1;
-                        return 0;
-                      })
-                      .map((theme) => (
-                        <button
-                          key={theme.clusterIndex}
-                          type="button"
-                          onClick={() => {
-                            setSelectedTheme(theme.clusterIndex);
-                            setDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 text-slate-700"
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{
-                              backgroundColor: getThemeColor(
-                                theme.clusterIndex
-                              ),
-                            }}
-                          />
-                          {theme.name || `Theme ${theme.clusterIndex}`}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </Button>
+              <span
+                className="font-display text-lg font-medium"
+                style={{
+                  color:
+                    selectedTheme === "unclustered"
+                      ? "#94a3b8"
+                      : getThemeColor(selectedTheme),
+                }}
+              >
+                {selectedThemeLabel}
+              </span>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-8 pt-4">
+          <div
+            className={selectedTheme === "all" ? "space-y-8" : "space-y-8 pt-4"}
+          >
             {filteredItems.length === 0 ? (
               <div className="text-body text-slate-600">
                 No responses yet. Upload on Listen to get started.
@@ -835,69 +832,54 @@ export default function UnderstandView({
               /* Cluster summary cards for "All themes" view */
               <div className="space-y-6">
                 {clusterSummaries.map((summary) => {
-                  const item = summary.representativeItem;
-                  const themeColor = summary.clusterIndex !== null
-                    ? getThemeColor(summary.clusterIndex)
-                    : "#94a3b8"; // slate for unclustered
+                  const themeColor =
+                    summary.clusterIndex !== null
+                      ? getThemeColor(summary.clusterIndex)
+                      : "#94a3b8"; // slate for unclustered
 
                   return (
-                    <div key={summary.key} className="rounded-2xl space-y-3">
-                      <div className="text-label uppercase tracking-[0.04em]" style={{ color: themeColor }}>
-                        {summary.title}
-                      </div>
-                      <p className="text-body text-slate-800 leading-relaxed line-clamp-3">
-                        {summary.representativeText}
-                      </p>
+                    <button
+                      key={summary.key}
+                      type="button"
+                      className={`w-full text-left bg-white pl-3 space-y-2 transition-all cursor-pointer group ${
+                        hoveredCluster === summary.clusterIndex
+                          ? "border-l-4"
+                          : "border-l-2 hover:border-l-4"
+                      }`}
+                      style={{ borderLeftColor: themeColor }}
+                      onClick={() => setSelectedTheme(summary.filterValue)}
+                      onMouseEnter={() => setHoveredCluster(summary.clusterIndex)}
+                      onMouseLeave={() => setHoveredCluster(null)}
+                    >
                       <div className="flex items-center justify-between">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0 h-auto underline text-slate-500 hover:text-slate-700"
-                          onClick={() => setSelectedTheme(summary.filterValue)}
+                        <div
+                          className="text-label uppercase tracking-[0.04em]"
+                          style={{ color: themeColor }}
                         >
-                          Show {summary.responseCount} response{summary.responseCount !== 1 ? "s" : ""}
-                        </Button>
-                        {conversationType === "understand" && item && (
-                          <div className="flex gap-2">
-                            {(["agree", "pass", "disagree"] as Feedback[]).map(
-                              (fb) => {
-                                const active = item.current === fb;
-                                const hasVoted = item.current !== null;
-                                const isDisabled = hasVoted && !active;
-
-                                const activeStyles =
-                                  fb === "agree"
-                                    ? "!bg-emerald-100 !text-emerald-800 !border-emerald-300 hover:!bg-emerald-100"
-                                    : fb === "disagree"
-                                      ? "!bg-orange-100 !text-orange-800 !border-orange-300 hover:!bg-orange-100"
-                                      : "!bg-slate-200 !text-slate-800 !border-slate-300 hover:!bg-slate-200";
-                                const inactiveStyles =
-                                  "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
-                                const disabledStyles =
-                                  "!bg-slate-100 !text-slate-400 !border-slate-200 !cursor-not-allowed";
-
-                                return (
-                                  <Button
-                                    key={fb}
-                                    variant="secondary"
-                                    size="sm"
-                                    disabled={loadingId === item.id || isDisabled}
-                                    onClick={() => vote(item.id, fb)}
-                                    className={`transition-colors ${
-                                      active ? activeStyles : isDisabled ? disabledStyles : inactiveStyles
-                                    }`}
-                                  >
-                                    {fb === "agree" && "Agree"}
-                                    {fb === "pass" && "Pass"}
-                                    {fb === "disagree" && "Disagree"}
-                                  </Button>
-                                );
-                              }
-                            )}
-                          </div>
-                        )}
+                          {summary.title}
+                        </div>
+                        <span className="text-xs text-slate-400 underline group-hover:text-slate-600 transition-colors">
+                          Show {summary.responseCount} response
+                          {summary.responseCount !== 1 ? "s" : ""}
+                        </span>
                       </div>
-                    </div>
+                      {summary.bucketNames.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {summary.bucketNames.map((name, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700 border border-slate-200"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : summary.description ? (
+                        <p className="text-body text-slate-800 leading-relaxed">
+                          {summary.description}
+                        </p>
+                      ) : null}
+                    </button>
                   );
                 })}
               </div>
@@ -905,24 +887,30 @@ export default function UnderstandView({
               /* Regular response list for filtered views */
               <>
                 {/* Render cluster buckets (new LLM-driven consolidation) */}
-                {useClusterBuckets && filteredBuckets.map((bucket) => (
-                  <ClusterBucketCard
-                    key={bucket.bucketId}
-                    bucket={bucket}
-                    themeColor={getThemeColor(bucket.clusterIndex)}
-                  />
-                ))}
+                {useClusterBuckets &&
+                  filteredBuckets.map((bucket) => (
+                    <ClusterBucketCard
+                      key={bucket.bucketId}
+                      bucket={bucket}
+                      themeColor={getThemeColor(bucket.clusterIndex)}
+                      onVote={vote}
+                      loadingId={loadingId}
+                      conversationType={conversationType}
+                      feedbackById={feedbackById}
+                    />
+                  ))}
 
                 {/* Fallback: Render frequently mentioned groups (legacy) */}
-                {!useClusterBuckets && filteredGroups.map((group) => (
-                  <FrequentlyMentionedGroupCard
-                    key={group.groupId}
-                    group={group}
-                    onVote={vote}
-                    loadingId={loadingId}
-                    conversationType={conversationType}
-                  />
-                ))}
+                {!useClusterBuckets &&
+                  filteredGroups.map((group) => (
+                    <FrequentlyMentionedGroupCard
+                      key={group.groupId}
+                      group={group}
+                      onVote={vote}
+                      loadingId={loadingId}
+                      conversationType={conversationType}
+                    />
+                  ))}
 
                 {/* Render ungrouped/unconsolidated responses */}
                 {ungroupedItems.map((resp) => (
@@ -974,7 +962,11 @@ export default function UnderstandView({
                                 disabled={loadingId === resp.id || isDisabled}
                                 onClick={() => vote(resp.id, fb)}
                                 className={`flex-1 transition-colors ${
-                                  active ? activeStyles : isDisabled ? disabledStyles : inactiveStyles
+                                  active
+                                    ? activeStyles
+                                    : isDisabled
+                                      ? disabledStyles
+                                      : inactiveStyles
                                 }`}
                               >
                                 {fb === "agree" && "Agree"}

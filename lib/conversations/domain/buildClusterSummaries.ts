@@ -15,12 +15,17 @@ import type {
   ResponsePoint,
   ThemeRow,
   FeedbackItem,
+  ClusterBucket,
 } from "@/types/conversation-understand";
 import { MISC_CLUSTER_INDEX } from "./thresholds";
 
 export interface ClusterSummary {
   key: string;
   title: string;
+  /** Concise description summarizing the cluster's consolidated statements */
+  description: string | null;
+  /** Individual bucket names for rendering as pills */
+  bucketNames: string[];
   representativeText: string;
   representativeItem: FeedbackItem | null;
   responseCount: number;
@@ -90,19 +95,46 @@ const findRepresentative = (
 };
 
 /**
+ * Gets bucket names for a cluster and generates a description
+ * Returns both the individual bucket names array and a joined description string
+ */
+const getClusterBucketInfo = (
+  clusterIndex: number,
+  clusterBuckets: ClusterBucket[],
+  themeDescription: string | null
+): { bucketNames: string[]; description: string | null } => {
+  // Get buckets for this cluster
+  const bucketsForCluster = clusterBuckets.filter(
+    (b) => b.clusterIndex === clusterIndex
+  );
+
+  if (bucketsForCluster.length === 0) {
+    // Fallback to theme description if no buckets
+    return { bucketNames: [], description: themeDescription };
+  }
+
+  // Extract bucket names
+  const bucketNames = bucketsForCluster.map((b) => b.bucketName);
+  return { bucketNames, description: bucketNames.join(", ") };
+};
+
+/**
  * Builds cluster summaries for the "All themes" view
  *
  * @param responses - All response points from the view model
  * @param themes - Theme metadata from analysis
  * @param feedbackItems - Feedback items for vote counts/current state
+ * @param clusterBuckets - Optional cluster buckets for generating descriptions
  * @returns Array of cluster summaries, sorted with MISC last, plus unclustered if present
  */
 export function buildClusterSummaries(
   responses: ResponsePoint[],
   themes: ThemeRow[],
-  feedbackItems: FeedbackItem[]
+  feedbackItems: FeedbackItem[],
+  clusterBuckets?: ClusterBucket[]
 ): ClusterSummary[] {
   const feedbackById = new Map(feedbackItems.map((item) => [item.id, item]));
+  const buckets = clusterBuckets || [];
 
   // Group responses by cluster index
   const byCluster = new Map<number, ResponsePoint[]>();
@@ -126,10 +158,17 @@ export function buildClusterSummaries(
     if (!clusterResponses || clusterResponses.length === 0) continue;
 
     const { text, item } = findRepresentative(clusterResponses, feedbackById);
+    const { bucketNames, description } = getClusterBucketInfo(
+      theme.clusterIndex,
+      buckets,
+      theme.description
+    );
 
     summaries.push({
       key: `cluster-${theme.clusterIndex}`,
       title: theme.name || `Theme ${theme.clusterIndex}`,
+      description,
+      bucketNames,
       representativeText: text,
       representativeItem: item,
       responseCount: clusterResponses.length,
@@ -155,6 +194,8 @@ export function buildClusterSummaries(
     summaries.push({
       key: "unclustered",
       title: "Unclustered/New responses",
+      description: null,
+      bucketNames: [],
       representativeText: text,
       representativeItem: item,
       responseCount: unclusteredResponses.length,

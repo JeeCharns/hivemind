@@ -49,7 +49,7 @@ export interface ClusterConsolidationParams {
 
 export const DEFAULT_CLUSTER_CONSOLIDATION_PARAMS: ClusterConsolidationParams = {
   model: "gpt-4o-mini",
-  promptVersion: "v2.0",
+  promptVersion: "v2.1",
   maxResponsesPerCall: 50, // Balance between coverage and token limits
 };
 
@@ -118,9 +118,16 @@ Guidelines:
 - Group responses by their core meaning, not just similar words
 - A response can only belong to ONE bucket
 - Create as few buckets as needed while preserving distinct viewpoints
-- Each consolidated statement should be 1-3 sentences
 - Do NOT add opinions or information not present in the original responses
-- Responses that are truly unique and don't fit any group should go in "unconsolidated_ids"`,
+- Responses that are truly unique and don't fit any group should go in "unconsolidated_ids"
+
+Voice and tone:
+- Match the tense and voice of the original responses. If responses consistently use first-person ("We need...", "We want..."), use first-person. If they use direct statements ("Need X", "Want Y"), keep that directness.
+- Only use summary language ("There is a need for...") when the original voices are mixed or varied.
+
+Conciseness:
+- Keep consolidated statements concise. If the original responses are short, the consolidated statement should be similarly brief.
+- Only expand when necessary to capture distinct points not covered by a shorter phrasing.`,
         },
         { role: "user", content: prompt },
       ],
@@ -169,7 +176,10 @@ CRITICAL: Each response has a unique ID shown in brackets like [ID: abc123]. You
 Responses to analyze:
 ${responseList}
 
-For each bucket, create a consolidated statement that preserves ALL distinct points from the grouped responses.
+For each bucket, create a consolidated statement that:
+- Preserves ALL distinct points from the grouped responses
+- Matches the voice/tense of the originals (first-person if they use "we", direct if they're direct)
+- Stays concise - don't pad short responses into longer summaries
 
 Respond in JSON format:
 {

@@ -109,15 +109,24 @@ export default function UnderstandViewContainer({
 
   // Fetch fresh understand data
   const fetchUnderstandData = useCallback(async () => {
+    console.log("[Analysis] Fetching fresh understand data...");
     try {
       const res = await fetch(`/api/conversations/${conversationId}/understand`);
       if (!res.ok) {
         throw new Error(`Failed to fetch: ${res.status}`);
       }
       const data = await res.json();
+      console.log("[Analysis] Received understand data:");
+      console.log("[Analysis] → analysisStatus:", data.analysisStatus);
+      console.log("[Analysis] → responseCount:", data.responseCount);
+      console.log("[Analysis] → themes:", data.themes?.length ?? 0, "themes");
+      console.log("[Analysis] → responses:", data.responses?.length ?? 0, "responses");
+      if (data.analysisStatus === "ready") {
+        console.log("[Analysis] ✓ Analysis complete!");
+      }
       setViewModel(data);
     } catch (err) {
-      console.error("[UnderstandViewContainer] Failed to refresh:", err);
+      console.error("[Analysis] Failed to refresh:", err);
     }
   }, [conversationId]);
 
@@ -154,6 +163,13 @@ export default function UnderstandViewContainer({
   // Update from status polling
   useEffect(() => {
     if (shouldPollStatus && statusData) {
+      console.log("[Analysis] Status poll update:");
+      console.log("[Analysis] → analysisStatus:", statusData.analysisStatus);
+      console.log("[Analysis] → responseCount:", statusData.responseCount);
+      if (statusData.analysisError) {
+        console.log("[Analysis] → analysisError:", statusData.analysisError);
+      }
+
       setViewModel((prev) => ({
         ...prev,
         analysisStatus: statusData.analysisStatus,
@@ -163,6 +179,7 @@ export default function UnderstandViewContainer({
 
       // Fetch full data when complete
       if (statusData.analysisStatus === "ready") {
+        console.log("[Analysis] Status is ready, fetching full data...");
         fetchUnderstandData();
       }
     }
@@ -332,6 +349,8 @@ export default function UnderstandViewContainer({
   const handleRegenerate = async () => {
     if (!isAdmin) return;
     lastReadyViewModelRef.current = viewModel;
+    console.log("[Analysis] Starting regeneration from UnderstandViewContainer...");
+    console.log("[Analysis] → conversationId:", conversationId);
     try {
       setIsRegenerating(true);
       setViewModel((prev) => ({
@@ -351,17 +370,21 @@ export default function UnderstandViewContainer({
 
       if (!res.ok) {
         const data = await res.json();
-        console.error("[Regenerate] Failed:", data.error);
+        console.error("[Analysis] Regeneration failed:", data.error);
         if (lastReadyViewModelRef.current) {
           setViewModel(lastReadyViewModelRef.current);
         }
         return;
       }
 
+      const responseData = await res.json().catch(() => null);
+      console.log("[Analysis] Regeneration request accepted:", responseData);
+      console.log("[Analysis] → Waiting for analysis to complete...");
+
       // Ensure we start polling/realtime immediately even if we missed the first update.
       await fetchUnderstandData();
     } catch (err) {
-      console.error("[Regenerate] Error:", err);
+      console.error("[Analysis] Regeneration error:", err);
       if (lastReadyViewModelRef.current) {
         setViewModel(lastReadyViewModelRef.current);
       }

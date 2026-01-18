@@ -31,7 +31,7 @@ export default function ReportView({ viewModel }: ReportViewProps) {
     selectedVersion,
     versions,
     consensusItems,
-    totalInteractions,
+    consensusMetrics,
     loading,
     error,
     generate,
@@ -94,7 +94,7 @@ export default function ReportView({ viewModel }: ReportViewProps) {
             {hasFeedbackData ? (
               <ConsensusMatrix
                 items={consensusItems}
-                totalInteractions={totalInteractions}
+                metrics={consensusMetrics}
               />
             ) : null}
           </div>

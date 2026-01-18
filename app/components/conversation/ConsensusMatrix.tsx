@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ConsensusItem } from "@/types/conversation-report";
+import type { ConsensusItem, ConsensusMetrics } from "@/types/conversation-report";
 
 type SortMode = "agreement" | "divisive";
 
 type ConsensusMatrixProps = {
   items: ConsensusItem[];
-  totalInteractions: number;
+  metrics: ConsensusMetrics;
   title?: string;
   initialVisible?: number;
   pageSize?: number;
@@ -28,7 +28,7 @@ const SEGMENT_COLORS = {
 
 export default function ConsensusMatrix({
   items,
-  totalInteractions,
+  metrics,
   title = "Consensus Matrix",
   initialVisible = 12,
   pageSize = 12,
@@ -44,7 +44,7 @@ export default function ConsensusMatrix({
     <ConsensusMatrixContent
       key={`${initialVisible}-${itemsKey}`}
       items={items}
-      totalInteractions={totalInteractions}
+      metrics={metrics}
       title={title}
       initialVisible={initialVisible}
       pageSize={pageSize}
@@ -56,7 +56,7 @@ export default function ConsensusMatrix({
 
 type ConsensusMatrixContentProps = {
   items: ConsensusItem[];
-  totalInteractions: number;
+  metrics: ConsensusMetrics;
   title: string;
   initialVisible: number;
   pageSize: number;
@@ -66,7 +66,7 @@ type ConsensusMatrixContentProps = {
 
 function ConsensusMatrixContent({
   items,
-  totalInteractions,
+  metrics,
   title,
   initialVisible,
   pageSize,
@@ -76,15 +76,14 @@ function ConsensusMatrixContent({
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
   const sortedRows: ChartRow[] = useMemo(() => {
-    const rows = items
-      .map((item) => {
-        const score = Math.max(0, Math.min(100, item.agreePercent));
-        return {
-          ...item,
-          score,
-          label: item.responseText || "Untitled",
-        };
-      });
+    const rows = items.map((item) => {
+      const score = Math.max(0, Math.min(100, item.agreePercent));
+      return {
+        ...item,
+        score,
+        label: item.responseText || "Untitled",
+      };
+    });
 
     return rows
       .slice()
@@ -109,16 +108,7 @@ function ConsensusMatrixContent({
     return sortedRows.slice(0, visibleCount);
   }, [sortedRows, visibleCount]);
 
-  const averageConsensus = useMemo(() => {
-    if (items.length === 0) return 0;
-    const sum = items.reduce((acc, curr) => {
-      const consensus = Math.max(curr.agreePercent, curr.disagreePercent);
-      return acc + consensus;
-    }, 0);
-    return Math.round(sum / items.length);
-  }, [items]);
-
-  // Use the response with the most votes as a proxy for total participants
+  // Use the response with the most votes as a proxy for total participants (for bar scaling)
   const maxVotes = useMemo(() => {
     if (items.length === 0) return 0;
     return Math.max(...items.map((item) => item.totalVotes));
@@ -126,30 +116,47 @@ function ConsensusMatrixContent({
 
   return (
     <div className="flex-1 flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4">
+      {/* Metrics boxes */}
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
           <div className="text-display-sm md:text-display-md text-slate-900 mb-1 tabular-nums">
-            {averageConsensus}%
+            {metrics.totalVotes}
           </div>
           <div className="text-slate-500 text-label md:text-body">
-            Average Consensus
+            Total Votes
+          </div>
+        </div>
+        <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
+          {(() => {
+            const needsSmallerFont = metrics.uniqueVoters >= 100 || metrics.totalParticipants >= 100;
+            const numClass = needsSmallerFont
+              ? "text-h2 md:text-display-sm"
+              : "text-display-sm md:text-display-md";
+            return (
+              <div className="text-slate-900 mb-1 tabular-nums">
+                <span className={numClass}>{metrics.uniqueVoters}</span>
+                <span className="text-slate-500 text-label md:text-body"> of </span>
+                <span className={numClass}>{metrics.totalParticipants}</span>
+              </div>
+            );
+          })()}
+          <div className="text-slate-500 text-label md:text-body">
+            Participants Voting
           </div>
         </div>
         <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
           <div className="text-display-sm md:text-display-md text-slate-900 mb-1 tabular-nums">
-            {totalInteractions}
+            {metrics.voteCoveragePercent}%
           </div>
           <div className="text-slate-500 text-label md:text-body">
-            Total Interactions
+            Vote Coverage
           </div>
         </div>
       </div>
 
       <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
         <div className="flex items-center justify-between gap-3 mb-6">
-          <h3 className="text-h4 text-slate-900">
-            {title}
-          </h3>
+          <h3 className="text-h4 text-slate-900">{title}</h3>
           <div className="flex items-center gap-2">
             <button
               type="button"

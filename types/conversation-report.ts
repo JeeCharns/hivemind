@@ -58,6 +58,24 @@ export interface ConsensusItem {
 }
 
 /**
+ * Metrics for the consensus matrix header
+ */
+export interface ConsensusMetrics {
+  /** Total number of votes cast */
+  totalVotes: number;
+  /** Number of unique participants (people who submitted responses) */
+  totalParticipants: number;
+  /** Number of unique voters (people who voted on at least one statement) */
+  uniqueVoters: number;
+  /** Total number of statements in the matrix */
+  totalStatements: number;
+  /** % of participants who have voted on at least one statement */
+  participantVotingPercent: number;
+  /** % of total possible votes that have been cast (votes / (participants * statements)) */
+  voteCoveragePercent: number;
+}
+
+/**
  * Complete view model for Result page
  * Assembled server-side and passed to client component
  */
@@ -71,6 +89,7 @@ export interface ResultViewModel {
   gateReason?: string | null;
   agreementSummaries?: AgreementSummary[];
   consensusItems: ConsensusItem[];
+  consensusMetrics: ConsensusMetrics;
   analysisStatus:
     | "not_started"
     | "embedding"

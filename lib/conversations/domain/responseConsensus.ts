@@ -2,6 +2,7 @@
  * Response Consensus - Domain Logic
  *
  * Computes per-response vote totals and percentages from feedback.
+ * Also computes consensus for consolidated statements (cluster buckets).
  * Pure functions only; no IO.
  */
 
@@ -15,6 +16,17 @@ export interface ConsensusResponseRow {
 export interface ConsensusFeedbackRow {
   responseId: string;
   feedback: string;
+}
+
+export interface ConsensusBucketRow {
+  bucketId: string;
+  consolidatedStatement: string;
+  responseIds: string[];
+}
+
+export interface ConsensusUnconsolidatedRow {
+  responseId: string;
+  responseText: string;
 }
 
 function clampPercent(value: number): number {
@@ -73,5 +85,144 @@ export function computeResponseConsensusItems(
       };
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
+}
+
+/**
+ * Computes consensus items from consolidated statements (cluster buckets).
+ * Aggregates feedback from all responses in each bucket.
+ * Also includes unconsolidated responses as individual items.
+ * Items with votes appear first, items with no votes appear at the end.
+ *
+ * @param buckets - Cluster buckets with consolidated statements and their member response IDs
+ * @param unconsolidatedResponses - Individual responses not part of any bucket
+ * @param feedbackRows - All feedback rows for the conversation
+ * @returns ConsensusItem[] with voted items first, then unvoted items
+ */
+export function computeConsolidatedConsensusItems(
+  buckets: ConsensusBucketRow[],
+  unconsolidatedResponses: ConsensusUnconsolidatedRow[],
+  feedbackRows: ConsensusFeedbackRow[]
+): ConsensusItem[] {
+  // Build a map of response ID -> feedback counts
+  const feedbackByResponseId = new Map<
+    string,
+    { agree: number; pass: number; disagree: number }
+  >();
+
+  feedbackRows.forEach((row) => {
+    if (!feedbackByResponseId.has(row.responseId)) {
+      feedbackByResponseId.set(row.responseId, { agree: 0, pass: 0, disagree: 0 });
+    }
+    const counts = feedbackByResponseId.get(row.responseId)!;
+    if (row.feedback === "agree") counts.agree++;
+    else if (row.feedback === "pass") counts.pass++;
+    else if (row.feedback === "disagree") counts.disagree++;
+  });
+
+  const votedItems: ConsensusItem[] = [];
+  const unvotedItems: ConsensusItem[] = [];
+
+  // Process consolidated statements (buckets)
+  for (const bucket of buckets) {
+    // Aggregate feedback from all responses in the bucket
+    let totalAgree = 0;
+    let totalPass = 0;
+    let totalDisagree = 0;
+
+    for (const responseId of bucket.responseIds) {
+      const counts = feedbackByResponseId.get(responseId);
+      if (counts) {
+        totalAgree += counts.agree;
+        totalPass += counts.pass;
+        totalDisagree += counts.disagree;
+      }
+    }
+
+    const totalVotes = totalAgree + totalPass + totalDisagree;
+
+    if (totalVotes > 0) {
+      const agreePercent = clampPercent(
+        Math.round((totalAgree / totalVotes) * 100)
+      );
+      const disagreePercent = clampPercent(
+        Math.round((totalDisagree / totalVotes) * 100)
+      );
+      const passPercent = clampPercent(100 - agreePercent - disagreePercent);
+
+      votedItems.push({
+        id: bucket.bucketId,
+        responseText: bucket.consolidatedStatement,
+        agreePercent,
+        passPercent,
+        disagreePercent,
+        agreeVotes: totalAgree,
+        passVotes: totalPass,
+        disagreeVotes: totalDisagree,
+        totalVotes,
+      });
+    } else {
+      // Include items with no votes
+      unvotedItems.push({
+        id: bucket.bucketId,
+        responseText: bucket.consolidatedStatement,
+        agreePercent: 0,
+        passPercent: 0,
+        disagreePercent: 0,
+        agreeVotes: 0,
+        passVotes: 0,
+        disagreeVotes: 0,
+        totalVotes: 0,
+      });
+    }
+  }
+
+  // Process unconsolidated responses (individual responses not in buckets)
+  for (const response of unconsolidatedResponses) {
+    const counts = feedbackByResponseId.get(response.responseId) || {
+      agree: 0,
+      pass: 0,
+      disagree: 0,
+    };
+
+    const totalVotes = counts.agree + counts.pass + counts.disagree;
+
+    if (totalVotes > 0) {
+      const agreePercent = clampPercent(
+        Math.round((counts.agree / totalVotes) * 100)
+      );
+      const disagreePercent = clampPercent(
+        Math.round((counts.disagree / totalVotes) * 100)
+      );
+      const passPercent = clampPercent(100 - agreePercent - disagreePercent);
+
+      votedItems.push({
+        id: response.responseId,
+        responseText: response.responseText,
+        agreePercent,
+        passPercent,
+        disagreePercent,
+        agreeVotes: counts.agree,
+        passVotes: counts.pass,
+        disagreeVotes: counts.disagree,
+        totalVotes,
+      });
+    } else {
+      // Include items with no votes
+      unvotedItems.push({
+        id: response.responseId,
+        responseText: response.responseText,
+        agreePercent: 0,
+        passPercent: 0,
+        disagreePercent: 0,
+        agreeVotes: 0,
+        passVotes: 0,
+        disagreeVotes: 0,
+        totalVotes: 0,
+      });
+    }
+  }
+
+  // Return voted items first, then unvoted items
+  return [...votedItems, ...unvotedItems];
 }
 

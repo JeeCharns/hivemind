@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo } from "react";
 import type {
   AgreementSummary,
   ConsensusItem,
+  ConsensusMetrics,
   ResultViewModel,
   ReportVersion,
 } from "@/types/conversation-report";
@@ -29,6 +30,7 @@ export interface UseConversationReportReturn {
   versions: ReportVersion[];
   agreementSummaries: AgreementSummary[];
   consensusItems: ConsensusItem[];
+  consensusMetrics: ConsensusMetrics;
   totalInteractions: number;
   loading: boolean;
   error: string | null;
@@ -62,6 +64,9 @@ export function useConversationReport({
   >(viewModel.agreementSummaries ?? []);
   const [consensusItems, setConsensusItems] = useState<ConsensusItem[]>(
     viewModel.consensusItems ?? []
+  );
+  const [consensusMetrics, setConsensusMetrics] = useState<ConsensusMetrics>(
+    viewModel.consensusMetrics
   );
   const [totalInteractions, setTotalInteractions] = useState<number>(
     viewModel.totalInteractions ?? 0
@@ -114,6 +119,9 @@ export function useConversationReport({
       if (result.consensusItems) {
         setConsensusItems(result.consensusItems);
       }
+      if (result.consensusMetrics) {
+        setConsensusMetrics(result.consensusMetrics);
+      }
       if (typeof result.totalInteractions === "number") {
         setTotalInteractions(result.totalInteractions);
       }
@@ -144,6 +152,7 @@ export function useConversationReport({
     versions,
     agreementSummaries,
     consensusItems,
+    consensusMetrics,
     totalInteractions,
     loading,
     error,

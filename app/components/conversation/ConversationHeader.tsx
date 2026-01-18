@@ -127,9 +127,14 @@ export default function ConversationHeader({
     setError(null);
 
     if (onRegenerate) {
+      console.log("[Analysis] Triggering regeneration via callback...");
       onRegenerate();
       return;
     }
+
+    console.log("[Analysis] Starting regeneration request...");
+    console.log("[Analysis] → conversationId:", conversationId);
+    console.log("[Analysis] → mode: regenerate, strategy: full");
 
     setRegenerating(true);
     try {
@@ -139,13 +144,21 @@ export default function ConversationHeader({
         body: JSON.stringify({ mode: "regenerate", strategy: "full" }),
       });
 
+      const body = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
+        console.error("[Analysis] Regeneration request failed:", body?.error ?? res.status);
         throw new Error(body?.error ?? "Failed to regenerate analysis");
       }
+
+      console.log("[Analysis] Regeneration request accepted:", body);
+      console.log("[Analysis] → status:", body?.status);
+      console.log("[Analysis] → strategy:", body?.strategy);
+      console.log("[Analysis] → jobId:", body?.jobId);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to regenerate analysis";
+      console.error("[Analysis] Error:", msg);
       setError(msg);
     } finally {
       setRegenerating(false);

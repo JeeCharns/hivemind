@@ -42,6 +42,10 @@ export function useAnalysisStatus({
         }
 
         const result = await response.json();
+        console.log("[Analysis] Polling status check:");
+        console.log("[Analysis] → analysisStatus:", result.analysisStatus);
+        console.log("[Analysis] → responseCount:", result.responseCount);
+
         setData(result);
         setError(null);
 
@@ -51,9 +55,15 @@ export function useAnalysisStatus({
           result.analysisStatus === "embedding" ||
           result.analysisStatus === "analyzing"
         ) {
+          console.log("[Analysis] → Still in progress, polling again in", interval / 1000, "seconds...");
           timeoutId = setTimeout(fetchStatus, interval);
+        } else if (result.analysisStatus === "ready") {
+          console.log("[Analysis] → Analysis complete, stopping poll");
+        } else if (result.analysisStatus === "error") {
+          console.log("[Analysis] → Analysis failed, stopping poll");
         }
       } catch (err) {
+        console.error("[Analysis] Polling error:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);

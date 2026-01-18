@@ -13,7 +13,33 @@ import { canOpenReport } from "@/lib/conversations/domain/reportRules";
 import { MIN_RESPONSES_FOR_REPORT } from "@/lib/conversations/domain/reportRules";
 import { jsonError } from "@/lib/api/errors";
 import { computeAgreementSummaries } from "@/lib/conversations/domain/agreementSummaries";
-import { computeResponseConsensusItems } from "@/lib/conversations/domain/responseConsensus";
+import {
+  computeResponseConsensusItems,
+  computeConsolidatedConsensusItems,
+} from "@/lib/conversations/domain/responseConsensus";
+
+interface ClusterBucketRow {
+  id: string;
+  consolidated_statement: string;
+  conversation_cluster_bucket_members: Array<{ response_id: number }>;
+}
+
+interface UnconsolidatedResponseRow {
+  response_id: number;
+  conversation_responses: { response_text: string }[] | null;
+}
+
+interface ConsolidatedStatementWithVotes {
+  id: string;
+  statement: string;
+  agreeVotes: number;
+  passVotes: number;
+  disagreeVotes: number;
+  totalVotes: number;
+  agreePercent: number;
+  passPercent: number;
+  disagreePercent: number;
+}
 
 export async function POST(
   _req: NextRequest,
@@ -94,12 +120,14 @@ export async function POST(
       );
     }
 
-    // 7. Fetch themes and responses for prompt building
+    // 7. Fetch themes, responses, consolidated statements, and feedback for prompt building
     const [
       themesResult,
       responsesResult,
       feedbackResult,
       summaryResponsesResult,
+      clusterBucketsResult,
+      unconsolidatedResult,
     ] = await Promise.all([
       supabase
         .from("conversation_themes")
@@ -125,6 +153,20 @@ export async function POST(
         .select("id, response_text")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false }),
+
+      // Fetch cluster buckets (consolidated statements) with their member response IDs
+      supabase
+        .from("conversation_cluster_buckets")
+        .select(
+          "id, consolidated_statement, conversation_cluster_bucket_members(response_id)"
+        )
+        .eq("conversation_id", conversationId),
+
+      // Fetch unconsolidated responses with their text
+      supabase
+        .from("conversation_unconsolidated_responses")
+        .select("response_id, conversation_responses(response_text)")
+        .eq("conversation_id", conversationId),
     ]);
 
     if (
@@ -144,31 +186,155 @@ export async function POST(
     const responses = responsesResult.data || [];
     const feedbackRows = feedbackResult.data || [];
     const summaryResponses = summaryResponsesResult.data || [];
+    const clusterBuckets = (clusterBucketsResult?.data ||
+      []) as ClusterBucketRow[];
+    const unconsolidatedRows = (unconsolidatedResult?.data ||
+      []) as UnconsolidatedResponseRow[];
 
-    // 8. Build feedback summary
-    const feedbackCounts = new Map<
+    // 8. Build feedback summary by response ID
+    const feedbackByResponseId = new Map<
       string,
       { agree: number; pass: number; disagree: number }
     >();
 
-    responses.forEach((r) => {
-      feedbackCounts.set(r.id, { agree: 0, pass: 0, disagree: 0 });
-    });
-
     feedbackRows.forEach((fb) => {
-      const counts = feedbackCounts.get(fb.response_id);
-      if (counts) {
-        if (fb.feedback === "agree") {
-          counts.agree++;
-        } else if (fb.feedback === "pass") {
-          counts.pass++;
-        } else if (fb.feedback === "disagree") {
-          counts.disagree++;
-        }
+      if (!feedbackByResponseId.has(fb.response_id)) {
+        feedbackByResponseId.set(fb.response_id, { agree: 0, pass: 0, disagree: 0 });
+      }
+      const counts = feedbackByResponseId.get(fb.response_id)!;
+      if (fb.feedback === "agree") {
+        counts.agree++;
+      } else if (fb.feedback === "pass") {
+        counts.pass++;
+      } else if (fb.feedback === "disagree") {
+        counts.disagree++;
       }
     });
 
-    // 9. Build OpenAI prompt
+    // 9. Build consolidated statements with aggregated votes
+    const hasConsolidatedData = clusterBuckets.length > 0;
+    const consolidatedStatements: ConsolidatedStatementWithVotes[] = [];
+
+    if (hasConsolidatedData) {
+      // Process cluster buckets - aggregate votes from member responses
+      for (const bucket of clusterBuckets) {
+        let totalAgree = 0;
+        let totalPass = 0;
+        let totalDisagree = 0;
+
+        for (const member of bucket.conversation_cluster_bucket_members) {
+          const counts = feedbackByResponseId.get(String(member.response_id));
+          if (counts) {
+            totalAgree += counts.agree;
+            totalPass += counts.pass;
+            totalDisagree += counts.disagree;
+          }
+        }
+
+        const totalVotes = totalAgree + totalPass + totalDisagree;
+        const agreePercent =
+          totalVotes > 0 ? Math.round((totalAgree / totalVotes) * 100) : 0;
+        const passPercent =
+          totalVotes > 0 ? Math.round((totalPass / totalVotes) * 100) : 0;
+        const disagreePercent =
+          totalVotes > 0 ? Math.round((totalDisagree / totalVotes) * 100) : 0;
+
+        consolidatedStatements.push({
+          id: bucket.id,
+          statement: bucket.consolidated_statement,
+          agreeVotes: totalAgree,
+          passVotes: totalPass,
+          disagreeVotes: totalDisagree,
+          totalVotes,
+          agreePercent,
+          passPercent,
+          disagreePercent,
+        });
+      }
+
+      // Add unconsolidated responses as individual statements
+      for (const row of unconsolidatedRows) {
+        const responseText = row.conversation_responses?.[0]?.response_text;
+        if (!responseText) continue;
+
+        const counts = feedbackByResponseId.get(String(row.response_id)) || {
+          agree: 0,
+          pass: 0,
+          disagree: 0,
+        };
+        const totalVotes = counts.agree + counts.pass + counts.disagree;
+        const agreePercent =
+          totalVotes > 0 ? Math.round((counts.agree / totalVotes) * 100) : 0;
+        const passPercent =
+          totalVotes > 0 ? Math.round((counts.pass / totalVotes) * 100) : 0;
+        const disagreePercent =
+          totalVotes > 0 ? Math.round((counts.disagree / totalVotes) * 100) : 0;
+
+        consolidatedStatements.push({
+          id: String(row.response_id),
+          statement: responseText,
+          agreeVotes: counts.agree,
+          passVotes: counts.pass,
+          disagreeVotes: counts.disagree,
+          totalVotes,
+          agreePercent,
+          passPercent,
+          disagreePercent,
+        });
+      }
+    } else {
+      // Fallback: use individual responses as statements
+      for (const r of responses) {
+        const counts = feedbackByResponseId.get(r.id) || {
+          agree: 0,
+          pass: 0,
+          disagree: 0,
+        };
+        const totalVotes = counts.agree + counts.pass + counts.disagree;
+        const agreePercent =
+          totalVotes > 0 ? Math.round((counts.agree / totalVotes) * 100) : 0;
+        const passPercent =
+          totalVotes > 0 ? Math.round((counts.pass / totalVotes) * 100) : 0;
+        const disagreePercent =
+          totalVotes > 0 ? Math.round((counts.disagree / totalVotes) * 100) : 0;
+
+        consolidatedStatements.push({
+          id: r.id,
+          statement: r.response_text,
+          agreeVotes: counts.agree,
+          passVotes: counts.pass,
+          disagreeVotes: counts.disagree,
+          totalVotes,
+          agreePercent,
+          passPercent,
+          disagreePercent,
+        });
+      }
+    }
+
+    // Sort statements: those with votes first (by total votes desc), then those without
+    consolidatedStatements.sort((a, b) => {
+      if (a.totalVotes > 0 && b.totalVotes === 0) return -1;
+      if (a.totalVotes === 0 && b.totalVotes > 0) return 1;
+      return b.totalVotes - a.totalVotes;
+    });
+
+    // Categorize statements for the prompt
+    const highConsensusStatements = consolidatedStatements.filter(
+      (s) => s.totalVotes >= 3 && s.agreePercent >= 70
+    );
+    const divisiveStatements = consolidatedStatements.filter(
+      (s) =>
+        s.totalVotes >= 3 &&
+        s.agreePercent >= 30 &&
+        s.agreePercent <= 60 &&
+        s.disagreePercent >= 25
+    );
+    const lowConsensusStatements = consolidatedStatements.filter(
+      (s) => s.totalVotes >= 3 && s.disagreePercent >= 50
+    );
+
+    // 10. Build OpenAI prompt focused on consolidated statements
     const themesText = themes
       .map(
         (t) =>
@@ -176,47 +342,96 @@ export async function POST(
       )
       .join("\n\n");
 
-    const responsesText = responses
-      .slice(0, 50) // Top 50 for prompt
-      .map((r) => {
-        const counts = feedbackCounts.get(r.id);
-        return `- [${r.tag || "untagged"}] ${r.response_text}\n  Feedback: ${counts?.agree || 0} agree, ${counts?.pass || 0} pass, ${counts?.disagree || 0} disagree`;
-      })
+    const formatStatement = (s: ConsolidatedStatementWithVotes) =>
+      `- "${s.statement}"\n  Votes: ${s.agreeVotes} agree (${s.agreePercent}%), ${s.passVotes} pass (${s.passPercent}%), ${s.disagreeVotes} disagree (${s.disagreePercent}%) | Total: ${s.totalVotes} votes`;
+
+    const allStatementsText = consolidatedStatements
+      .filter((s) => s.totalVotes > 0)
+      .slice(0, 50) // Limit for prompt size
+      .map(formatStatement)
       .join("\n\n");
+
+    const highConsensusText =
+      highConsensusStatements.length > 0
+        ? highConsensusStatements.map(formatStatement).join("\n\n")
+        : "No statements have achieved high consensus yet.";
+
+    const divisiveText =
+      divisiveStatements.length > 0
+        ? divisiveStatements.map(formatStatement).join("\n\n")
+        : "No clearly divisive statements identified.";
+
+    const lowConsensusText =
+      lowConsensusStatements.length > 0
+        ? lowConsensusStatements.map(formatStatement).join("\n\n")
+        : "No statements with majority disagreement.";
 
     const prompt = `Generate an executive summary report for the conversation titled "${conversation.title || "Untitled Conversation"}".
 
-The conversation has ${responseCount} total responses organized into ${themes.length} themes.
+This report should focus on the CONSOLIDATED STATEMENTS from the consensus matrix - these are synthesized viewpoints that represent groups of similar responses, along with the votes they have received.
+
+**Overview:**
+- Total responses collected: ${responseCount}
+- Total consolidated statements: ${consolidatedStatements.length}
+- Statements with votes: ${consolidatedStatements.filter((s) => s.totalVotes > 0).length}
+- Themes identified: ${themes.length}
 
 **Themes:**
-${themesText}
+${themesText || "No themes identified yet."}
 
-**Sample Responses with Feedback:**
-${responsesText}
+**All Consolidated Statements with Votes (Consensus Matrix):**
+${allStatementsText || "No voted statements yet."}
 
-Your task is to analyze this data and produce a comprehensive executive summary report.
+**High Consensus Statements (70%+ agreement):**
+${highConsensusText}
 
-The report MUST be formatted as valid HTML using these sections:
+**Divisive/Contentious Statements (30-60% agree, 25%+ disagree):**
+${divisiveText}
+
+**Statements with Majority Disagreement (50%+ disagree):**
+${lowConsensusText}
+
+Your task is to analyze this consensus data and produce a comprehensive executive summary report.
+
+IMPORTANT GUIDELINES:
+1. Focus primarily on the consolidated statements and their vote distributions
+2. High consensus items (70%+ agree) represent clear areas of alignment
+3. Divisive items represent topics where the group is split and may need further discussion
+4. Use the original response themes only for additional context when helpful
+5. Recommendations should be actionable and based on the consensus data
+
+The report MUST be formatted as valid HTML using these EXACT sections:
 
 <h1>Executive Summary</h1>
-<p>[Opening paragraph summarizing the conversation]</p>
+<p>[2-3 paragraph overview of the conversation, participation levels, and key findings from the consensus data]</p>
 
 <h2>Key Themes</h2>
-<p>[Analysis of the ${themes.length} main themes]</p>
+<p>[Analysis of the main themes that emerged, with context from the consolidated statements]</p>
 <ul>
-  <li>[Theme details]</li>
+  <li>[Theme with supporting consolidated statements]</li>
 </ul>
 
 <h2>Areas of Agreement</h2>
-<p>[Identify responses with strong agreement based on feedback counts]</p>
+<p>[Identify consolidated statements with strong agreement (70%+). Quote the actual statements and explain their significance.]</p>
+<ul>
+  <li>[High consensus statement with vote breakdown]</li>
+</ul>
 
 <h2>Divisive or Contentious Points</h2>
-<p>[Identify responses with disagreement or mixed feedback]</p>
+<p>[Identify consolidated statements where opinions are split. These are important for understanding where further deliberation is needed.]</p>
+<ul>
+  <li>[Divisive statement with vote breakdown and analysis]</li>
+</ul>
 
 <h2>Recommendations</h2>
+<p>Based on the consensus analysis, here are actionable recommendations:</p>
+<h3>Clear Actions (High Consensus)</h3>
 <ol>
-  <li>[Actionable recommendation 1]</li>
-  <li>[Actionable recommendation 2]</li>
+  <li>[Specific action based on a high-consensus statement - these can be acted upon with confidence]</li>
+</ol>
+<h3>Items Requiring Further Deliberation</h3>
+<ol>
+  <li>[Topic that needs more discussion or an explicit vote due to divided opinions]</li>
 </ol>
 
 Output ONLY the HTML content. Do not include markdown code fences, explanations, or apologies. Start directly with the HTML tags.`;
@@ -387,29 +602,53 @@ Output ONLY the HTML content. Do not include markdown code fences, explanations,
         .eq("id", conversationId);
     }
 
-    // 15. Return new report (+ refreshed agreement/divisive summaries)
+    // 15. Return new report (+ refreshed agreement/divisive summaries and consensus items)
+    const feedbackRowsMapped = feedbackRows.map((r) => ({
+      responseId: String(r.response_id),
+      feedback: String(r.feedback),
+    }));
+
     const agreementSummaries = computeAgreementSummaries(
       summaryResponses.map((r) => ({
         id: String(r.id),
         responseText: String(r.response_text ?? ""),
       })),
-      feedbackRows.map((r) => ({
-        responseId: String(r.response_id),
-        feedback: String(r.feedback),
-      })),
+      feedbackRowsMapped,
       { maxPerType: 100 }
     );
 
-    const consensusItems = computeResponseConsensusItems(
-      summaryResponses.map((r) => ({
-        id: String(r.id),
-        responseText: String(r.response_text ?? ""),
-      })),
-      feedbackRows.map((r) => ({
-        responseId: String(r.response_id),
-        feedback: String(r.feedback),
-      }))
-    );
+    // Use consolidated consensus items when cluster buckets exist
+    let consensusItems;
+    if (hasConsolidatedData) {
+      const bucketsMapped = clusterBuckets.map((b) => ({
+        bucketId: b.id,
+        consolidatedStatement: b.consolidated_statement,
+        responseIds: b.conversation_cluster_bucket_members.map((m) =>
+          String(m.response_id)
+        ),
+      }));
+
+      const unconsolidatedMapped = unconsolidatedRows
+        .filter((r) => r.conversation_responses?.[0]?.response_text)
+        .map((r) => ({
+          responseId: String(r.response_id),
+          responseText: r.conversation_responses![0].response_text,
+        }));
+
+      consensusItems = computeConsolidatedConsensusItems(
+        bucketsMapped,
+        unconsolidatedMapped,
+        feedbackRowsMapped
+      );
+    } else {
+      consensusItems = computeResponseConsensusItems(
+        summaryResponses.map((r) => ({
+          id: String(r.id),
+          responseText: String(r.response_text ?? ""),
+        })),
+        feedbackRowsMapped
+      );
+    }
 
     const totalInteractionsResult = await supabase
       .from("response_feedback")

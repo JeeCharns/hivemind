@@ -10,11 +10,15 @@ import type {
   ResultViewModel,
   ReportVersion,
   ReportContent,
+  ConsensusMetrics,
 } from "@/types/conversation-report";
 import { requireHiveMember } from "./requireHiveMember";
 import { canOpenReport, canGenerateReport } from "../domain/reportRules";
 import { computeAgreementSummaries } from "../domain/agreementSummaries";
-import { computeResponseConsensusItems } from "../domain/responseConsensus";
+import {
+  computeResponseConsensusItems,
+  computeConsolidatedConsensusItems,
+} from "../domain/responseConsensus";
 
 interface ReportRow {
   version: number;
@@ -25,11 +29,24 @@ interface ReportRow {
 interface ReportResponseRow {
   id: string | number;
   response_text: string;
+  user_id: string;
 }
 
 interface ReportFeedbackRow {
   response_id: string | number;
   feedback: string;
+  user_id: string;
+}
+
+interface ClusterBucketRow {
+  id: string;
+  consolidated_statement: string;
+  conversation_cluster_bucket_members: Array<{ response_id: number }>;
+}
+
+interface UnconsolidatedResponseRow {
+  response_id: number;
+  conversation_responses: { response_text: string }[] | null;
 }
 
 function parseAnalysisStatus(
@@ -110,6 +127,8 @@ export async function getReportViewModel(
     responsesResult,
     feedbackResult,
     feedbackCountResult,
+    clusterBucketsResult,
+    unconsolidatedResult,
   ] = await Promise.all([
     // Fetch report versions
     supabase
@@ -124,23 +143,35 @@ export async function getReportViewModel(
       .select("id", { count: "exact", head: true })
       .eq("conversation_id", conversationId),
 
-    // Fetch responses for agreement/divisive summaries
+    // Fetch responses for agreement/divisive summaries (include user_id for participant count)
     supabase
       .from("conversation_responses")
-      .select("id, response_text")
+      .select("id, response_text, user_id")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false }),
 
-    // Fetch feedback for agreement/divisive summaries
+    // Fetch feedback for agreement/divisive summaries (include user_id for voter count)
     supabase
       .from("response_feedback")
-      .select("response_id, feedback")
+      .select("response_id, feedback, user_id")
       .eq("conversation_id", conversationId),
 
     // Count total votes (all responses)
     supabase
       .from("response_feedback")
       .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversationId),
+
+    // Fetch cluster buckets with their member response IDs
+    supabase
+      .from("conversation_cluster_buckets")
+      .select("id, consolidated_statement, conversation_cluster_bucket_members(response_id)")
+      .eq("conversation_id", conversationId),
+
+    // Fetch unconsolidated responses with their text
+    supabase
+      .from("conversation_unconsolidated_responses")
+      .select("response_id, conversation_responses(response_text)")
       .eq("conversation_id", conversationId),
   ]);
 
@@ -164,9 +195,14 @@ export async function getReportViewModel(
     throw new Error("Failed to count feedback");
   }
 
+  // Note: cluster buckets and unconsolidated queries may return empty if no consolidation has run
+  // This is expected for older conversations or those without analysis
+
   const reportRows = (versionsResult.data || []) as ReportRow[];
   const responseCount = responseCountResult.count || 0;
   const totalInteractions = feedbackCountResult.count || 0;
+  const clusterBuckets = (clusterBucketsResult.data || []) as ClusterBucketRow[];
+  const unconsolidatedRows = (unconsolidatedResult.data || []) as UnconsolidatedResponseRow[];
 
   // 5. Build versions list
   const versions: ReportVersion[] = reportRows.map((row) => ({
@@ -196,30 +232,100 @@ export async function getReportViewModel(
   const responses = (responsesResult.data || []) as ReportResponseRow[];
   const feedbackRows = (feedbackResult.data || []) as ReportFeedbackRow[];
 
-  const consensusItems = computeResponseConsensusItems(
-    responses.map((r) => ({
-      id: String(r.id),
-      responseText: r.response_text,
-    })),
-    feedbackRows.map((r) => ({
-      responseId: String(r.response_id),
-      feedback: r.feedback,
-    }))
-  );
+  const feedbackRowsMapped = feedbackRows.map((r) => ({
+    responseId: String(r.response_id),
+    feedback: r.feedback,
+  }));
+
+  // Determine if we should use consolidated statements or individual responses
+  // Use consolidated if cluster buckets exist (new system)
+  const hasConsolidatedData = clusterBuckets.length > 0;
+
+  let consensusItems;
+  if (hasConsolidatedData) {
+    // Use consolidated statements (buckets) + unconsolidated responses
+    const bucketsMapped = clusterBuckets.map((b) => ({
+      bucketId: b.id,
+      consolidatedStatement: b.consolidated_statement,
+      responseIds: b.conversation_cluster_bucket_members.map((m) =>
+        String(m.response_id)
+      ),
+    }));
+
+    const unconsolidatedMapped = unconsolidatedRows
+      .filter((r) => r.conversation_responses?.[0]?.response_text)
+      .map((r) => ({
+        responseId: String(r.response_id),
+        responseText: r.conversation_responses![0].response_text,
+      }));
+
+    consensusItems = computeConsolidatedConsensusItems(
+      bucketsMapped,
+      unconsolidatedMapped,
+      feedbackRowsMapped
+    );
+  } else {
+    // Fallback to individual responses (legacy behavior)
+    consensusItems = computeResponseConsensusItems(
+      responses.map((r) => ({
+        id: String(r.id),
+        responseText: r.response_text,
+      })),
+      feedbackRowsMapped
+    );
+  }
 
   const agreementSummaries = computeAgreementSummaries(
     responses.map((r) => ({
       id: String(r.id),
       responseText: r.response_text,
     })),
-    feedbackRows.map((r) => ({
-      responseId: String(r.response_id),
-      feedback: r.feedback,
-    })),
+    feedbackRowsMapped,
     { maxPerType: 100 }
   );
 
-  // 8. Return view model
+  // 8. Compute consensus metrics
+  // Total participants = unique users who submitted responses
+  const uniqueParticipantIds = new Set(responses.map((r) => r.user_id));
+  const totalParticipants = uniqueParticipantIds.size;
+
+  // Unique voters = unique users who voted on at least one statement
+  const uniqueVoterIds = new Set(feedbackRows.map((r) => r.user_id));
+  const uniqueVoters = uniqueVoterIds.size;
+
+  // Total statements in the matrix
+  const totalStatements = consensusItems.length;
+
+  // Total votes
+  const totalVotes = totalInteractions;
+
+  // % of participants voting = (voters who are also participants / total participants) * 100
+  // A voter counts if they submitted at least one response
+  const votersWhoAreParticipants = [...uniqueVoterIds].filter((id) =>
+    uniqueParticipantIds.has(id)
+  ).length;
+  const participantVotingPercent =
+    totalParticipants > 0
+      ? Math.round((votersWhoAreParticipants / totalParticipants) * 100)
+      : 0;
+
+  // Vote coverage = (total votes / (participants * statements)) * 100
+  const maxPossibleVotes = totalParticipants * totalStatements;
+  const voteCoveragePercent =
+    maxPossibleVotes > 0
+      ? Math.round((totalVotes / maxPossibleVotes) * 100)
+      : 0;
+
+  const consensusMetrics: ConsensusMetrics = {
+    totalVotes,
+    totalParticipants,
+    uniqueVoters,
+    totalStatements,
+    participantVotingPercent,
+    voteCoveragePercent,
+  };
+
+  // 9. Return view model
   return {
     conversationId: conversation.id,
     report,
@@ -230,6 +336,7 @@ export async function getReportViewModel(
     gateReason: gate.allowed ? null : gate.reason,
     agreementSummaries,
     consensusItems,
+    consensusMetrics,
     analysisStatus: parseAnalysisStatus(conversation.analysis_status),
     analysisError: conversation.analysis_error,
   };
