@@ -252,6 +252,11 @@ export async function getUnderstandViewModel(
   if (bucketsResult.error) {
     console.error("[getUnderstandViewModel] Failed to fetch cluster buckets:", bucketsResult.error);
     // Don't throw - buckets are optional feature
+  } else {
+    console.log("[getUnderstandViewModel] Buckets query result:", {
+      count: bucketsResult.data?.length ?? 0,
+      hasData: !!bucketsResult.data,
+    });
   }
 
   if (unconsolidatedResult.error) {
@@ -437,6 +442,11 @@ export async function getUnderstandViewModel(
   );
 
   // 12. Return complete view model with staleness metadata
+  console.log("[getUnderstandViewModel] Returning clusterBuckets:", {
+    count: clusterBuckets.length,
+    firstBucket: clusterBuckets[0]?.bucketName ?? "none",
+  });
+
   return {
     conversationId,
     responses: responsePoints,
