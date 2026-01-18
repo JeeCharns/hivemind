@@ -323,9 +323,7 @@ describe("UnderstandView theme filters", () => {
     expect(screen.queryByText("Response in A", { selector: "p" })).not.toBeInTheDocument();
   });
 
-  it("shows unclustered option in dropdown only when unclustered responses exist", async () => {
-    const user = userEvent.setup();
-
+  it("shows unclustered card in summary view only when unclustered responses exist", async () => {
     const viewModelWithUnclustered: UnderstandViewModel = {
       ...baseViewModel(),
       responses: [
@@ -374,15 +372,8 @@ describe("UnderstandView theme filters", () => {
 
     const { rerender } = render(<UnderstandView viewModel={viewModelWithUnclustered} />);
 
-    // Open dropdown (get all "All themes" buttons and click the first one which is the toggle)
-    const filterButtons = screen.getAllByRole("button", { name: /All themes/i });
-    await user.click(filterButtons[0]);
-
-    // Should see unclustered option
-    expect(screen.getByRole("button", { name: "Unclustered/New responses" })).toBeInTheDocument();
-
-    // Close dropdown by clicking outside or pressing escape
-    await user.keyboard("{Escape}");
+    // Should see unclustered card in the summary view
+    expect(screen.getByText("Unclustered/New responses")).toBeInTheDocument();
 
     // Now test without unclustered responses
     const viewModelWithoutUnclustered: UnderstandViewModel = {
@@ -397,6 +388,16 @@ describe("UnderstandView theme filters", () => {
           yUmap: 0.5,
         },
       ],
+      feedbackItems: [
+        {
+          id: "r1",
+          responseText: "Response in A",
+          tag: null,
+          clusterIndex: 0,
+          counts: { agree: 0, pass: 0, disagree: 0 },
+          current: null,
+        },
+      ],
     };
 
     useConversationFeedbackMock.mockReturnValue({
@@ -407,15 +408,11 @@ describe("UnderstandView theme filters", () => {
 
     rerender(<UnderstandView viewModel={viewModelWithoutUnclustered} />);
 
-    // Open dropdown again
-    const filterButtonsAfter = screen.getAllByRole("button", { name: /All themes/i });
-    await user.click(filterButtonsAfter[0]);
-
-    // Should NOT see unclustered option
-    expect(screen.queryByRole("button", { name: "Unclustered/New responses" })).not.toBeInTheDocument();
+    // Should NOT see unclustered card when no unclustered responses exist
+    expect(screen.queryByText("Unclustered/New responses")).not.toBeInTheDocument();
   });
 
-  it("vote buttons work on cluster summary cards", async () => {
+  it("vote buttons work after drilling into a theme", async () => {
     const user = userEvent.setup();
     const voteMock = jest.fn();
     const viewModel: UnderstandViewModel = {
@@ -450,9 +447,13 @@ describe("UnderstandView theme filters", () => {
 
     render(<UnderstandView viewModel={viewModel} />);
 
-    // Click agree button on the summary card
-    const agreeButtons = screen.getAllByRole("button", { name: "Agree" });
-    await user.click(agreeButtons[0]);
+    // First, we're in the "All themes" summary view. Click to drill into Theme A.
+    const showButton = screen.getByText(/Show 1 response/);
+    await user.click(showButton);
+
+    // Now we should see the individual response with vote buttons
+    const agreeButton = screen.getByRole("button", { name: "Agree" });
+    await user.click(agreeButton);
 
     expect(voteMock).toHaveBeenCalledWith("r1", "agree");
   });
@@ -469,28 +470,27 @@ describe("UnderstandView theme filters", () => {
 
     render(<UnderstandView viewModel={viewModel} />);
 
-    // Initially on "All themes", should show cluster summary cards
-    expect(screen.getByRole("button", { name: "All themes" })).toBeInTheDocument();
+    // Initially on "All themes" summary view, should show cluster summary cards
     expect(screen.getByText("Theme A")).toBeInTheDocument();
     expect(screen.getByText("Theme B")).toBeInTheDocument();
 
-    // Click dropdown and select Theme A
-    const filterButton = screen.getByRole("button", { name: "All themes" });
-    await user.click(filterButton);
-    await user.click(screen.getByRole("button", { name: "Theme A" }));
+    // Click on Theme A card to drill down
+    const themeACard = screen.getByRole("button", {
+      name: /Theme A Show 1 response/i,
+    });
+    await user.click(themeACard);
 
     // Should now show individual responses for Theme A only (using selector to avoid SVG titles)
-    expect(screen.getByRole("button", { name: "Theme A" })).toBeInTheDocument();
+    // The theme title should be shown at the top (and also in the map SVG)
+    expect(screen.getAllByText("Theme A").length).toBeGreaterThan(0);
     expect(screen.getByText("Response in A", { selector: "p" })).toBeInTheDocument();
     expect(screen.queryByText("Response in B", { selector: "p" })).not.toBeInTheDocument();
 
-    // Go back to "All themes"
-    await user.click(screen.getByRole("button", { name: "Theme A" }));
-    await user.click(screen.getByRole("button", { name: "All themes" }));
+    // Go back to "All themes" using the back button
+    const backButton = screen.getByRole("button", { name: /Back to all themes/i });
+    await user.click(backButton);
 
-    // Should show cluster summaries again
-    expect(screen.getByRole("button", { name: "All themes" })).toBeInTheDocument();
-    // Check for cluster summary titles (using getAllByText since they might appear in dropdown too)
+    // Should show cluster summaries again (themes appear in both map and cards)
     expect(screen.getAllByText("Theme A").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Theme B").length).toBeGreaterThan(0);
   });
@@ -543,9 +543,11 @@ describe("UnderstandView theme filters", () => {
 
     render(<UnderstandView viewModel={viewModel} />);
 
-    // Select Theme A to see the groups
-    await user.click(screen.getByRole("button", { name: "All themes" }));
-    await user.click(screen.getByRole("button", { name: "Theme A" }));
+    // Click on Theme A card to drill down
+    const themeACard = screen.getByRole("button", {
+      name: /Theme A Show 1 response/i,
+    });
+    await user.click(themeACard);
 
     const larger = screen.getByText("Larger group representative");
     const smaller = screen.getByText("Smaller group representative");
@@ -592,9 +594,11 @@ describe("UnderstandView theme filters", () => {
 
     render(<UnderstandView viewModel={viewModel} />);
 
-    // Select Theme A to see individual responses
-    await user.click(screen.getByRole("button", { name: "All themes" }));
-    await user.click(screen.getByRole("button", { name: "Theme A" }));
+    // Click on Theme A card to drill down to see individual responses
+    const themeACard = screen.getByRole("button", {
+      name: /Theme A Show 1 response/i,
+    });
+    await user.click(themeACard);
 
     const agreeButton = screen.getByRole("button", { name: "Agree" });
     const passButton = screen.getByRole("button", { name: "Pass" });
@@ -655,9 +659,11 @@ describe("UnderstandView theme filters", () => {
 
     render(<UnderstandView viewModel={viewModel} />);
 
-    // Select Theme A to see individual responses
-    await user.click(screen.getByRole("button", { name: "All themes" }));
-    await user.click(screen.getByRole("button", { name: "Theme A" }));
+    // Click on Theme A card to drill down to see individual responses
+    const themeACard = screen.getByRole("button", {
+      name: /Theme A Show 1 response/i,
+    });
+    await user.click(themeACard);
 
     const disagreeButton = screen.getByRole("button", { name: "Disagree" });
 
@@ -704,9 +710,11 @@ describe("UnderstandView theme filters", () => {
 
     render(<UnderstandView viewModel={viewModel} />);
 
-    // Select Theme A to see individual responses
-    await user.click(screen.getByRole("button", { name: "All themes" }));
-    await user.click(screen.getByRole("button", { name: "Theme A" }));
+    // Click on Theme A card to drill down to see individual responses
+    const themeACard = screen.getByRole("button", {
+      name: /Theme A Show 1 response/i,
+    });
+    await user.click(themeACard);
 
     const passButton = screen.getByRole("button", { name: "Pass" });
 

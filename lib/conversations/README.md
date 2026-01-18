@@ -186,14 +186,25 @@ The system automatically chooses between incremental and full re-analysis:
   - Regenerates theme names and descriptions
   - Persists cluster models for future incremental updates
 
-### Job Retirement (Regenerate Mode)
+### Job Retirement (Regenerate Mode and Stale Jobs)
 
-When triggering analysis with `mode: "regenerate"`, the system retires any active jobs before enqueueing a new one:
+The system handles stuck/stale jobs and explicit regeneration requests:
 
-- **Retirement behavior**: Updates all jobs with `status IN ('queued', 'running')` for the conversation to `status='failed'` with `last_error="superseded by regenerate"`
-- **Worker safety**: Workers check job status before persisting results; if the job was superseded, results are discarded
-- **Atomicity**: Retire + enqueue + conversation status update happen in a single transaction to prevent races
-- **Purpose**: Ensures only the latest regenerate request produces visible results, preventing stale analysis from overwriting newer runs
+**Stale Job Detection**:
+- **Queued jobs**: Considered stale after 1 hour (likely stuck, no worker available)
+- **Running jobs**: Considered stale after 30 minutes (likely crashed worker)
+- **Behavior**: Stale jobs are automatically retired when a new analysis is triggered, allowing the new job to proceed
+- **Logging**: Retired stale jobs include age in the `last_error` field for diagnostics
+
+**Regenerate Mode**:
+- When triggering with `mode: "regenerate"`, non-stale active jobs are also retired (user explicitly wants to restart)
+- **Retirement behavior**: Updates job to `status='failed'` with `last_error="superseded by regenerate request"`
+- **Worker safety**: Workers check job status before persisting results; if superseded, results are discarded
+- **Purpose**: Ensures only the latest regenerate request produces visible results
+
+**Thresholds** (Implementation: [lib/conversations/server/triggerConversationAnalysis.ts](server/triggerConversationAnalysis.ts:139)):
+- `STALE_QUEUED_MS = 60 * 60 * 1000` (1 hour)
+- `STALE_RUNNING_MS = 30 * 60 * 1000` (30 minutes)
 
 ### API
 
@@ -249,12 +260,35 @@ When regenerating analysis, the UI shows partial loading to keep the response li
   - `newResponsesSinceAnalysis`: count of new responses since last analysis
   - `isAnalysisStale`: boolean indicating if analysis is out of date
 
+## Incremental Loading (Understand Tab)
+
+The Understand tab uses incremental loading to optimize initial page load for conversations with many responses.
+
+### How It Works
+
+1. **Initial load**: `getUnderstandViewModel` returns cluster bucket metadata (bucket name, consolidated statement, response count, response IDs) but **not** full response text
+2. **Expand on demand**: When user clicks "Show N original responses" on a bucket card, the `useBucketResponses` hook fetches response details
+3. **Pagination**: Bucket responses are loaded 20 at a time with "Load more" button for large buckets
+
+### Key Files
+
+- View model: [lib/conversations/server/getUnderstandViewModel.ts](server/getUnderstandViewModel.ts) - Returns `responseIds` array instead of full `responses`
+- API endpoint: `app/api/conversations/[conversationId]/buckets/[bucketId]/responses/route.ts` - Paginated bucket responses
+- Hook: [lib/conversations/react/useBucketResponses.ts](react/useBucketResponses.ts) - Client-side lazy loading
+- Component: `app/components/conversation/ClusterBucketCard.tsx` - Triggers load on expand
+
+### Performance Benefits
+
+- **2000 responses consolidated to 50 buckets**: Initial payload ~50KB (metadata only) vs ~500KB (full responses)
+- **5000+ responses**: Significant reduction in initial load time and memory usage
+- **User experience**: Voting buttons and aggregate counts work immediately (use response IDs), response text loads on demand
+
 ## Tabs (Listen / Understand / Vote / Result)
 
 Server components assemble data and render client views:
 
 - Listen: `app/hives/[hiveId]/conversations/[conversationId]/listen/page.tsx` → API feed at `app/api/conversations/[conversationId]/responses/route.ts`
-- Understand: `app/hives/[hiveId]/conversations/[conversationId]/understand/page.tsx` → `lib/conversations/server/getUnderstandViewModel.ts`
+- Understand: `app/hives/[hiveId]/conversations/[conversationId]/understand/page.tsx` → `lib/conversations/server/getUnderstandViewModel.ts` (with incremental loading for bucket responses)
 - Vote (decide only): `app/hives/[hiveId]/conversations/[conversationId]/vote/page.tsx` → `lib/conversations/server/getVoteViewModel.ts`
 - Result/Report: `app/hives/[hiveId]/conversations/[conversationId]/result/page.tsx` → `lib/conversations/server/getReportViewModel.ts`
 

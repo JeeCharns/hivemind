@@ -113,20 +113,31 @@ export interface FrequentlyMentionedGroup {
 }
 
 /**
+ * Response item within a cluster bucket
+ */
+export interface BucketResponse {
+  id: string;
+  responseText: string;
+  tag: string | null;
+}
+
+/**
  * A semantic bucket within a cluster (LLM-generated)
  * Groups responses that express similar ideas
+ *
+ * For incremental loading:
+ * - Initial load: responses array is empty, responseIds contains all IDs
+ * - On expand: responses are fetched via API and populated
  */
 export interface ClusterBucket {
   bucketId: string;
   clusterIndex: number;
   bucketName: string;
   consolidatedStatement: string;
-  /** Original responses that were consolidated into this bucket */
-  responses: Array<{
-    id: string;
-    responseText: string;
-    tag: string | null;
-  }>;
+  /** Original responses - empty on initial load, populated on demand */
+  responses: BucketResponse[];
+  /** Response IDs for lazy loading (always present) */
+  responseIds: string[];
   responseCount: number;
 }
 

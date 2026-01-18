@@ -24,6 +24,9 @@ Supabase Dashboard → SQL Editor, run these in order:
 8. `supabase/migrations/008_allow_public_invite_preview.sql`
 9. `supabase/migrations/009_remove_public_invite_preview_policy.sql`
 10. `supabase/migrations/018_add_hive_visibility.sql`
+11. `supabase/migrations/021_add_feedback_count_function.sql` (feedback count aggregation)
+12. `supabase/migrations/022_add_vote_composite_index.sql` (vote budget query optimization)
+13. `supabase/migrations/023_allow_members_to_create_invite_links.sql` (fix: allow non-admin members to create invite links)
 
 ## What These Migrations Enable
 

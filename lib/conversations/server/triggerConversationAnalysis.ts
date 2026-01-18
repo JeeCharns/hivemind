@@ -126,7 +126,7 @@ export async function triggerConversationAnalysis(
   // Check the jobs table for active jobs, not just the conversation status
   const { data: existingJobs, error: jobsError } = await supabase
     .from("conversation_analysis_jobs")
-    .select("id, status")
+    .select("id, status, created_at, locked_at")
     .eq("conversation_id", conversationId)
     .in("status", ["queued", "running"])
     .limit(1);
@@ -136,17 +136,86 @@ export async function triggerConversationAnalysis(
     // Continue anyway - we'll try to create the job
   }
 
+  // Stale job threshold: 1 hour for queued jobs, 30 minutes for running jobs
+  const STALE_QUEUED_MS = 60 * 60 * 1000; // 1 hour
+  const STALE_RUNNING_MS = 30 * 60 * 1000; // 30 minutes
+  const now = Date.now();
+
   if (existingJobs && existingJobs.length > 0) {
+    const existingJob = existingJobs[0];
+    const jobCreatedAt = new Date(existingJob.created_at).getTime();
+    const jobAge = now - jobCreatedAt;
+
+    // Determine if job is stale based on status
+    const staleThreshold =
+      existingJob.status === "queued" ? STALE_QUEUED_MS : STALE_RUNNING_MS;
+    const isJobStale = jobAge > staleThreshold;
+
     console.log(
-      `[triggerConversationAnalysis] Job already exists with status=${existingJobs[0].status}`
+      `[triggerConversationAnalysis] Job already exists with status=${existingJob.status} age=${Math.round(jobAge / 1000)}s isStale=${isJobStale}`
     );
-    return {
-      status: "already_running",
-      reason: "in_progress",
-      currentResponseCount: currentCount,
-      analysisResponseCount: conversation.analysis_response_count,
-      newResponsesSinceAnalysis: newCount,
-    };
+
+    // For regenerate mode with a stale job, we should retire it and continue
+    // For normal mode with a stale job, we should also allow retry (job likely stuck)
+    if (isJobStale) {
+      console.log(
+        `[triggerConversationAnalysis] Retiring stale job ${existingJob.id} (age=${Math.round(jobAge / 60000)} minutes)`
+      );
+
+      const { error: retireError } = await supabase
+        .from("conversation_analysis_jobs")
+        .update({
+          status: "failed",
+          last_error: `stale_job_retired (age=${Math.round(jobAge / 60000)}min, mode=${request.mode})`,
+          locked_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingJob.id)
+        .in("status", ["queued", "running"]); // Safety: only update if still active
+
+      if (retireError) {
+        console.error(
+          "[triggerConversationAnalysis] Failed to retire stale job:",
+          retireError
+        );
+        // Continue anyway - the unique constraint will catch duplicates
+      }
+      // Continue to create a new job below
+    } else if (request.mode === "regenerate") {
+      // For regenerate mode with a non-stale job, still allow override
+      // This handles the case where user explicitly wants to restart
+      console.log(
+        `[triggerConversationAnalysis] Regenerate mode: retiring active job ${existingJob.id}`
+      );
+
+      const { error: retireError } = await supabase
+        .from("conversation_analysis_jobs")
+        .update({
+          status: "failed",
+          last_error: "superseded by regenerate request",
+          locked_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingJob.id)
+        .in("status", ["queued", "running"]);
+
+      if (retireError) {
+        console.error(
+          "[triggerConversationAnalysis] Failed to retire job for regenerate:",
+          retireError
+        );
+      }
+      // Continue to create a new job below
+    } else {
+      // Non-stale job exists and not regenerate mode - block the request
+      return {
+        status: "already_running",
+        reason: "in_progress",
+        currentResponseCount: currentCount,
+        analysisResponseCount: conversation.analysis_response_count,
+        newResponsesSinceAnalysis: newCount,
+      };
+    }
   }
 
   // 9. Decide strategy
@@ -185,34 +254,8 @@ export async function triggerConversationAnalysis(
     `[triggerConversationAnalysis] strategy=${chosenStrategy} newCount=${newCount}`
   );
 
-  // 10. Retire any active jobs for this conversation (for regenerate mode)
-  // This prevents stale jobs from completing and overwriting newer analysis results
-  if (request.mode === "regenerate") {
-    console.log(
-      `[triggerConversationAnalysis] Retiring active jobs for conversation ${conversationId}`
-    );
-
-    const { error: retireError } = await supabase
-      .from("conversation_analysis_jobs")
-      .update({
-        status: "failed",
-        last_error: "superseded by regenerate",
-        locked_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("conversation_id", conversationId)
-      .in("status", ["queued", "running"]);
-
-    if (retireError) {
-      console.error(
-        "[triggerConversationAnalysis] Failed to retire active jobs:",
-        retireError
-      );
-      // Don't throw - we'll still try to create the new job
-    }
-  }
-
-  // 11. Enqueue job
+  // 10. Enqueue job
+  // Note: Active jobs are already retired in step 8 above (for stale jobs or regenerate mode)
   console.log("[triggerConversationAnalysis] Creating analysis job with status=queued");
 
   const { data: insertedJob, error: insertError } = await supabase

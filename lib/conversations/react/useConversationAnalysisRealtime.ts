@@ -4,16 +4,27 @@
  * Subscribes to Supabase Realtime for analysis status updates
  * Replaces polling with push-based updates
  * Follows SRP: single responsibility of realtime subscription management
+ *
+ * Listens to:
+ * 1. postgres_changes on conversations table (analysis_status column)
+ * 2. postgres_changes on conversation_themes table
+ * 3. broadcast events from server (reliable push for status updates)
  */
 
 import { useEffect, useRef, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+/**
+ * Broadcast event type for analysis status updates (must match server)
+ */
+const ANALYSIS_STATUS_EVENT = "analysis_status" as const;
+
 interface UseConversationAnalysisRealtimeOptions {
   conversationId: string;
   enabled?: boolean;
   onRefresh: () => void;
+  onStatusUpdate?: (status: string, error?: string | null) => void;
   debounceMs?: number;
 }
 
@@ -40,8 +51,9 @@ function debounce<T extends (...args: unknown[]) => void>(func: T, delay: number
  * Hook for subscribing to analysis updates via Supabase Realtime
  *
  * Subscribes to:
- * 1. conversations table updates (analysis_status changes)
- * 2. conversation_themes table changes (theme generation)
+ * 1. conversations table updates (analysis_status changes via postgres_changes)
+ * 2. conversation_themes table changes (theme generation via postgres_changes)
+ * 3. broadcast events from server (reliable push for status updates)
  *
  * When events arrive, calls onRefresh() to fetch fresh data
  * Debounces refresh calls to collapse bursts of updates
@@ -53,6 +65,7 @@ export function useConversationAnalysisRealtime({
   conversationId,
   enabled = true,
   onRefresh,
+  onStatusUpdate,
   debounceMs = 500,
 }: UseConversationAnalysisRealtimeOptions): UseConversationAnalysisRealtimeResult {
   const [status, setStatus] = useState<RealtimeStatus>("disconnected");
@@ -71,12 +84,33 @@ export function useConversationAnalysisRealtime({
       return;
     }
 
-    // Create channel name
+    // Create channel name (must match server broadcastAnalysisStatus)
     const channelName = `analysis:${conversationId}`;
 
-    // Create realtime channel
+    // Create realtime channel with multiple listeners
     const channel = supabase
       .channel(channelName)
+      // Listen for server-side broadcast events (most reliable)
+      .on("broadcast", { event: ANALYSIS_STATUS_EVENT }, (payload) => {
+        const data = payload.payload as {
+          analysisStatus?: string;
+          analysisError?: string | null;
+        };
+        console.log("[Analysis] Broadcast: status update received");
+        console.log("[Analysis] → analysisStatus:", data.analysisStatus);
+
+        // Notify parent of status change without full refresh
+        if (onStatusUpdate && data.analysisStatus) {
+          onStatusUpdate(data.analysisStatus, data.analysisError);
+        }
+
+        // Trigger refresh to get full data when ready
+        if (data.analysisStatus === "ready") {
+          console.log("[Analysis] → Analysis complete, fetching full data...");
+          debouncedRefresh();
+        }
+      })
+      // Listen for postgres_changes on conversations table (backup)
       .on(
         "postgres_changes",
         {
@@ -102,6 +136,7 @@ export function useConversationAnalysisRealtime({
           debouncedRefresh();
         }
       )
+      // Listen for postgres_changes on themes table
       .on(
         "postgres_changes",
         {
@@ -145,7 +180,7 @@ export function useConversationAnalysisRealtime({
         channelRef.current = null;
       }
     };
-  }, [conversationId, enabled, debouncedRefresh]);
+  }, [conversationId, enabled, debouncedRefresh, onStatusUpdate]);
 
   const effectiveStatus = enabled ? status : "disconnected";
   const effectiveError = enabled && status === "error" ? error : undefined;

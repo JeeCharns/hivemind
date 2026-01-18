@@ -31,7 +31,7 @@ export async function GET(
     // 2. Get conversation to verify hive membership and analysis status
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
-      .select("hive_id, analysis_status, analysis_error")
+      .select("hive_id, analysis_status, analysis_error, analysis_updated_at")
       .eq("id", conversationId)
       .maybeSingle();
 
@@ -61,6 +61,7 @@ export async function GET(
     return NextResponse.json({
       analysisStatus: conversation.analysis_status,
       analysisError: conversation.analysis_error,
+      analysisUpdatedAt: conversation.analysis_updated_at,
       responseCount: count ?? 0,
       threshold: UNDERSTAND_MIN_RESPONSES,
     });

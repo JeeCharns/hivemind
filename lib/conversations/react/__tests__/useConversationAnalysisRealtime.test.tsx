@@ -76,7 +76,16 @@ describe("useConversationAnalysisRealtime", () => {
     );
 
     expect(supabase.channel).toHaveBeenCalledWith("analysis:conv-1");
-    expect(mockOn).toHaveBeenCalledTimes(2); // conversations + themes
+    expect(mockOn).toHaveBeenCalledTimes(3); // broadcast + conversations + themes
+
+    // Check broadcast subscription
+    expect(mockOn).toHaveBeenCalledWith(
+      "broadcast",
+      expect.objectContaining({
+        event: "analysis_status",
+      }),
+      expect.any(Function)
+    );
 
     // Check conversations subscription
     expect(mockOn).toHaveBeenCalledWith(

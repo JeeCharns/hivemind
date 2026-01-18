@@ -3,6 +3,7 @@
  *
  * POST - Submit feedback vote on a response
  * Requires authentication and hive membership
+ * Rate limited: 20 votes per minute per user
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -12,6 +13,7 @@ import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember"
 import type { Feedback } from "@/types/conversation-understand";
 import { jsonError } from "@/lib/api/errors";
 import { submitFeedbackSchema } from "@/lib/conversations/schemas";
+import { checkRateLimit, rateLimitResponse } from "@/lib/api/rateLimit";
 
 const VALID_FEEDBACK: Feedback[] = ["agree", "pass", "disagree"];
 
@@ -28,9 +30,15 @@ export async function POST(
       return jsonError("Unauthorized: Not authenticated", 401);
     }
 
+    // 2. Check rate limit (20 votes per minute)
+    const rateLimitResult = await checkRateLimit(session.user.id, "feedback");
+    if (!rateLimitResult.success) {
+      return rateLimitResponse(rateLimitResult);
+    }
+
     const supabase = await supabaseServerClient();
 
-    // 2. Get conversation to verify hive membership and check type
+    // 3. Get conversation to verify hive membership and check type
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
       .select("hive_id, type")
@@ -134,30 +142,18 @@ export async function POST(
       }
     }
 
-    // 7. Fetch updated counts for this response
-    const { data: feedbackRows, error: countError } = await supabase
-      .from("response_feedback")
-      .select("feedback")
-      .eq("response_id", responseId);
+    // 7. Fetch updated counts using SQL aggregate function (O(index scan) vs O(n) row fetch)
+    const { data: countsData, error: countError } = await supabase.rpc("get_feedback_counts", {
+      p_response_id: responseId,
+    });
 
     if (countError) {
       console.error("[POST feedback] Count error:", countError);
       return jsonError("Failed to fetch feedback counts", 500);
     }
 
-    // Aggregate counts
-    const counts = {
-      agree: 0,
-      pass: 0,
-      disagree: 0,
-    };
-
-    feedbackRows?.forEach((row) => {
-      const fb = row.feedback as Feedback;
-      if (fb === "agree" || fb === "pass" || fb === "disagree") {
-        counts[fb]++;
-      }
-    });
+    // RPC returns array with single row
+    const counts = countsData?.[0] ?? { agree: 0, pass: 0, disagree: 0 };
 
     return NextResponse.json({ counts });
   } catch (error) {

@@ -108,6 +108,7 @@ export type AnalysisStatusResponse = z.infer<typeof analysisStatusSchema>;
 export const getAnalysisStatusResponseSchema = z.object({
   analysisStatus: z.enum(["not_started", "embedding", "analyzing", "ready", "error"]).nullable(),
   analysisError: z.string().nullable(),
+  analysisUpdatedAt: z.string().nullable(),
   responseCount: z.number().int().nonnegative(),
   threshold: z.number().int().positive(),
 });

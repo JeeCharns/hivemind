@@ -24,6 +24,7 @@ import {
   OUTLIER_MAX_RATIO,
 } from "../domain/thresholds";
 import { enforceMinClusters } from "../domain/clusterEnforcement";
+import { broadcastAnalysisStatus } from "./broadcastAnalysisStatus";
 
 interface ResponseData {
   id: string;
@@ -344,7 +345,7 @@ async function fetchResponses(
 }
 
 /**
- * Update conversation analysis status
+ * Update conversation analysis status and broadcast to subscribers
  */
 async function updateAnalysisStatus(
   supabase: SupabaseClient,
@@ -375,6 +376,18 @@ async function updateAnalysisStatus(
   if (error) {
     console.error(`[updateAnalysisStatus] Failed to update status:`, error);
   }
+
+  // Broadcast status change to all subscribers (fire-and-forget)
+  // This provides reliable push updates even if postgres_changes is delayed
+  broadcastAnalysisStatus({
+    conversationId,
+    payload: {
+      analysisStatus: status,
+      analysisError: errorMessage ?? null,
+    },
+  }).catch((err) => {
+    console.error(`[updateAnalysisStatus] Broadcast failed:`, err);
+  });
 }
 
 /**

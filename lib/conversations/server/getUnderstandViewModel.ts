@@ -408,32 +408,20 @@ export async function getUnderstandViewModel(
   });
 
   // 10. Build cluster buckets (new LLM-driven consolidation)
+  // Note: responses array is empty for incremental loading - fetch on demand via API
   const clusterBuckets: ClusterBucket[] = bucketsData.map((bucket) => {
     // Get member response IDs from join table
     const memberIds: string[] = (bucket.conversation_cluster_bucket_members || []).map(
       (m) => String(m.response_id)
     );
 
-    // Build response details for each member
-    const bucketResponses = memberIds
-      .map((id) => {
-        const resp = normalizedResponses.find((r) => r.id === id);
-        return resp
-          ? {
-              id: resp.id,
-              responseText: resp.response_text,
-              tag: resp.tag,
-            }
-          : null;
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
-
     return {
       bucketId: String(bucket.id),
       clusterIndex: bucket.cluster_index,
       bucketName: bucket.bucket_name,
       consolidatedStatement: bucket.consolidated_statement,
-      responses: bucketResponses,
+      responses: [], // Empty for initial load - fetched on demand when user expands
+      responseIds: memberIds,
       responseCount: bucket.response_count,
     };
   });

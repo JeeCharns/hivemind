@@ -138,17 +138,32 @@ export default function UnderstandViewContainer({
     analysisStatus !== null &&
     analysisStatus !== undefined;
 
+  // Handle status updates from broadcast (update UI without full refresh)
+  const handleStatusUpdate = useCallback(
+    (status: string, error?: string | null) => {
+      setViewModel((prev) => ({
+        ...prev,
+        analysisStatus: status as typeof prev.analysisStatus,
+        analysisError: error ?? prev.analysisError,
+      }));
+    },
+    []
+  );
+
   // Subscribe to realtime updates (primary mechanism)
   const { status: realtimeStatus } = useConversationAnalysisRealtime({
     conversationId,
     enabled: shouldSubscribe,
     onRefresh: fetchUnderstandData,
+    onStatusUpdate: handleStatusUpdate,
     debounceMs: 500,
   });
 
-  // Polling safety net: keep a low-frequency status check even when realtime is connected.
-  const shouldPollStatus = shouldSubscribe;
-  const statusPollingInterval = realtimeStatus === "connected" ? 15000 : 5000;
+  // Polling safety net: only poll when realtime fails, with longer intervals
+  // When realtime is connected, we don't need polling at all (broadcast handles it)
+  // When realtime fails, poll every 30s as a safety net
+  const shouldPollStatus = shouldSubscribe && realtimeStatus === "error";
+  const statusPollingInterval = 30000; // 30s when polling (was 5s)
 
   // Fallback: Show UI indicator only when realtime is unavailable
   const useFallbackPolling =

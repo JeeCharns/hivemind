@@ -49,7 +49,7 @@ export interface ClusterConsolidationParams {
 
 export const DEFAULT_CLUSTER_CONSOLIDATION_PARAMS: ClusterConsolidationParams = {
   model: "gpt-4o-mini",
-  promptVersion: "v2.1",
+  promptVersion: "v2.3",
   maxResponsesPerCall: 50, // Balance between coverage and token limits
 };
 
@@ -122,8 +122,14 @@ Guidelines:
 - Responses that are truly unique and don't fit any group should go in "unconsolidated_ids"
 
 Voice and tone:
-- Match the tense and voice of the original responses. If responses consistently use first-person ("We need...", "We want..."), use first-person. If they use direct statements ("Need X", "Want Y"), keep that directness.
-- Only use summary language ("There is a need for...") when the original voices are mixed or varied.
+- Consolidated statements will be voted on (agree/pass/disagree), so phrase them as positions or calls to action that make sense to vote on.
+- Prefer first-person collective phrasing - whichever best matches the style of the original responses:
+  - Calls to action: "We need...", "We should...", "We must...", "We call for...", "We urge..."
+  - Desires/preferences: "We want...", "We would like...", "We prefer...", "We hope for..."
+  - Positions: "We believe...", "We support...", "We oppose...", "We advocate for...", "We recommend..."
+  - Concerns: "We are concerned about...", "We worry that..."
+  - Values: "We value...", "We prioritize..."
+- Only use passive/summary language ("There is a need for...") when the original voices are mixed or the responses are purely observational rather than advocating a position.
 
 Conciseness:
 - Keep consolidated statements concise. If the original responses are short, the consolidated statement should be similarly brief.
@@ -178,7 +184,7 @@ ${responseList}
 
 For each bucket, create a consolidated statement that:
 - Preserves ALL distinct points from the grouped responses
-- Matches the voice/tense of the originals (first-person if they use "we", direct if they're direct)
+- Is phrased as a position people can vote on (agree/pass/disagree) - prefer "We need...", "We should...", "We want..." etc.
 - Stays concise - don't pad short responses into longer summaries
 
 Respond in JSON format:

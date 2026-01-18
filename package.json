@@ -23,6 +23,8 @@
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.85.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.1",
     "bson": "^6.10.4",
     "csv-parse": "^6.1.0",
     "ml-kmeans": "^4.2.1",

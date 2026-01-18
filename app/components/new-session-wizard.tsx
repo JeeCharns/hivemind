@@ -122,23 +122,33 @@ export default function NewSessionWizard({
                     key: "understand",
                     title: "Understand a Problem",
                     desc: "Collect signals to clarify a problem space.",
+                    disabled: false,
                   },
                   {
                     key: "decide",
                     title: "Make a Decision",
                     desc: "Gather inputs to choose between options.",
+                    disabled: true,
                   },
                 ].map((opt) => (
                   <button
                     key={opt.key}
                     type="button"
-                    onClick={() => setType(opt.key as ConversationType)}
-                    className={`w-full rounded-xl border p-4 flex flex-col items-start gap-1 text-left transition ${
-                      type === opt.key
-                        ? "border-brand-primary bg-[#EDEFFD]"
-                        : "border-slate-200 hover:border-[#cbd5f5]"
+                    onClick={() => !opt.disabled && setType(opt.key as ConversationType)}
+                    disabled={opt.disabled}
+                    className={`w-full rounded-xl border p-4 flex flex-col items-start gap-1 text-left transition relative ${
+                      opt.disabled
+                        ? "border-slate-200 bg-slate-50 cursor-not-allowed opacity-60"
+                        : type === opt.key
+                          ? "border-brand-primary bg-[#EDEFFD]"
+                          : "border-slate-200 hover:border-[#cbd5f5]"
                     }`}
                   >
+                    {opt.disabled && (
+                      <span className="absolute top-2 right-2 text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                        Coming Soon
+                      </span>
+                    )}
                     <span className="text-subtitle text-text-primary">
                       {opt.title}
                     </span>

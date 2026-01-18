@@ -892,6 +892,7 @@ export default function UnderstandView({
                     <ClusterBucketCard
                       key={bucket.bucketId}
                       bucket={bucket}
+                      conversationId={conversationId}
                       themeColor={getThemeColor(bucket.clusterIndex)}
                       onVote={vote}
                       loadingId={loadingId}

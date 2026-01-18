@@ -32,11 +32,13 @@ type SupabaseBuilder = {
 
 type SupabaseMock = {
   from: jest.MockedFunction<(table: string) => SupabaseBuilder>;
+  rpc: jest.MockedFunction<(fn: string, params: unknown) => Promise<{ data: unknown; error: unknown }>>;
 };
 
 function createSupabaseMock() {
   const queues: Record<string, { maybeSingle: QueryResult[]; then: QueryResult[] }> =
     {};
+  const rpcQueue: Array<{ data: unknown; error: unknown }> = [];
 
   const ensure = (table: string) => {
     if (!queues[table]) queues[table] = { maybeSingle: [], then: [] };
@@ -74,6 +76,11 @@ function createSupabaseMock() {
 
   const supabase: SupabaseMock = {
     from: jest.fn((table: string) => makeBuilder(table)),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    rpc: jest.fn(async (_fn: string, _params: unknown) => {
+      const next = rpcQueue.shift();
+      return next ?? { data: null, error: null };
+    }),
   };
 
   return {
@@ -81,6 +88,7 @@ function createSupabaseMock() {
     queueMaybeSingle: (table: string, result: QueryResult) =>
       ensure(table).maybeSingle.push(result),
     queueThen: (table: string, result: QueryResult) => ensure(table).then.push(result),
+    queueRpc: (result: { data: unknown; error: unknown }) => rpcQueue.push(result),
   };
 }
 
@@ -104,7 +112,7 @@ describe("POST /api/conversations/[conversationId]/feedback", () => {
   });
 
   it("accepts numeric responseId (BIGINT) and returns counts", async () => {
-    const { supabase, queueMaybeSingle, queueThen } = createSupabaseMock();
+    const { supabase, queueMaybeSingle, queueRpc } = createSupabaseMock();
     mockSupabaseServerClient.mockResolvedValue(
       supabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
     );
@@ -127,9 +135,9 @@ describe("POST /api/conversations/[conversationId]/feedback", () => {
       error: null,
     });
 
-    // Count query result (await builder)
-    queueThen("response_feedback", {
-      data: [{ feedback: "agree" }, { feedback: "pass" }],
+    // Count query result via RPC
+    queueRpc({
+      data: [{ agree: 1, pass: 1, disagree: 0 }],
       error: null,
     });
 
@@ -150,7 +158,7 @@ describe("POST /api/conversations/[conversationId]/feedback", () => {
   });
 
   it("withdraws vote when clicking the same feedback again (toggle-off)", async () => {
-    const { supabase, queueMaybeSingle, queueThen } = createSupabaseMock();
+    const { supabase, queueMaybeSingle, queueRpc } = createSupabaseMock();
     mockSupabaseServerClient.mockResolvedValue(
       supabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
     );
@@ -173,9 +181,9 @@ describe("POST /api/conversations/[conversationId]/feedback", () => {
       error: null,
     });
 
-    // Count query result after deletion (await builder)
-    queueThen("response_feedback", {
-      data: [{ feedback: "pass" }], // Only "pass" vote remains
+    // Count query result after deletion via RPC
+    queueRpc({
+      data: [{ agree: 0, pass: 1, disagree: 0 }],
       error: null,
     });
 

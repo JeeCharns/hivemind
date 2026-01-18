@@ -33,6 +33,8 @@ interface UseConversationFeedReturn {
   appendResponse: (response: LiveResponse) => void;
   /** Refresh feed without showing loading state (for background sync) */
   silentRefresh: () => Promise<void>;
+  /** Update a single response's like count (for broadcast updates) */
+  updateResponseLikeCount: (responseId: string, likeCount: number) => void;
 }
 
 /**
@@ -185,6 +187,20 @@ export function useConversationFeed({
     });
   }, []);
 
+  // Update a single response's like count (for broadcast updates - no refetch needed)
+  const updateResponseLikeCount = useCallback(
+    (responseId: string, likeCount: number) => {
+      setFeed((prev) =>
+        prev.map((r) =>
+          r.id === responseId
+            ? { ...r, likeCount }
+            : r
+        )
+      );
+    },
+    []
+  );
+
   return {
     feed,
     isLoadingFeed,
@@ -196,5 +212,6 @@ export function useConversationFeed({
     refresh,
     appendResponse,
     silentRefresh,
+    updateResponseLikeCount,
   };
 }

@@ -2,27 +2,30 @@
  * Use Conversation Feed Realtime Hook
  *
  * Subscribes to broadcast channel for real-time feed updates.
- * Replaces postgres_changes subscription to avoid full feed refreshes.
+ * Uses server-initiated broadcasts to eliminate refetch cascades.
  *
  * Architecture:
  * - Broadcast channel receives complete LiveResponse objects from server
- * - postgres_changes retained only for like updates (debounced)
- * - Clients append responses directly without loading state
+ * - Broadcast channel receives like count updates from server
+ * - Clients update local state directly without refetching
+ * - postgres_changes removed for likes (replaced by broadcast)
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { LiveResponse, RealtimeStatus, FeedBroadcastPayload } from "../domain/listen.types";
 import { getFeedChannelName, FEED_BROADCAST_EVENT } from "../server/broadcastResponse";
+import { LIKE_UPDATE_EVENT, type LikeUpdatePayload } from "../server/broadcastLikeUpdate";
 
 interface UseConversationFeedRealtimeOptions {
   conversationId: string;
   enabled?: boolean;
   onNewResponse: (response: LiveResponse) => void;
-  onLikeUpdate?: () => void;
-  /** Debounce time for like updates in ms (default: 1000) */
-  likeDebounceMs?: number;
+  /** Called when a like count update is broadcast. Provides responseId and new count. */
+  onLikeUpdate?: (responseId: string, likeCount: number) => void;
+  /** Current user ID to ignore own broadcasts (optional optimization) */
+  currentUserId?: string;
 }
 
 interface UseConversationFeedRealtimeResult {
@@ -35,7 +38,7 @@ interface UseConversationFeedRealtimeResult {
  *
  * Features:
  * - Subscribes to broadcast channel for new responses (instant append)
- * - Subscribes to postgres_changes for like updates (debounced refresh)
+ * - Subscribes to broadcast channel for like updates (direct state update)
  * - Reports connection status for UI indicator
  * - Cleans up subscriptions on unmount
  *
@@ -47,7 +50,7 @@ export function useConversationFeedRealtime({
   enabled = true,
   onNewResponse,
   onLikeUpdate,
-  likeDebounceMs = 1000,
+  currentUserId,
 }: UseConversationFeedRealtimeOptions): UseConversationFeedRealtimeResult {
   const [status, setStatus] = useState<RealtimeStatus>("disconnected");
   const [error, setError] = useState<string | undefined>();
@@ -55,7 +58,7 @@ export function useConversationFeedRealtime({
   // Refs to avoid stale closures in callbacks
   const onNewResponseRef = useRef(onNewResponse);
   const onLikeUpdateRef = useRef(onLikeUpdate);
-  const likeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentUserIdRef = useRef(currentUserId);
 
   // Keep refs updated
   useEffect(() => {
@@ -66,15 +69,9 @@ export function useConversationFeedRealtime({
     onLikeUpdateRef.current = onLikeUpdate;
   }, [onLikeUpdate]);
 
-  // Debounced like update handler
-  const handleLikeUpdate = useCallback(() => {
-    if (likeDebounceTimerRef.current) {
-      clearTimeout(likeDebounceTimerRef.current);
-    }
-    likeDebounceTimerRef.current = setTimeout(() => {
-      onLikeUpdateRef.current?.();
-    }, likeDebounceMs);
-  }, [likeDebounceMs]);
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!enabled || !supabase) {
@@ -91,7 +88,7 @@ export function useConversationFeedRealtime({
     const channelName = getFeedChannelName(conversationId);
     let channel: RealtimeChannel | null = null;
 
-    // Create channel with broadcast and postgres_changes subscriptions
+    // Create channel with broadcast subscriptions (no postgres_changes for likes)
     channel = supabase
       .channel(channelName)
       // Broadcast subscription for new responses
@@ -101,18 +98,15 @@ export function useConversationFeedRealtime({
           onNewResponseRef.current(data.response);
         }
       })
-      // postgres_changes subscription for like updates only
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "response_likes",
-        },
-        () => {
-          handleLikeUpdate();
+      // Broadcast subscription for like updates (replaces postgres_changes)
+      .on("broadcast", { event: LIKE_UPDATE_EVENT }, (payload) => {
+        const data = payload.payload as LikeUpdatePayload | undefined;
+        if (data && onLikeUpdateRef.current) {
+          // Optionally skip if this is our own broadcast (we already updated locally)
+          // But still process it - in case of race conditions, server count is authoritative
+          onLikeUpdateRef.current(data.responseId, data.likeCount);
         }
-      )
+      })
       .subscribe((subscriptionStatus, err) => {
         if (subscriptionStatus === "SUBSCRIBED") {
           setStatus("connected");
@@ -127,14 +121,11 @@ export function useConversationFeedRealtime({
 
     // Cleanup on unmount or when conversationId changes
     return () => {
-      if (likeDebounceTimerRef.current) {
-        clearTimeout(likeDebounceTimerRef.current);
-      }
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-  }, [conversationId, enabled, handleLikeUpdate]);
+  }, [conversationId, enabled]);
 
   return { status, error };
 }

@@ -26,12 +26,14 @@ import type { AnalysisStatus } from "@/types/conversations";
 import type { ListenTag, SubmitResponseInput } from "@/lib/conversations/domain/listen.types";
 import { useConversationFeed } from "@/lib/conversations/react/useConversationFeed";
 import { useConversationFeedRealtime } from "@/lib/conversations/react/useConversationFeedRealtime";
+import { useConversationPresence } from "@/lib/conversations/react/useConversationPresence";
 import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
 import Button from "@/app/components/button";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
 const MAX_LEN = 500;
+const THEMES_READY_ALERT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 export interface ListenViewProps {
   conversationId: string;
@@ -66,6 +68,7 @@ export default function ListenView({
     toggleLike,
     appendResponse,
     silentRefresh,
+    updateResponseLikeCount,
   } = useConversationFeed({ conversationId });
 
   const [text, setText] = useState("");
@@ -79,6 +82,9 @@ export default function ListenView({
   const [postAsOpen, setPostAsOpen] = useState(false);
   const postAsRef = useRef<HTMLDivElement | null>(null);
 
+  // Feed sort filter: 'new' shows newest first, 'top' shows most liked first
+  const [feedSort, setFeedSort] = useState<"new" | "top">("new");
+
   const displayName = currentUserDisplayName || "User";
 
   // Memoize callbacks for realtime hook to prevent unnecessary re-subscriptions
@@ -89,16 +95,26 @@ export default function ListenView({
     [appendResponse]
   );
 
-  const handleLikeUpdate = useCallback(() => {
-    silentRefresh();
-  }, [silentRefresh]);
+  // Handle like count updates from broadcast (direct state update, no refetch)
+  const handleLikeUpdate = useCallback(
+    (responseId: string, likeCount: number) => {
+      updateResponseLikeCount(responseId, likeCount);
+    },
+    [updateResponseLikeCount]
+  );
 
   // Real-time subscription via broadcast channel (no loading state on updates)
-  const { status: realtimeStatus } = useConversationFeedRealtime({
+  useConversationFeedRealtime({
     conversationId,
     enabled: hasLoadedOnce,
     onNewResponse: handleNewResponse,
     onLikeUpdate: handleLikeUpdate,
+  });
+
+  // Track presence for viewer count
+  const { viewerCount } = useConversationPresence({
+    conversationId,
+    enabled: hasLoadedOnce,
   });
 
   // Background sync every 30 seconds when tab is visible (eventual consistency)
@@ -122,6 +138,7 @@ export default function ListenView({
   });
 
   const analysisStatus = statusData?.analysisStatus ?? initialAnalysisStatus;
+  const analysisUpdatedAt = statusData?.analysisUpdatedAt ?? null;
   const responseCount = statusData?.responseCount ?? feed.length;
 
   const showSpinner =
@@ -190,11 +207,51 @@ export default function ListenView({
     [tag]
   );
 
+  // Check if analysis was completed recently (within the alert window)
+  // Use state to track current time for recency check to avoid impure render function
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  // Update current time periodically to re-evaluate recency
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const isAnalysisRecent = useMemo(() => {
+    if (!analysisUpdatedAt) return false;
+    const updatedAt = new Date(analysisUpdatedAt).getTime();
+    return currentTime - updatedAt < THEMES_READY_ALERT_WINDOW_MS;
+  }, [analysisUpdatedAt, currentTime]);
+
+  // Sort feed based on selected filter
+  // 'new' = newest first (default, already sorted from API)
+  // 'top' = most liked first (secondary sort by newest for ties)
+  const sortedFeed = useMemo(() => {
+    if (feedSort === "new") {
+      return feed;
+    }
+    // Sort by likeCount descending, then by createdAt descending for ties
+    return [...feed].sort((a, b) => {
+      if (b.likeCount !== a.likeCount) {
+        return b.likeCount - a.likeCount;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [feed, feedSort]);
+
   // Analysis status pill content
+  // Only show "Themes ready" alert if analysis was completed within the last few minutes
   const getStatusPill = () => {
     if (responseCount < 20) return null;
 
     if (analysisStatus === "ready") {
+      // Only show the alert if analysis was completed recently
+      if (!isAnalysisRecent) {
+        return null;
+      }
+
       return (
         <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -312,23 +369,21 @@ export default function ListenView({
                         type="button"
                         variant="secondary"
                         size="sm"
-                        className="w-36 px-3 justify-between"
+                        className="w-36 px-3 justify-between gap-2"
                         onClick={() => setPostAsOpen((o) => !o)}
                       >
-                        <span className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
-                            {postAs === "self"
-                              ? (displayName[0] ?? "M").toUpperCase()
-                              : "A"}
-                          </span>
-                          <span className="text-label max-w-32 truncate text-left">
-                            {postAs === "self" ? displayName : "Anonymous"}
-                          </span>
+                        <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
+                          {postAs === "self"
+                            ? (displayName[0] ?? "M").toUpperCase()
+                            : "A"}
                         </span>
-                        <CaretDown size={14} className="text-slate-500" />
+                        <span className="text-label flex-1 truncate text-left">
+                          {postAs === "self" ? displayName : "Anonymous"}
+                        </span>
+                        <CaretDown size={14} className="shrink-0 text-slate-500" />
                       </Button>
                       {postAsOpen && (
-                        <div className="absolute mt-1 w-40 rounded-lg border border-slate-200 bg-white shadow-sm z-20">
+                        <div className="absolute mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
                           {[
                             {
                               key: "self",
@@ -389,16 +444,42 @@ export default function ListenView({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h3 className="text-h4 text-slate-900">Live Feed</h3>
-                {realtimeStatus === "connected" && (
-                  <span className="flex items-center gap-1 text-xs text-emerald-600">
+                {viewerCount > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-slate-500">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                    Live
+                    {viewerCount} viewing
                   </span>
                 )}
               </div>
-              {showSpinner && (
-                <span className="inline-block w-4 h-4 aspect-square border-2 border-indigo-200 border-t-indigo-600 spinner-round animate-spin" />
-              )}
+              <div className="flex items-center gap-2">
+                {showSpinner && (
+                  <span className="inline-block w-4 h-4 aspect-square border-2 border-indigo-200 border-t-indigo-600 spinner-round animate-spin" />
+                )}
+                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setFeedSort("new")}
+                    className={`px-3 py-1 text-label transition-colors ${
+                      feedSort === "new"
+                        ? "bg-indigo-50 text-indigo-700 border-r border-slate-200"
+                        : "bg-white text-slate-600 hover:bg-slate-50 border-r border-slate-200"
+                    }`}
+                  >
+                    New
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFeedSort("top")}
+                    className={`px-3 py-1 text-label transition-colors ${
+                      feedSort === "top"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    Top
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Only show skeleton on initial load, not on subsequent refreshes */}
@@ -411,13 +492,13 @@ export default function ListenView({
                   />
                 ))}
               </div>
-            ) : feed.length === 0 ? (
+            ) : sortedFeed.length === 0 ? (
               <div className="text-slate-500 text-body">
                 No responses yet. Be the first to share.
               </div>
             ) : (
               <div className="space-y-8">
-                {feed.map((resp) => (
+                {sortedFeed.map((resp) => (
                   <div key={resp.id} className="rounded-lg flex gap-3">
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">

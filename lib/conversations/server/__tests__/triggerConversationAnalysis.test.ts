@@ -108,8 +108,13 @@ describe("triggerConversationAnalysis", () => {
 
       mockCountQuery(supabase, 25);
 
-      // Mock jobs query - existing job found
-      mockDataQuery(supabase, [{ id: "job-123", status: "queued" }], false);
+      // Mock jobs query - existing job found (recent, not stale)
+      mockDataQuery(supabase, [{
+        id: "job-123",
+        status: "queued",
+        created_at: new Date().toISOString(), // Recent job, not stale
+        locked_at: null,
+      }], false);
 
       const result = await triggerConversationAnalysis(
         supabase,
@@ -263,8 +268,8 @@ describe("triggerConversationAnalysis", () => {
 
       mockDataQuery(supabase, [], false); // no existing jobs
 
-      // For regenerate mode: retire jobs + conversation status update
-      mockUpdate(supabase);
+      // No existing jobs, so no retirement update needed
+      // Just: insert job + update conversation status
       mockInsert(supabase);
       mockUpdate(supabase);
 
@@ -292,8 +297,8 @@ describe("triggerConversationAnalysis", () => {
 
       mockDataQuery(supabase, [], false); // no existing jobs
 
-      // For regenerate mode: retire jobs + conversation status update
-      mockUpdate(supabase);
+      // No existing jobs, so no retirement update needed
+      // Just: insert job + update conversation status
       mockInsert(supabase);
       mockUpdate(supabase);
 
@@ -398,8 +403,13 @@ describe("triggerConversationAnalysis", () => {
 
       mockCountQuery(supabase, 25);
 
-      // Mock existing job found
-      mockDataQuery(supabase, [{ id: "existing-job", status: "queued" }], false);
+      // Mock existing job found (recent, not stale)
+      mockDataQuery(supabase, [{
+        id: "existing-job",
+        status: "queued",
+        created_at: new Date().toISOString(), // Recent job
+        locked_at: null,
+      }], false);
 
       const result = await triggerConversationAnalysis(
         supabase,
@@ -410,6 +420,54 @@ describe("triggerConversationAnalysis", () => {
 
       expect(result.status).toBe("already_running");
       expect(result.reason).toBe("in_progress");
+    });
+
+    it("retires stale queued job and creates new job", async () => {
+      const supabase = createMockSupabase();
+
+      // 1. Conversation query
+      mockDataQuery(supabase, generateConversation({
+          analysis_status: "ready",
+          analysis_response_count: 20,
+        }));
+
+      // 2. Membership query
+      mockDataQuery(supabase, generateMembership(userId), false);
+
+      // 3. Response count query
+      mockCountQuery(supabase, 25);
+
+      // 4. Jobs query - returns stale job (created 2 hours ago)
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      mockDataQuery(supabase, [{
+        id: "stale-job",
+        status: "queued",
+        created_at: twoHoursAgo, // Stale job (> 1 hour for queued)
+        locked_at: null,
+      }], false);
+
+      // 5. Retire stale job update
+      mockUpdate(supabase);
+
+      // 6. Cluster models count for strategy decision
+      mockCountQuery(supabase, 3);
+
+      // 7. Insert new job + verify (mockInsert handles both)
+      mockInsert(supabase);
+
+      // 8. Update conversation status
+      mockUpdate(supabase);
+
+      const result = await triggerConversationAnalysis(
+        supabase,
+        conversationId,
+        userId,
+        defaultRequest
+      );
+
+      // Should proceed to create new job since old one was stale
+      expect(result.status).toBe("queued");
+      expect(result.strategy).toBe("incremental");
     });
 
     it("updates conversation status to not_started on successful queue", async () => {
@@ -532,11 +590,17 @@ describe("triggerConversationAnalysis", () => {
 
       mockCountQuery(supabase, 25);
 
-      mockDataQuery(supabase, [], false); // no existing jobs
+      // Mock existing job that will be retired (recent job, but regenerate mode overrides)
+      mockDataQuery(supabase, [{
+        id: "existing-job",
+        status: "queued",
+        created_at: new Date().toISOString(),
+        locked_at: null,
+      }], false);
 
       // Note: cluster models check is skipped for regenerate mode (always uses full strategy)
 
-      // Mock the update call to retire active jobs
+      // Mock the update call to retire existing job (happens during step 8)
       mockUpdate(supabase);
       mockInsert(supabase);
       // Second mockUpdate for conversation status update
