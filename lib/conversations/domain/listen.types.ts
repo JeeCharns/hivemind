@@ -61,5 +61,6 @@ export interface FeedBroadcastPayload {
 
 /**
  * Realtime connection status
+ * - "paused": Intentionally disconnected due to high traffic (graceful degradation)
  */
-export type RealtimeStatus = "connecting" | "connected" | "error" | "disconnected";
+export type RealtimeStatus = "connecting" | "connected" | "error" | "disconnected" | "paused";

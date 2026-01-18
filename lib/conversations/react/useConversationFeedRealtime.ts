@@ -21,6 +21,11 @@ import { LIKE_UPDATE_EVENT, type LikeUpdatePayload } from "../server/broadcastLi
 interface UseConversationFeedRealtimeOptions {
   conversationId: string;
   enabled?: boolean;
+  /**
+   * When true, unsubscribes from realtime updates (used for high-traffic degradation).
+   * The hook will disconnect while paused and reconnect when unpaused.
+   */
+  paused?: boolean;
   onNewResponse: (response: LiveResponse) => void;
   /** Called when a like count update is broadcast. Provides responseId and new count. */
   onLikeUpdate?: (responseId: string, likeCount: number) => void;
@@ -48,6 +53,7 @@ interface UseConversationFeedRealtimeResult {
 export function useConversationFeedRealtime({
   conversationId,
   enabled = true,
+  paused = false,
   onNewResponse,
   onLikeUpdate,
   currentUserId,
@@ -74,9 +80,10 @@ export function useConversationFeedRealtime({
   }, [currentUserId]);
 
   useEffect(() => {
-    if (!enabled || !supabase) {
+    // Disconnect if disabled or paused (high-traffic degradation)
+    if (!enabled || paused || !supabase) {
       // Use a microtask to avoid synchronous setState in effect body
-      queueMicrotask(() => setStatus("disconnected"));
+      queueMicrotask(() => setStatus(paused ? "paused" : "disconnected"));
       return;
     }
 
@@ -125,7 +132,7 @@ export function useConversationFeedRealtime({
         supabase.removeChannel(channel);
       }
     };
-  }, [conversationId, enabled]);
+  }, [conversationId, enabled, paused]);
 
   return { status, error };
 }

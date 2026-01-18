@@ -216,20 +216,17 @@ export async function POST(
     const consolidatedStatements: ConsolidatedStatementWithVotes[] = [];
 
     if (hasConsolidatedData) {
-      // Process cluster buckets - aggregate votes from member responses
+      // Process cluster buckets - only count votes on the representative (first) response
+      // Votes are cast on the representative, not aggregated from all original responses
       for (const bucket of clusterBuckets) {
-        let totalAgree = 0;
-        let totalPass = 0;
-        let totalDisagree = 0;
+        const representativeId = bucket.conversation_cluster_bucket_members[0]?.response_id;
+        const counts = representativeId
+          ? feedbackByResponseId.get(String(representativeId))
+          : undefined;
 
-        for (const member of bucket.conversation_cluster_bucket_members) {
-          const counts = feedbackByResponseId.get(String(member.response_id));
-          if (counts) {
-            totalAgree += counts.agree;
-            totalPass += counts.pass;
-            totalDisagree += counts.disagree;
-          }
-        }
+        const totalAgree = counts?.agree ?? 0;
+        const totalPass = counts?.pass ?? 0;
+        const totalDisagree = counts?.disagree ?? 0;
 
         const totalVotes = totalAgree + totalPass + totalDisagree;
         const agreePercent =

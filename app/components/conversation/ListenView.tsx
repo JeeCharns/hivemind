@@ -34,6 +34,7 @@ import { useParams } from "next/navigation";
 
 const MAX_LEN = 500;
 const THEMES_READY_ALERT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const HIGH_TRAFFIC_VIEWER_THRESHOLD = 30; // Pause realtime when more viewers than this
 
 export interface ListenViewProps {
   conversationId: string;
@@ -103,18 +104,23 @@ export default function ListenView({
     [updateResponseLikeCount]
   );
 
-  // Real-time subscription via broadcast channel (no loading state on updates)
-  useConversationFeedRealtime({
-    conversationId,
-    enabled: hasLoadedOnce,
-    onNewResponse: handleNewResponse,
-    onLikeUpdate: handleLikeUpdate,
-  });
-
-  // Track presence for viewer count
+  // Track presence for viewer count (must be before realtime hook to determine paused state)
   const { viewerCount } = useConversationPresence({
     conversationId,
     enabled: hasLoadedOnce,
+  });
+
+  // Pause realtime when there are too many viewers (graceful degradation)
+  const isHighTraffic = viewerCount > HIGH_TRAFFIC_VIEWER_THRESHOLD;
+
+  // Real-time subscription via broadcast channel (no loading state on updates)
+  // Paused when high traffic to reduce connection load
+  const { status: realtimeStatus } = useConversationFeedRealtime({
+    conversationId,
+    enabled: hasLoadedOnce,
+    paused: isHighTraffic,
+    onNewResponse: handleNewResponse,
+    onLikeUpdate: handleLikeUpdate,
   });
 
   // Background sync every 30 seconds when tab is visible (eventual consistency)
@@ -227,17 +233,17 @@ export default function ListenView({
 
   // Sort feed based on selected filter
   // 'new' = newest first (default, already sorted from API)
-  // 'top' = most liked first (secondary sort by newest for ties)
+  // 'top' = most liked first (secondary sort by earliest for ties)
   const sortedFeed = useMemo(() => {
     if (feedSort === "new") {
       return feed;
     }
-    // Sort by likeCount descending, then by createdAt descending for ties
+    // Sort by likeCount descending, then by createdAt ascending for ties (earliest first)
     return [...feed].sort((a, b) => {
       if (b.likeCount !== a.likeCount) {
         return b.likeCount - a.likeCount;
       }
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   }, [feed, feedSort]);
 
@@ -441,12 +447,27 @@ export default function ListenView({
 
           {/* Right column: Live feed */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 h-full overflow-y-auto max-h-[calc(100vh-220px)] space-y-4">
+            {/* High traffic alert - shown when realtime is paused */}
+            {realtimeStatus === "paused" && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-start gap-3">
+                <span className="text-amber-600 text-lg leading-none">⚡</span>
+                <div className="flex-1">
+                  <p className="text-subtitle text-amber-800">
+                    It&apos;s busy here!
+                  </p>
+                  <p className="text-body text-amber-700">
+                    Live updates paused — the feed refreshes every 30 seconds.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h3 className="text-h4 text-slate-900">Live Feed</h3>
                 {viewerCount > 0 && (
                   <span className="flex items-center gap-1 text-xs text-slate-500">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                    <span className={`w-1.5 h-1.5 rounded-full ${isHighTraffic ? "bg-amber-500" : "bg-emerald-500"}`} />
                     {viewerCount} viewing
                   </span>
                 )}
