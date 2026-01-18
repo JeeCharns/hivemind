@@ -14,6 +14,9 @@ import { authorizeHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 import { getUnderstandViewModel } from "@/lib/conversations/server/getUnderstandViewModel";
 import UnderstandViewContainer from "@/app/components/conversation/UnderstandViewContainer";
 
+// Force dynamic rendering - no caching
+export const dynamic = "force-dynamic";
+
 interface UnderstandPageProps {
   params: Promise<{
     hiveId: string;
