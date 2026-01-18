@@ -7,6 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+
+// Force dynamic to prevent any caching
+export const dynamic = "force-dynamic";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getUnderstandViewModel } from "@/lib/conversations/server/getUnderstandViewModel";
@@ -60,7 +63,7 @@ export async function GET(
     // 5. Return enhanced view model with analysis metadata
     // DEBUG: Add bucket count to help diagnose missing clusterBuckets
     // BUILD_TIMESTAMP is set at build time to verify deployment freshness
-    const BUILD_TIMESTAMP = "2026-01-18T12:00:00Z";
+    const BUILD_TIMESTAMP = "2026-01-18T14:30:00Z";
     const debugInfo = {
       clusterBucketsCount: viewModel.clusterBuckets?.length ?? 0,
       hasClusterBuckets: !!viewModel.clusterBuckets,
