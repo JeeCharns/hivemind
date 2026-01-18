@@ -45,7 +45,7 @@ describe("computeResponseConsensusItems", () => {
 });
 
 describe("computeConsolidatedConsensusItems", () => {
-  it("aggregates feedback from all responses in a bucket", () => {
+  it("counts only votes on the representative (first) response in a bucket", () => {
     const buckets = [
       {
         bucketId: "bucket-1",
@@ -56,12 +56,13 @@ describe("computeConsolidatedConsensusItems", () => {
 
     const unconsolidatedResponses: { responseId: string; responseText: string }[] = [];
 
+    // Votes on r2 and r3 should NOT be counted - only r1 (the representative)
     const feedbackRows = [
       { responseId: "r1", feedback: "agree" },
       { responseId: "r1", feedback: "agree" },
-      { responseId: "r2", feedback: "agree" },
-      { responseId: "r2", feedback: "disagree" },
-      { responseId: "r3", feedback: "pass" },
+      { responseId: "r1", feedback: "disagree" },
+      { responseId: "r2", feedback: "agree" }, // should be ignored
+      { responseId: "r3", feedback: "pass" }, // should be ignored
     ];
 
     const items = computeConsolidatedConsensusItems(
@@ -71,17 +72,18 @@ describe("computeConsolidatedConsensusItems", () => {
     );
 
     expect(items).toHaveLength(1);
+    // Only counts votes on r1 (the representative): 2 agree, 1 disagree
     expect(items[0]).toEqual(
       expect.objectContaining({
         id: "bucket-1",
         responseText: "People support UBI",
-        agreeVotes: 3,
+        agreeVotes: 2,
         disagreeVotes: 1,
-        passVotes: 1,
-        totalVotes: 5,
-        agreePercent: 60,
-        disagreePercent: 20,
-        passPercent: 20,
+        passVotes: 0,
+        totalVotes: 3,
+        agreePercent: 67,
+        disagreePercent: 33,
+        passPercent: 0,
       })
     );
   });

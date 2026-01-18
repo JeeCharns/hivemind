@@ -86,19 +86,11 @@ export default function ClusterBucketCard({
     ? feedbackById.get(representativeId)
     : null;
 
-  // Calculate aggregate feedback counts from all responses in the bucket using responseIds
-  // This works even before responses are loaded since feedbackById has all feedback data
-  const aggregateCounts = { agree: 0, pass: 0, disagree: 0 };
-  if (feedbackById) {
-    for (const responseId of responseIds) {
-      const fb = feedbackById.get(responseId);
-      if (fb) {
-        aggregateCounts.agree += fb.counts.agree;
-        aggregateCounts.pass += fb.counts.pass;
-        aggregateCounts.disagree += fb.counts.disagree;
-      }
-    }
-  }
+  // Get feedback counts only for the representative response (first response in the bucket)
+  // Votes are cast on the representative, not aggregated from all original responses
+  const representativeCounts = representativeId && feedbackById
+    ? feedbackById.get(representativeId)?.counts ?? { agree: 0, pass: 0, disagree: 0 }
+    : { agree: 0, pass: 0, disagree: 0 };
 
   const showVoting = conversationType === "understand" && onVote && representativeId;
 
@@ -112,9 +104,9 @@ export default function ClusterBucketCard({
         >
           {bucketName}
         </span>
-        {aggregateCounts.agree + aggregateCounts.pass + aggregateCounts.disagree > 0 && (
+        {representativeCounts.agree + representativeCounts.pass + representativeCounts.disagree > 0 && (
           <span className="text-info text-slate-500">
-            {aggregateCounts.agree} agree · {aggregateCounts.pass} pass · {aggregateCounts.disagree} disagree
+            {representativeCounts.agree} agree · {representativeCounts.pass} pass · {representativeCounts.disagree} disagree
           </span>
         )}
       </div>

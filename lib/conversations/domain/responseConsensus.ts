@@ -124,19 +124,14 @@ export function computeConsolidatedConsensusItems(
 
   // Process consolidated statements (buckets)
   for (const bucket of buckets) {
-    // Aggregate feedback from all responses in the bucket
-    let totalAgree = 0;
-    let totalPass = 0;
-    let totalDisagree = 0;
+    // Only count votes on the representative response (first response in the bucket)
+    // Votes are cast on the representative, not aggregated from all original responses
+    const representativeId = bucket.responseIds[0];
+    const counts = representativeId ? feedbackByResponseId.get(representativeId) : undefined;
 
-    for (const responseId of bucket.responseIds) {
-      const counts = feedbackByResponseId.get(responseId);
-      if (counts) {
-        totalAgree += counts.agree;
-        totalPass += counts.pass;
-        totalDisagree += counts.disagree;
-      }
-    }
+    const totalAgree = counts?.agree ?? 0;
+    const totalPass = counts?.pass ?? 0;
+    const totalDisagree = counts?.disagree ?? 0;
 
     const totalVotes = totalAgree + totalPass + totalDisagree;
 
