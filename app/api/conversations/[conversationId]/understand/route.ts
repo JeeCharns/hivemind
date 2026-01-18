@@ -59,10 +59,13 @@ export async function GET(
 
     // 5. Return enhanced view model with analysis metadata
     // DEBUG: Add bucket count to help diagnose missing clusterBuckets
+    // BUILD_TIMESTAMP is set at build time to verify deployment freshness
+    const BUILD_TIMESTAMP = "2026-01-18T12:00:00Z";
     const debugInfo = {
       clusterBucketsCount: viewModel.clusterBuckets?.length ?? 0,
       hasClusterBuckets: !!viewModel.clusterBuckets,
       firstBucketName: viewModel.clusterBuckets?.[0]?.bucketName ?? "none",
+      buildTimestamp: BUILD_TIMESTAMP,
     };
     console.log("[GET understand] Debug info:", debugInfo);
 
