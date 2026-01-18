@@ -58,12 +58,21 @@ export async function GET(
     }
 
     // 5. Return enhanced view model with analysis metadata
+    // DEBUG: Add bucket count to help diagnose missing clusterBuckets
+    const debugInfo = {
+      clusterBucketsCount: viewModel.clusterBuckets?.length ?? 0,
+      hasClusterBuckets: !!viewModel.clusterBuckets,
+      firstBucketName: viewModel.clusterBuckets?.[0]?.bucketName ?? "none",
+    };
+    console.log("[GET understand] Debug info:", debugInfo);
+
     return NextResponse.json({
       ...viewModel,
       analysisStatus: conversation.analysis_status,
       analysisError: conversation.analysis_error,
       responseCount: count ?? 0,
       threshold: UNDERSTAND_MIN_RESPONSES,
+      _debug: debugInfo, // Temporary debug field
     });
   } catch (error) {
     console.error("[GET understand] Error:", error);
