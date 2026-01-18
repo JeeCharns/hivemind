@@ -90,11 +90,14 @@ export default function UnderstandViewContainer({
   } = viewModel;
 
   // Determine if analysis is actively running
+  // Show loading when:
+  // 1. Status is embedding or analyzing
+  // 2. User just clicked Generate/Regenerate (even before status updates)
   const analysisInProgress =
     analysisStatus === "embedding" ||
     analysisStatus === "analyzing" ||
-    (analysisStatus === "not_started" &&
-      (analysisResponseCount !== null || isGenerating || isRegenerating));
+    isGenerating ||
+    isRegenerating;
 
   const shouldShowStaleBanner =
     conversationType === "understand" &&
@@ -163,12 +166,16 @@ export default function UnderstandViewContainer({
           setViewModel(lastReadyViewModelRef.current);
         }
         setAnalysisProgress(null);
+        setIsGenerating(false);
+        setIsRegenerating(false);
         setToastMessage("Analysis failed - please ask an admin to regenerate the analysis");
       }
 
-      // Clear progress when analysis completes
+      // Clear progress and loading flags when analysis completes
       if (status === "ready") {
         setAnalysisProgress(null);
+        setIsGenerating(false);
+        setIsRegenerating(false);
       }
     },
     []
