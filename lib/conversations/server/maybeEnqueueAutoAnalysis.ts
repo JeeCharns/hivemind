@@ -13,6 +13,10 @@ export interface AutoAnalysisResult {
   triggered: boolean;
   status: "queued" | "already_running" | "already_complete" | "skipped";
   reason?: string;
+  /** Job ID if status is "queued" - caller must schedule background execution */
+  jobId?: string;
+  /** Strategy used if status is "queued" */
+  strategy?: "incremental" | "full";
 }
 
 export interface AutoAnalysisOptions {
@@ -122,6 +126,8 @@ export async function maybeEnqueueAutoAnalysis(
       return {
         triggered: true,
         status: "queued",
+        jobId: result.jobId,
+        strategy: result.strategy,
       };
     } else if (result.status === "already_running") {
       return {

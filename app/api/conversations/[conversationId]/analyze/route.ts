@@ -7,12 +7,13 @@
  * Returns 202 Accepted with job status and strategy metadata
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireAuth } from "@/lib/auth/server/requireAuth";
 import { triggerConversationAnalysis } from "@/lib/conversations/server/triggerConversationAnalysis";
 import { triggerAnalysisRequestSchema } from "@/lib/conversations/schemas";
 import { jsonError } from "@/lib/api/errors";
+import { runAnalysisInBackground } from "@/lib/conversations/server/runAnalysisInBackground";
 
 export async function POST(
   request: NextRequest,
@@ -55,10 +56,28 @@ export async function POST(
       { requireAdmin: true }
     );
 
+    // If a job was queued, schedule background execution using after()
+    // This ensures the serverless function stays alive until analysis completes
+    if (result.status === "queued" && result.jobId && result.strategy) {
+      const jobId = result.jobId;
+      const strategy = result.strategy;
+
+      after(async () => {
+        console.log(
+          `[analyze/route] after() executing analysis: conversationId=${conversationId} jobId=${jobId}`
+        );
+        await runAnalysisInBackground(conversationId, jobId, strategy);
+      });
+    }
+
     // Return 202 Accepted for queued jobs, 200 for already running/complete
     const statusCode = result.status === "queued" ? 202 : 200;
 
-    return NextResponse.json(result, { status: statusCode });
+    // Remove internal jobId from response (not needed by client)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { jobId: _jobId, ...clientResponse } = result;
+
+    return NextResponse.json(clientResponse, { status: statusCode });
   } catch (err) {
     console.error(
       "[POST /api/conversations/[conversationId]/analyze] Error:",

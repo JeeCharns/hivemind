@@ -4,6 +4,9 @@
  * Server-side business logic for queuing conversation analysis jobs
  * Follows SRP: single responsibility of job queueing
  * Provides idempotency and concurrency safety
+ *
+ * NOTE: This function only enqueues the job. The caller is responsible for
+ * scheduling background execution using the returned jobId (e.g., via Next.js after()).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -15,10 +18,13 @@ import type { TriggerAnalysisResponse } from "../schemas";
  * Uses conversation_analysis_jobs table to prevent duplicate jobs
  * Returns status indicating whether job was queued or already running/complete
  *
+ * NOTE: If status is "queued", the caller must schedule background execution
+ * using the returned jobId (e.g., via Next.js after() API).
+ *
  * @param supabase - Supabase client with auth
  * @param conversationId - Conversation UUID to analyze
  * @param userId - User requesting the analysis
- * @returns Analysis job status
+ * @returns Analysis job status with jobId if queued
  * @throws Error if conversation not found or operation fails
  */
 export async function enqueueConversationAnalysis(
@@ -80,9 +86,10 @@ export async function enqueueConversationAnalysis(
     })
     .eq("id", conversationId);
 
-  // Trigger background execution immediately (fire-and-forget)
-  const { runAnalysisInBackground } = await import("./runAnalysisInBackground");
-  runAnalysisInBackground(supabase, conversationId, insertedJob.id, "full");
-
-  return { status: "queued" };
+  // Return job info - caller is responsible for scheduling background execution
+  return {
+    status: "queued",
+    strategy: "full",
+    jobId: insertedJob.id,
+  };
 }

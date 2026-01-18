@@ -311,11 +311,8 @@ export async function triggerConversationAnalysis(
     })
     .eq("id", conversationId);
 
-  // 13. Trigger background execution immediately (fire-and-forget)
-  // Import dynamically to avoid loading unless needed
-  const { runAnalysisInBackground } = await import("./runAnalysisInBackground");
-  runAnalysisInBackground(supabase, conversationId, insertedJob.id, chosenStrategy);
-
+  // 13. Return job info - caller is responsible for scheduling background execution
+  // This allows the API route to use Next.js after() for proper serverless lifecycle management
   return {
     status: "queued",
     strategy: chosenStrategy,
@@ -323,6 +320,7 @@ export async function triggerConversationAnalysis(
     currentResponseCount: currentCount,
     analysisResponseCount: conversation.analysis_response_count,
     newResponsesSinceAnalysis: newCount,
+    jobId: insertedJob.id,
   };
 }
 

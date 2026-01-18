@@ -71,6 +71,8 @@ export const triggerAnalysisResponseSchema = z.object({
   currentResponseCount: z.number().int().nonnegative().optional(),
   analysisResponseCount: z.number().int().nonnegative().nullable().optional(),
   newResponsesSinceAnalysis: z.number().int().nonnegative().optional(),
+  // Job info for background execution (internal use, not sent to client)
+  jobId: z.string().uuid().optional(),
 });
 
 export type TriggerAnalysisResponse = z.infer<
