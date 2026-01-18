@@ -20,11 +20,22 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
  */
 const ANALYSIS_STATUS_EVENT = "analysis_status" as const;
 
+/**
+ * Progress information for analysis
+ */
+export interface AnalysisProgress {
+  /** Progress percentage 0-100 */
+  progressPercent: number;
+  /** Human-readable status message */
+  progressMessage: string;
+}
+
 interface UseConversationAnalysisRealtimeOptions {
   conversationId: string;
   enabled?: boolean;
   onRefresh: () => void;
   onStatusUpdate?: (status: string, error?: string | null) => void;
+  onProgressUpdate?: (progress: AnalysisProgress) => void;
   debounceMs?: number;
 }
 
@@ -66,6 +77,7 @@ export function useConversationAnalysisRealtime({
   enabled = true,
   onRefresh,
   onStatusUpdate,
+  onProgressUpdate,
   debounceMs = 500,
 }: UseConversationAnalysisRealtimeOptions): UseConversationAnalysisRealtimeResult {
   const [status, setStatus] = useState<RealtimeStatus>("disconnected");
@@ -95,13 +107,30 @@ export function useConversationAnalysisRealtime({
         const data = payload.payload as {
           analysisStatus?: string;
           analysisError?: string | null;
+          progress?: {
+            progressPercent: number;
+            progressMessage: string;
+          };
         };
         console.log("[Analysis] Broadcast: status update received");
         console.log("[Analysis] → analysisStatus:", data.analysisStatus);
+        if (data.progress) {
+          console.log(
+            `[Analysis] → progress: ${data.progress.progressPercent}% - ${data.progress.progressMessage}`
+          );
+        }
 
         // Notify parent of status change without full refresh
         if (onStatusUpdate && data.analysisStatus) {
           onStatusUpdate(data.analysisStatus, data.analysisError);
+        }
+
+        // Notify parent of progress update
+        if (onProgressUpdate && data.progress) {
+          onProgressUpdate({
+            progressPercent: data.progress.progressPercent,
+            progressMessage: data.progress.progressMessage,
+          });
         }
 
         // Trigger refresh to get full data when ready
@@ -180,7 +209,7 @@ export function useConversationAnalysisRealtime({
         channelRef.current = null;
       }
     };
-  }, [conversationId, enabled, debouncedRefresh, onStatusUpdate]);
+  }, [conversationId, enabled, debouncedRefresh, onStatusUpdate, onProgressUpdate]);
 
   const effectiveStatus = enabled ? status : "disconnected";
   const effectiveError = enabled && status === "error" ? error : undefined;

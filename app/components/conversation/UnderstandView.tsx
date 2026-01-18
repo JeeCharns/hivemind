@@ -22,6 +22,7 @@ import ClusterBucketCard from "./ClusterBucketCard";
 import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
 import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
 import { buildClusterSummaries } from "@/lib/conversations/domain/buildClusterSummaries";
+import type { AnalysisProgress } from "@/lib/conversations/react/useConversationAnalysisRealtime";
 
 const palette = [
   "#4F46E5",
@@ -103,12 +104,14 @@ export interface UnderstandViewProps {
   viewModel: UnderstandViewModel;
   conversationType?: "understand" | "decide";
   analysisInProgress?: boolean;
+  analysisProgress?: AnalysisProgress | null;
 }
 
 export default function UnderstandView({
   viewModel,
   conversationType = "understand",
   analysisInProgress = false,
+  analysisProgress = null,
 }: UnderstandViewProps) {
   const {
     conversationId,
@@ -533,18 +536,48 @@ export default function UnderstandView({
           {analysisInProgress && (
             <div className="absolute inset-0 bg-white/95 z-30 flex items-center justify-center backdrop-blur-sm">
               <div className="max-w-md mx-auto space-y-4 text-center p-8">
-                <div className="animate-pulse text-6xl mb-4">🔮</div>
+                {/* Circular progress indicator */}
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  {/* Background circle */}
+                  <svg className="w-24 h-24 transform -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="40"
+                      stroke="#e2e8f0"
+                      strokeWidth="8"
+                      fill="none"
+                    />
+                    {/* Progress circle */}
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="40"
+                      stroke="#4F46E5"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 40}
+                      strokeDashoffset={
+                        2 * Math.PI * 40 * (1 - (analysisProgress?.progressPercent ?? 0) / 100)
+                      }
+                      className="transition-all duration-500 ease-out"
+                    />
+                  </svg>
+                  {/* Percentage text in center */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-semibold text-indigo-600">
+                      {analysisProgress?.progressPercent ?? 0}%
+                    </span>
+                  </div>
+                </div>
+
                 <h2 className="text-xl font-semibold text-slate-800">
                   Updating Theme Map
                 </h2>
                 <p className="text-sm text-slate-600">
-                  Regenerating clusters and themes...
+                  {analysisProgress?.progressMessage ?? "Regenerating clusters and themes..."}
                 </p>
-                <div className="flex items-center justify-center gap-2 mt-6">
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
-                </div>
                 <p className="text-xs text-slate-500 mt-4">
                   The response list below remains interactive
                 </p>

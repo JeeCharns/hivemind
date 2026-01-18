@@ -24,7 +24,10 @@ import {
   OUTLIER_MAX_RATIO,
 } from "../domain/thresholds";
 import { enforceMinClusters } from "../domain/clusterEnforcement";
-import { broadcastAnalysisStatus } from "./broadcastAnalysisStatus";
+import {
+  broadcastAnalysisStatus,
+  broadcastAnalysisProgress,
+} from "./broadcastAnalysisStatus";
 
 interface ResponseData {
   id: string;
@@ -46,21 +49,38 @@ export async function runConversationAnalysis(
   console.log(`[runConversationAnalysis] Starting analysis for ${conversationId}`);
 
   try {
-    // 1. Update status to 'embedding'
+    // 1. Broadcast starting progress
+    await broadcastAnalysisProgress(conversationId, "starting");
+
+    // 2. Update status to 'embedding'
     await updateAnalysisStatus(supabase, conversationId, "embedding");
 
-    // 2. Fetch responses
+    // 3. Broadcast fetching progress
+    await broadcastAnalysisProgress(conversationId, "fetching");
+
+    // 4. Fetch responses
     const responses = await fetchResponses(supabase, conversationId);
 
     if (responses.length === 0) {
       console.log(`[runConversationAnalysis] No responses to analyze`);
+      await broadcastAnalysisProgress(conversationId, "complete");
       await updateAnalysisStatus(supabase, conversationId, "ready");
       return;
     }
 
+    // Broadcast how many responses found
+    await broadcastAnalysisProgress(
+      conversationId,
+      "fetched",
+      `Found ${responses.length} responses`
+    );
+
     console.log(`[runConversationAnalysis] Analyzing ${responses.length} responses`);
 
-    // 3. Generate embeddings
+    // 5. Broadcast embedding progress
+    await broadcastAnalysisProgress(conversationId, "embedding");
+
+    // 6. Generate embeddings
     const openai = createOpenAIClient();
     const texts = responses.map((r) => r.text);
     const rawEmbeddings = await generateEmbeddings(openai, texts);
@@ -70,13 +90,22 @@ export async function runConversationAnalysis(
 
     console.log(`[runConversationAnalysis] Generated ${embeddings.length} embeddings`);
 
-    // 4. Update status to 'analyzing'
+    // Broadcast embedding complete
+    await broadcastAnalysisProgress(conversationId, "embedding_done");
+
+    // 7. Update status to 'analyzing'
     await updateAnalysisStatus(supabase, conversationId, "analyzing");
 
-    // 5. Reduce dimensions for visualization
+    // 8. Broadcast UMAP/clustering progress
+    await broadcastAnalysisProgress(conversationId, "umap");
+
+    // 9. Reduce dimensions for visualization
     const coordinates = reduceToTwoD(embeddings);
 
     console.log(`[runConversationAnalysis] Reduced to 2D coordinates`);
+
+    // 10. Broadcast clustering progress
+    await broadcastAnalysisProgress(conversationId, "clustering");
 
     // 6. Cluster embeddings
     const rawClusterIndices = clusterEmbeddings(embeddings);
@@ -194,7 +223,10 @@ export async function runConversationAnalysis(
       cluster.originalIndices.push(i);
     }
 
-    // 8. Generate themes with diverse sampling
+    // 11. Broadcast themes progress
+    await broadcastAnalysisProgress(conversationId, "themes");
+
+    // 12. Generate themes with diverse sampling
     const themesInput = new Map<number, string[]>();
     for (const [clusterIdx, { texts, originalIndices }] of responsesByCluster.entries()) {
       // Skip MISC_CLUSTER_INDEX for LLM theme generation
@@ -218,7 +250,10 @@ export async function runConversationAnalysis(
 
     console.log(`[runConversationAnalysis] Generated ${themes.length} themes (including ${miscCount > 0 ? 1 : 0} misc theme)`);
 
-    // 9. Save results to database
+    // 13. Broadcast saving progress
+    await broadcastAnalysisProgress(conversationId, "saving");
+
+    // 14. Save results to database
     await saveAnalysisResults(
       supabase,
       conversationId,
@@ -259,7 +294,10 @@ export async function runConversationAnalysis(
 
     console.log(`[runConversationAnalysis] Created ${groups.length} frequently mentioned groups`);
 
-    // 12a. Consolidate clusters using LLM-driven semantic bucketing
+    // 18. Broadcast subthemes/consolidation progress
+    await broadcastAnalysisProgress(conversationId, "subthemes");
+
+    // 19. Consolidate clusters using LLM-driven semantic bucketing
     // Build map of cluster index to responses (excluding misc/outliers)
     const clusterResponses = new Map<number, ClusterResponse[]>();
     for (let i = 0; i < responses.length; i++) {
@@ -277,6 +315,9 @@ export async function runConversationAnalysis(
     }
 
     if (clusterResponses.size > 0) {
+      // Broadcast consolidating progress
+      await broadcastAnalysisProgress(conversationId, "consolidating");
+
       console.log(
         `[runConversationAnalysis] Consolidating ${clusterResponses.size} clusters`
       );
@@ -289,7 +330,10 @@ export async function runConversationAnalysis(
       );
     }
 
-    // 13. Update status to 'ready' with tracking metadata
+    // 20. Broadcast finalizing progress
+    await broadcastAnalysisProgress(conversationId, "finalizing");
+
+    // 21. Update status to 'ready' with tracking metadata
     await updateAnalysisStatus(supabase, conversationId, "ready");
     await supabase
       .from("conversations")
@@ -298,6 +342,9 @@ export async function runConversationAnalysis(
         analysis_updated_at: new Date().toISOString(),
       })
       .eq("id", conversationId);
+
+    // 22. Broadcast complete
+    await broadcastAnalysisProgress(conversationId, "complete");
 
     console.log(`[runConversationAnalysis] Analysis complete for ${conversationId}`);
   } catch (error) {

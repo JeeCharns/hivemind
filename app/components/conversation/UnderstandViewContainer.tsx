@@ -13,8 +13,12 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import type { UnderstandViewModel } from "@/types/conversation-understand";
 import UnderstandView from "./UnderstandView";
-import { useConversationAnalysisRealtime } from "@/lib/conversations/react/useConversationAnalysisRealtime";
+import {
+  useConversationAnalysisRealtime,
+  type AnalysisProgress,
+} from "@/lib/conversations/react/useConversationAnalysisRealtime";
 import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
+import Toast from "@/app/components/toast";
 import { INCREMENTAL_THRESHOLD } from "@/lib/conversations/domain/thresholds";
 import Button from "@/app/components/button";
 import Alert from "@/app/components/alert";
@@ -71,6 +75,8 @@ export default function UnderstandViewContainer({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const lastReadyViewModelRef = useRef<UnderstandViewModel | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const {
     conversationId,
@@ -146,9 +152,28 @@ export default function UnderstandViewContainer({
         analysisStatus: status as typeof prev.analysisStatus,
         analysisError: error ?? prev.analysisError,
       }));
+
+      // If analysis failed, revert to previous state and show toast
+      if (status === "error") {
+        if (lastReadyViewModelRef.current) {
+          setViewModel(lastReadyViewModelRef.current);
+        }
+        setAnalysisProgress(null);
+        setToastMessage("Analysis failed - please ask an admin to regenerate the analysis");
+      }
+
+      // Clear progress when analysis completes
+      if (status === "ready") {
+        setAnalysisProgress(null);
+      }
     },
     []
   );
+
+  // Handle progress updates from broadcast
+  const handleProgressUpdate = useCallback((progress: AnalysisProgress) => {
+    setAnalysisProgress(progress);
+  }, []);
 
   // Subscribe to realtime updates (primary mechanism)
   const { status: realtimeStatus } = useConversationAnalysisRealtime({
@@ -156,6 +181,7 @@ export default function UnderstandViewContainer({
     enabled: shouldSubscribe,
     onRefresh: fetchUnderstandData,
     onStatusUpdate: handleStatusUpdate,
+    onProgressUpdate: handleProgressUpdate,
     debounceMs: 500,
   });
 
@@ -231,27 +257,58 @@ export default function UnderstandViewContainer({
   const hasNoExistingAnalysis = !viewModel.responses || viewModel.responses.length === 0;
 
   if (analysisInProgress && hasNoExistingAnalysis) {
-    const statusMessage =
-      analysisStatus === "embedding"
+    // Use progress message if available, otherwise fall back to status-based message
+    const statusMessage = analysisProgress?.progressMessage
+      ?? (analysisStatus === "embedding"
         ? "Generating embeddings..."
         : analysisStatus === "analyzing"
         ? "Clustering responses and generating themes..."
-        : "Queued for analysis...";
+        : "Queued for analysis...");
+
+    const progressPercent = analysisProgress?.progressPercent ?? 0;
 
     return (
       <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)]">
         <div className="bg-white rounded-2xl p-12 text-center">
           <div className="max-w-md mx-auto space-y-4">
-            <div className="animate-pulse text-6xl mb-4">🔮</div>
+            {/* Circular progress indicator */}
+            <div className="relative w-32 h-32 mx-auto mb-4">
+              {/* Background circle */}
+              <svg className="w-32 h-32 transform -rotate-90">
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="56"
+                  stroke="#e2e8f0"
+                  strokeWidth="8"
+                  fill="none"
+                />
+                {/* Progress circle */}
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="56"
+                  stroke="#4F46E5"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 56}
+                  strokeDashoffset={2 * Math.PI * 56 * (1 - progressPercent / 100)}
+                  className="transition-all duration-500 ease-out"
+                />
+              </svg>
+              {/* Percentage text in center */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-3xl font-semibold text-indigo-600">
+                  {progressPercent}%
+                </span>
+              </div>
+            </div>
+
             <h2 className="text-2xl font-semibold text-slate-800">
               Generating Theme Map
             </h2>
             <p className="text-slate-600">{statusMessage}</p>
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
-            </div>
             <p className="text-sm text-slate-500 mt-6">
               This usually takes 30-60 seconds. We&apos;ll update automatically when ready.
             </p>
@@ -472,7 +529,16 @@ export default function UnderstandViewContainer({
         viewModel={viewModel}
         conversationType={conversationType}
         analysisInProgress={analysisInProgress}
+        analysisProgress={analysisProgress}
       />
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          variant="error"
+          onClose={() => setToastMessage(null)}
+          duration={5000}
+        />
+      )}
     </>
   );
 }

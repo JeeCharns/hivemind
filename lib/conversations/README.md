@@ -226,20 +226,39 @@ The system handles stuck/stale jobs and explicit regeneration requests:
 - Incremental analysis pipeline: `lib/conversations/server/runConversationAnalysisIncremental.ts`
 - Optional external worker: `scripts/analysis-worker.ts` (branches on `strategy` field from job queue)
 
-### UI Integration (Partial Loading)
+### UI Integration (Partial Loading with Granular Progress)
 
-When regenerating analysis, the UI shows partial loading to keep the response list interactive:
+When regenerating analysis, the UI shows partial loading with real-time progress to keep the response list interactive:
 
-- **Initial analysis** (no existing data): Full-page loading state while analysis runs
+- **Initial analysis** (no existing data): Full-page loading state with circular progress indicator showing percentage and status message
 - **Regenerate** (existing responses visible):
-  - Left column (theme map): Shows loading overlay while keeping the old map visible underneath
+  - Left column (theme map): Shows loading overlay with circular progress indicator while keeping the old map visible underneath
   - Right column (response list): Remains fully interactive, users can continue voting
   - Regenerate button: Hidden while analysis is in progress
-  - Realtime updates: Map refreshes automatically when analysis completes
+  - Realtime updates: Progress updates in real-time, map refreshes automatically when analysis completes
+- **Analysis failure handling**:
+  - UI reverts to previous state (last successful analysis) when analysis fails
+  - Toast notification appears: "Analysis failed - please ask an admin to regenerate the analysis"
+  - Progress indicator is cleared on failure
+- **Progress stages**: The pipeline broadcasts granular progress at each stage:
+  - 0%: Starting analysis
+  - 5%: Fetching responses
+  - 10%: Found X responses
+  - 15-40%: Generating embeddings
+  - 45%: Clustering responses
+  - 55%: Generating theme titles
+  - 70%: Generating subthemes
+  - 80%: Consolidating insights
+  - 90%: Updating database
+  - 95%: Generating 2D visual map
+  - 98%: Making it look pretty
+  - 100%: Analysis complete
 - **Implementation**:
-  - Container: [app/components/conversation/UnderstandViewContainer.tsx](../../app/components/conversation/UnderstandViewContainer.tsx:264)
-  - View: [app/components/conversation/UnderstandView.tsx](../../app/components/conversation/UnderstandView.tsx:445)
-  - Hook: [lib/conversations/react/useConversationAnalysisRealtime.ts](react/useConversationAnalysisRealtime.ts:52)
+  - Progress types and broadcast helper: [lib/conversations/server/broadcastAnalysisStatus.ts](server/broadcastAnalysisStatus.ts)
+  - Pipeline emits progress: [lib/conversations/server/runConversationAnalysis.ts](server/runConversationAnalysis.ts)
+  - Realtime hook handles progress: [lib/conversations/react/useConversationAnalysisRealtime.ts](react/useConversationAnalysisRealtime.ts)
+  - Container manages progress state: [app/components/conversation/UnderstandViewContainer.tsx](../../app/components/conversation/UnderstandViewContainer.tsx)
+  - View renders progress indicator: [app/components/conversation/UnderstandView.tsx](../../app/components/conversation/UnderstandView.tsx)
 
 ### Database Schema
 
