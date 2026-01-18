@@ -137,12 +137,16 @@ export default function UnderstandViewContainer({
   }, [conversationId]);
 
   // Determine if we should enable realtime/polling
+  // Subscribe when:
+  // 1. Analysis is actively running (embedding/analyzing)
+  // 2. We're in the process of generating/regenerating (even if status is still "ready" or "not_started")
   const shouldSubscribe =
     responseCount >= threshold &&
-    analysisStatus !== "ready" &&
-    analysisStatus !== "error" &&
-    analysisStatus !== null &&
-    analysisStatus !== undefined;
+    (analysisStatus === "embedding" ||
+      analysisStatus === "analyzing" ||
+      analysisStatus === "not_started" ||
+      isGenerating ||
+      isRegenerating);
 
   // Handle status updates from broadcast (update UI without full refresh)
   const handleStatusUpdate = useCallback(
