@@ -183,6 +183,7 @@ export default function DecisionSetupWizard({
                       <div className="flex gap-4 text-body text-text-secondary">
                         <span>{session.statementCount} statements</span>
                         <span>{session.votingCoverage}% voting coverage</span>
+                        {session.date && <span>{session.date}</span>}
                       </div>
                     </button>
                   ))}

@@ -26,7 +26,7 @@ export interface UseDecisionSetupWizardReturn {
   error: string | null;
 
   // Step 1: Source selection
-  sourceConversations: { id: string; title: string; clusterCount: number; statementCount: number; votingCoverage: number }[];
+  sourceConversations: { id: string; title: string; statementCount: number; votingCoverage: number; date: string }[];
   selectedSourceId: string | null;
   setSelectedSourceId: (id: string | null) => void;
 
@@ -74,7 +74,7 @@ export function useDecisionSetupWizard({
   // Step 1: Source selection
   const [sourcesLoading, setSourcesLoading] = useState(true);
   const [sourceConversations, setSourceConversations] = useState<
-    { id: string; title: string; clusterCount: number; statementCount: number; votingCoverage: number }[]
+    { id: string; title: string; statementCount: number; votingCoverage: number; date: string }[]
   >([]);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
 

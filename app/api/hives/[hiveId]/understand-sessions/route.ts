@@ -9,6 +9,20 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { requireAuth } from "@/lib/auth/server/requireAuth";
 import { jsonError } from "@/lib/api/errors";
 
+function formatDate(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ hiveId: string }> }
@@ -39,7 +53,7 @@ export async function GET(
     // Fetch understand conversations
     let query = supabase
       .from("conversations")
-      .select("id, title, analysis_status")
+      .select("id, title, analysis_status, created_at")
       .eq("hive_id", hiveId)
       .eq("type", "understand")
       .order("created_at", { ascending: false });
@@ -76,9 +90,9 @@ export async function GET(
       // Continue without bucket data - just show 0 for counts
     }
 
-    // Fetch feedback to calculate voting coverage
+    // Fetch feedback to calculate voting coverage (correct table name: response_feedback)
     const { data: feedback } = await supabase
-      .from("conversation_response_feedback")
+      .from("response_feedback")
       .select("conversation_id, response_id")
       .in("conversation_id", conversationIds);
 
@@ -88,8 +102,8 @@ export async function GET(
       if (!bucketsByConv.has(b.conversation_id)) {
         bucketsByConv.set(b.conversation_id, []);
       }
-      const members = b.conversation_cluster_bucket_members as Array<{ response_id: string }> | null;
-      const firstResponseId = members?.[0]?.response_id ?? null;
+      const members = b.conversation_cluster_bucket_members as Array<{ response_id: string | number }> | null;
+      const firstResponseId = members?.[0]?.response_id != null ? String(members[0].response_id) : null;
       bucketsByConv.get(b.conversation_id)!.push({ id: b.id, firstResponseId });
     });
 
@@ -122,9 +136,9 @@ export async function GET(
       return {
         id: conv.id,
         title: conv.title || "Untitled",
-        clusterCount: 0, // Not needed for display anymore
         statementCount,
         votingCoverage,
+        date: formatDate(conv.created_at),
       };
     });
 
