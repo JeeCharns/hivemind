@@ -27,6 +27,7 @@ Supabase Dashboard → SQL Editor, run these in order:
 11. `supabase/migrations/021_add_feedback_count_function.sql` (feedback count aggregation)
 12. `supabase/migrations/022_add_vote_composite_index.sql` (vote budget query optimization)
 13. `supabase/migrations/023_allow_members_to_create_invite_links.sql` (fix: allow non-admin members to create invite links)
+14. `supabase/migrations/024_decision_space_tables.sql` (decision space: proposals, rounds, votes, results for decision sessions)
 
 ## What These Migrations Enable
 
