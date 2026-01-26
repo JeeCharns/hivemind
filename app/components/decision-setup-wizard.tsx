@@ -1,5 +1,6 @@
 "use client";
 
+import { EyeSlash, Eye } from "@phosphor-icons/react";
 import Button from "@/app/components/button";
 import { useDecisionSetupWizard } from "@/lib/decision-space/react/useDecisionSetupWizard";
 import type { DecisionVisibility } from "@/types/decision-space";
@@ -9,6 +10,101 @@ interface DecisionSetupWizardProps {
   onClose: () => void;
   hiveId: string;
   hiveSlug?: string | null;
+  initialTitle?: string;
+  initialDescription?: string;
+}
+
+const visibilityOptions: {
+  value: DecisionVisibility;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    value: "hidden",
+    label: "Hidden",
+    description: "Votes not shown until round closes",
+    icon: <EyeSlash size={20} weight="bold" />,
+  },
+  {
+    value: "transparent",
+    label: "Transparent",
+    description: "Show all votes publicly",
+    icon: <Eye size={20} weight="bold" />,
+  },
+];
+
+function Step4Content({
+  visibility,
+  setVisibility,
+  deadline,
+  setDeadline,
+}: {
+  visibility: DecisionVisibility;
+  setVisibility: (value: DecisionVisibility) => void;
+  deadline: string;
+  setDeadline: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-body text-text-secondary">
+        Configure how votes will be displayed and set an optional deadline.
+      </p>
+
+      <div className="flex flex-col gap-4">
+        {/* Visibility */}
+        <div className="flex flex-col gap-2">
+          <label className="text-subtitle text-text-primary">
+            Vote visibility
+          </label>
+          <div className="flex flex-col gap-2">
+            {visibilityOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setVisibility(option.value)}
+                className={`w-full border p-4 flex items-center gap-3 text-left transition ${
+                  visibility === option.value
+                    ? "border-brand-primary bg-[#EDEFFD]"
+                    : "border-slate-200 hover:border-[#cbd5f5]"
+                }`}
+              >
+                <span className={visibility === option.value ? "text-brand-primary" : "text-text-secondary"}>
+                  {option.icon}
+                </span>
+                <div className="flex-1">
+                  <span className="text-subtitle text-text-primary block">
+                    {option.label}
+                  </span>
+                  <span className="text-info text-text-secondary">
+                    {option.description}
+                  </span>
+                </div>
+                {visibility === option.value && (
+                  <svg className="w-5 h-5 text-brand-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Deadline */}
+        <div className="flex flex-col gap-2">
+          <label className="text-subtitle text-text-primary">
+            Voting deadline (optional)
+          </label>
+          <input
+            type="datetime-local"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            className="border border-slate-200 px-3 py-2 text-body w-full"
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function DecisionSetupWizard({
@@ -16,6 +112,8 @@ export default function DecisionSetupWizard({
   onClose,
   hiveId,
   hiveSlug,
+  initialTitle = "",
+  initialDescription = "",
 }: DecisionSetupWizardProps) {
   const {
     step,
@@ -35,9 +133,7 @@ export default function DecisionSetupWizard({
     toggleStatement,
     selectAllInCluster,
     title,
-    setTitle,
     description,
-    setDescription,
     visibility,
     setVisibility,
     deadline,
@@ -45,7 +141,7 @@ export default function DecisionSetupWizard({
     onNext,
     onBack,
     onFinish,
-  } = useDecisionSetupWizard({ hiveId, hiveSlug, open });
+  } = useDecisionSetupWizard({ hiveId, hiveSlug, open, initialTitle, initialDescription });
 
   if (!open) return null;
 
@@ -79,7 +175,10 @@ export default function DecisionSetupWizard({
     "Choose clusters",
     "Pick statements",
     "Configure session",
+    "Review & create",
   ];
+
+  const selectedVisibilityOption = visibilityOptions.find((opt) => opt.value === visibility);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
@@ -87,7 +186,7 @@ export default function DecisionSetupWizard({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-body text-text-secondary">Step {step} of 4</p>
+            <p className="text-body text-text-secondary">Step {step} of 5</p>
             <h2 className="text-h2 text-text-primary">
               {stepLabels[step - 1]}
             </h2>
@@ -104,7 +203,7 @@ export default function DecisionSetupWizard({
 
         {/* Step Indicator */}
         <div className="flex gap-2">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div
               key={s}
               className={`h-1 flex-1 rounded-full ${
@@ -363,88 +462,84 @@ export default function DecisionSetupWizard({
 
           {/* Step 4: Settings */}
           {step === 4 && (
+            <Step4Content
+              visibility={visibility}
+              setVisibility={setVisibility}
+              deadline={deadline}
+              setDeadline={setDeadline}
+            />
+          )}
+
+          {/* Step 5: Summary */}
+          {step === 5 && (
             <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-4">
+              <p className="text-body text-text-secondary">
+                Review your decision session before creating it.
+              </p>
+
+              <div className="bg-slate-50 p-5 space-y-4">
                 {/* Title */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-subtitle text-text-primary">
-                    Session title{" "}
-                    <span className="text-red-600 text-info">*</span>
-                  </label>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
-                    placeholder="e.g., Q3 Priority Decisions"
-                  />
+                <div>
+                  <span className="text-info text-text-secondary block mb-1">Session title</span>
+                  <span className="text-subtitle text-text-primary">{title}</span>
                 </div>
 
                 {/* Description */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-subtitle text-text-primary">
-                    Description
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full resize-none"
-                    placeholder="What is this decision session about?"
-                  />
-                </div>
+                {description && (
+                  <div>
+                    <span className="text-info text-text-secondary block mb-1">Description</span>
+                    <span className="text-body text-text-primary">{description}</span>
+                  </div>
+                )}
 
-                {/* Visibility */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-subtitle text-text-primary">
-                    Vote visibility
-                  </label>
-                  <select
-                    value={visibility}
-                    onChange={(e) =>
-                      setVisibility(e.target.value as DecisionVisibility)
-                    }
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full bg-white"
-                  >
-                    <option value="hidden">
-                      Hidden - Votes not shown until round closes
-                    </option>
-                    <option value="aggregate">
-                      Aggregate - Show totals, not individual votes
-                    </option>
-                    <option value="transparent">
-                      Transparent - Show all votes publicly
-                    </option>
-                  </select>
-                </div>
+                <div className="border-t border-slate-200 pt-4 grid grid-cols-2 gap-4">
+                  {/* Clusters */}
+                  <div>
+                    <span className="text-info text-text-secondary block mb-1">Clusters</span>
+                    <span className="text-body text-text-primary">
+                      {clusters.filter((c) => c.selected).length} selected
+                    </span>
+                  </div>
 
-                {/* Deadline */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-subtitle text-text-primary">
-                    Voting deadline (optional)
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
-                  />
-                </div>
-              </div>
+                  {/* Statements */}
+                  <div>
+                    <span className="text-info text-text-secondary block mb-1">Proposals</span>
+                    <span className="text-body text-text-primary">
+                      {statements.filter((s) => s.selected).length} statements
+                    </span>
+                  </div>
 
-              {/* Summary */}
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-subtitle text-text-primary mb-2">Summary</p>
-                <ul className="text-body text-text-secondary space-y-1">
-                  <li>
-                    {clusters.filter((c) => c.selected).length} clusters
-                    selected
-                  </li>
-                  <li>
-                    {statements.filter((s) => s.selected).length} statements as
-                    proposals
-                  </li>
-                  <li>Consensus threshold: {consensusThreshold}%</li>
-                </ul>
+                  {/* Consensus threshold */}
+                  <div>
+                    <span className="text-info text-text-secondary block mb-1">Consensus threshold</span>
+                    <span className="text-body text-text-primary">{consensusThreshold}%</span>
+                  </div>
+
+                  {/* Vote visibility */}
+                  <div>
+                    <span className="text-info text-text-secondary block mb-1">Vote visibility</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-brand-primary">{selectedVisibilityOption?.icon}</span>
+                      <span className="text-body text-text-primary">{selectedVisibilityOption?.label}</span>
+                    </div>
+                  </div>
+
+                  {/* Deadline */}
+                  <div className="col-span-2">
+                    <span className="text-info text-text-secondary block mb-1">Voting deadline</span>
+                    <span className="text-body text-text-primary">
+                      {deadline
+                        ? new Intl.DateTimeFormat("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }).format(new Date(deadline))
+                        : "No deadline set"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -477,7 +572,7 @@ export default function DecisionSetupWizard({
             <Button variant="secondary" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            {step < 4 ? (
+            {step < 5 ? (
               <Button onClick={onNext} disabled={loading}>
                 {loading ? "Loading..." : "Continue"}
               </Button>

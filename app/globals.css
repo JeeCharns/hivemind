@@ -12,6 +12,17 @@
   border-bottom-right-radius: 0 !important;
 }
 
+/* Override for circular elements (spinners, avatars) - must be outside @layer to take precedence */
+.spinner-round,
+.avatar-round,
+.rounded-full {
+  border-radius: 9999px !important;
+  border-top-left-radius: 9999px !important;
+  border-top-right-radius: 9999px !important;
+  border-bottom-left-radius: 9999px !important;
+  border-bottom-right-radius: 9999px !important;
+}
+
 /* Basic global styles */
 body {
   margin: 0;
@@ -106,13 +117,5 @@ a {
 
   .text-info {
     @apply text-info;
-  }
-
-  .spinner-round {
-    border-radius: 9999px !important;
-  }
-
-  .avatar-round {
-    border-radius: 9999px !important;
   }
 }

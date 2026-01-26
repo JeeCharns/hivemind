@@ -12,7 +12,7 @@
 
 export type DecisionRoundStatus = 'voting_open' | 'voting_closed' | 'results_generated';
 
-export type DecisionVisibility = 'hidden' | 'aggregate' | 'transparent';
+export type DecisionVisibility = 'hidden' | 'transparent';
 
 // ============================================
 // DATABASE ROWS
@@ -77,6 +77,7 @@ export interface DecisionProposalViewModel {
   sourceClusterIndex: number;
   originalAgreePercent: number | null;
   displayOrder: number;
+  sourceBucketId: string | null; // For fetching original responses
   // Populated at runtime based on visibility
   totalVotes?: number;
   userVotes?: number;

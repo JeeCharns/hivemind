@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import { requireAuth } from "@/lib/auth/server/requireAuth";
 import { createDecisionSession } from "@/lib/decision-space/server/createDecisionSession";
 import { createDecisionSessionSchema } from "@/lib/decision-space/schemas";
@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid request body", 400, "VALIDATION_ERROR");
     }
 
-    const supabase = await supabaseServerClient();
+    // Use admin client to bypass RLS for insert operations
+    const supabase = supabaseAdminClient();
     const result = await createDecisionSession(supabase, userId, parseResult.data);
 
     return NextResponse.json(result, { status: 201 });

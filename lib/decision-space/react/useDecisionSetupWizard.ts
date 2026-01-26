@@ -16,11 +16,13 @@ export interface UseDecisionSetupWizardProps {
   hiveId: string;
   hiveSlug?: string | null;
   open: boolean;
+  initialTitle?: string;
+  initialDescription?: string;
 }
 
 export interface UseDecisionSetupWizardReturn {
   // Navigation
-  step: 1 | 2 | 3 | 4;
+  step: 1 | 2 | 3 | 4 | 5;
   loading: boolean;
   sourcesLoading: boolean;
   error: string | null;
@@ -63,11 +65,13 @@ export function useDecisionSetupWizard({
   hiveId,
   hiveSlug,
   open,
+  initialTitle = "",
+  initialDescription = "",
 }: UseDecisionSetupWizardProps): UseDecisionSetupWizardReturn {
   const router = useRouter();
 
   // Navigation state
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,11 +104,11 @@ export function useDecisionSetupWizard({
     setClusters([]);
     setStatements([]);
     setConsensusThreshold(DEFAULT_CONSENSUS_THRESHOLD);
-    setTitle("");
-    setDescription("");
+    setTitle(initialTitle);
+    setDescription(initialDescription);
     setVisibility("hidden");
     setDeadline("");
-  }, [open]);
+  }, [open, initialTitle, initialDescription]);
 
   // Fetch source conversations on mount
   useEffect(() => {
@@ -157,8 +161,15 @@ export function useDecisionSetupWizard({
       .then((data) => {
         if (cancelled) return;
         setClusters(data.clusters || []);
-        setStatements(data.statements || []);
-        setTitle(`Decision: ${data.sourceTitle}`);
+        // Apply initial threshold-based recommendations when statements are fetched
+        const fetchedStatements = data.statements || [];
+        setStatements(
+          fetchedStatements.map((s: StatementSelectionItem) => ({
+            ...s,
+            recommended: s.agreePercent !== null && s.agreePercent >= DEFAULT_CONSENSUS_THRESHOLD,
+            selected: s.agreePercent !== null && s.agreePercent >= DEFAULT_CONSENSUS_THRESHOLD,
+          }))
+        );
       })
       .catch((err) => {
         if (cancelled) return;
@@ -255,13 +266,15 @@ export function useDecisionSetupWizard({
         return;
       }
       setStep(4);
+    } else if (step === 4) {
+      setStep(5);
     }
   }, [step, selectedSourceId, clusters, statements]);
 
   const onBack = useCallback(() => {
     setError(null);
     if (step > 1) {
-      setStep((prev) => (prev - 1) as 1 | 2 | 3 | 4);
+      setStep((prev) => (prev - 1) as 1 | 2 | 3 | 4 | 5);
     }
   }, [step]);
 

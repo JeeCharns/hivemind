@@ -41,6 +41,13 @@ export default async function ResultPage({ params }: ResultPageProps) {
   // 3. Verify membership (throws if not a member)
   await requireHiveMember(supabase, session.user.id, hive.id);
 
+  // 3b. Redirect decide conversations to the unified /decide page
+  if (conversation.type === "decide") {
+    redirect(
+      `/hives/${hive.slug || hive.id}/conversations/${conversation.slug || conversation.id}/decide`
+    );
+  }
+
   // 4. Build complete view model
   const viewModel = await getReportViewModel(
     supabase,

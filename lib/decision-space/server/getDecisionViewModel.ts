@@ -14,6 +14,14 @@ import type {
   ProposalRanking,
 } from "@/types/decision-space";
 
+export interface SourceConversationInfo {
+  id: string;
+  title: string;
+  slug: string | null;
+  hiveSlug: string | null;
+  hiveId: string;
+}
+
 export interface DecisionViewModel {
   conversationId: string;
   proposals: DecisionProposalViewModel[];
@@ -23,6 +31,11 @@ export interface DecisionViewModel {
   remainingCredits: number;
   results: DecisionResultViewModel | null;
   isAdmin: boolean;
+  // Admin stats
+  averageCreditUsagePercent: number | null; // Average % of credits used by voters
+  voterCount: number; // Number of unique users who have voted
+  // Source conversation info
+  sourceConversation: SourceConversationInfo | null;
 }
 
 const TOTAL_CREDITS = 99;
@@ -45,13 +58,46 @@ export async function getDecisionViewModel(
   // 1. Fetch all proposals for this decision session
   const { data: proposals, error: proposalsError } = await supabase
     .from("decision_proposals")
-    .select("id, statement_text, source_cluster_index, original_agree_percent, display_order")
+    .select("id, statement_text, source_cluster_index, original_agree_percent, display_order, source_bucket_id")
     .eq("conversation_id", conversationId)
     .order("display_order", { ascending: true });
 
   if (proposalsError) {
     console.error("[getDecisionViewModel] Failed to fetch proposals:", proposalsError);
     throw new Error("Failed to fetch proposals");
+  }
+
+  // 1b. Fetch source conversation info
+  let sourceConversation: SourceConversationInfo | null = null;
+  const { data: conversationData } = await supabase
+    .from("conversations")
+    .select("source_conversation_id, hive_id")
+    .eq("id", conversationId)
+    .single();
+
+  if (conversationData?.source_conversation_id) {
+    const { data: sourceData } = await supabase
+      .from("conversations")
+      .select("id, title, slug")
+      .eq("id", conversationData.source_conversation_id)
+      .single();
+
+    if (sourceData) {
+      // Get hive slug
+      const { data: hiveData } = await supabase
+        .from("hives")
+        .select("slug")
+        .eq("id", conversationData.hive_id)
+        .single();
+
+      sourceConversation = {
+        id: sourceData.id,
+        title: sourceData.title,
+        slug: sourceData.slug,
+        hiveSlug: hiveData?.slug ?? null,
+        hiveId: conversationData.hive_id,
+      };
+    }
   }
 
   // 2. Fetch the current (most recent) round
@@ -105,19 +151,45 @@ export async function getDecisionViewModel(
 
   const remainingCredits = TOTAL_CREDITS - totalCreditsSpent;
 
-  // 4. Fetch total votes per proposal if visibility allows
+  // 4. Fetch total votes per proposal if visibility allows, and admin stats
   const proposalTotals: Record<string, number> = {};
+  let averageCreditUsagePercent: number | null = null;
+  let voterCount = 0;
 
-  if (currentRoundRow && (currentRoundRow.visibility === "transparent" || currentRoundRow.visibility === "aggregate")) {
+  // Fetch all votes if needed for visibility or admin stats
+  if (currentRoundRow && (currentRoundRow.visibility === "transparent" || isAdmin)) {
     const { data: allVotes, error: allVotesError } = await supabase
       .from("decision_votes")
-      .select("proposal_id, votes")
+      .select("proposal_id, votes, user_id")
       .eq("round_id", currentRoundRow.id);
 
     if (!allVotesError && allVotes) {
+      // Calculate proposal totals for visibility
       for (const vote of allVotes) {
         const current = proposalTotals[vote.proposal_id] || 0;
         proposalTotals[vote.proposal_id] = current + vote.votes;
+      }
+
+      // Calculate admin stats: average credit usage
+      if (isAdmin) {
+        // Group votes by user and calculate each user's total credits spent
+        const userCredits: Record<string, number> = {};
+        for (const vote of allVotes) {
+          const current = userCredits[vote.user_id] || 0;
+          userCredits[vote.user_id] = current + (vote.votes * vote.votes); // Quadratic cost
+        }
+
+        // Calculate average percentage
+        const userIds = Object.keys(userCredits);
+        voterCount = userIds.length;
+
+        if (voterCount > 0) {
+          const totalPercentage = userIds.reduce((sum, id) => {
+            const percent = (userCredits[id] / TOTAL_CREDITS) * 100;
+            return sum + percent;
+          }, 0);
+          averageCreditUsagePercent = Math.round(totalPercentage / voterCount);
+        }
       }
     }
   }
@@ -129,6 +201,7 @@ export async function getDecisionViewModel(
     sourceClusterIndex: p.source_cluster_index,
     originalAgreePercent: p.original_agree_percent,
     displayOrder: p.display_order,
+    sourceBucketId: p.source_bucket_id,
     totalVotes: currentRound?.visibility === "transparent" ? proposalTotals[p.id] : undefined,
     userVotes: userVotes[p.id] ?? 0,
   }));
@@ -163,5 +236,8 @@ export async function getDecisionViewModel(
     remainingCredits,
     results,
     isAdmin,
+    averageCreditUsagePercent,
+    voterCount,
+    sourceConversation,
   };
 }

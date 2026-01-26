@@ -8,7 +8,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeftIcon,
   ArrowsClockwise,
@@ -46,6 +46,7 @@ export default function ConversationHeader({
 }: ConversationHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -60,10 +61,8 @@ export default function ConversationHeader({
   const tabs =
     conversationType === "decide"
       ? [
-          { slug: "listen", label: "Listen" },
-          { slug: "understand", label: "Understand" },
-          { slug: "vote", label: "Vote" },
-          { slug: "result", label: "Result" },
+          { slug: "decide?tab=vote", label: "Vote" },
+          { slug: "decide?tab=results", label: "Results" },
         ]
       : [
           { slug: "listen", label: "Listen" },
@@ -74,6 +73,16 @@ export default function ConversationHeader({
   const basePath = `/hives/${hiveKey}/conversations/${conversationKey}`;
 
   const activeFromPath = () => {
+    // For decide conversations, check query param
+    if (conversationType === "decide") {
+      const tab = searchParams.get("tab");
+      if (tab) {
+        const match = tabs.find((t) => t.slug.includes(`tab=${tab}`));
+        return match?.slug ?? "decide?tab=vote";
+      }
+      return "decide?tab=vote";
+    }
+    // For understand conversations, check pathname
     const match = tabs.find((tab) => pathname?.includes(`/${tab.slug}`));
     return match?.slug ?? "listen";
   };
@@ -200,7 +209,7 @@ export default function ConversationHeader({
               </Button>
               {menuOpen && (
                 <div className="absolute left-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
-                  {isAdmin && (
+                  {isAdmin && conversationType !== "decide" && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -241,24 +250,26 @@ export default function ConversationHeader({
           </div>
 
           <div className="flex flex-nowrap items-center gap-4 shrink-0">
-            <div className="flex items-center gap-1 bg-white border border-white px-1 py-1 rounded-sm">
-              {tabs.map((tab) => {
-                const isActive = activeSlug === tab.slug;
-                return (
-                  <Link
-                    key={tab.slug}
-                    href={`${basePath}/${tab.slug}`}
-                    className={`inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle transition-colors ${
-                      isActive
-                        ? "bg-[#EDEFFD] text-brand-primary"
-                        : "bg-[#FDFDFD] text-text-tertiary hover:text-brand-primary"
-                    }`}
-                  >
-                    {tab.label}
-                  </Link>
-                );
-              })}
-            </div>
+            {tabs.length > 0 && (
+              <div className="flex items-center gap-1 bg-white border border-white px-1 py-1 rounded-sm">
+                {tabs.map((tab) => {
+                  const isActive = activeSlug === tab.slug;
+                  return (
+                    <Link
+                      key={tab.slug}
+                      href={`${basePath}/${tab.slug}`}
+                      className={`inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle transition-colors ${
+                        isActive
+                          ? "bg-[#EDEFFD] text-brand-primary"
+                          : "bg-[#FDFDFD] text-text-tertiary hover:text-brand-primary"
+                      }`}
+                    >
+                      {tab.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
             {showRegenerateButton && onRegenerate && isAdmin && (
               <Button

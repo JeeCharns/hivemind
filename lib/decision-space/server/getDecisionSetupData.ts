@@ -139,41 +139,45 @@ export async function getDecisionSetupData(
     }
   }
 
-  const clusters: ClusterSelectionItem[] = (themes || []).map((theme) => {
-    const consensusValues = clusterConsensus.get(theme.cluster_index) || [];
-    const avgConsensus =
-      consensusValues.length > 0
-        ? Math.round(consensusValues.reduce((a, b) => a + b, 0) / consensusValues.length)
-        : 0;
+  const clusters: ClusterSelectionItem[] = (themes || [])
+    .map((theme) => {
+      const consensusValues = clusterConsensus.get(theme.cluster_index) || [];
+      const avgConsensus =
+        consensusValues.length > 0
+          ? Math.round(consensusValues.reduce((a, b) => a + b, 0) / consensusValues.length)
+          : 0;
 
-    return {
-      clusterIndex: theme.cluster_index,
-      name: theme.name,
-      description: theme.description || "",
-      statementCount: (buckets || []).filter(
-        (b) => b.cluster_index === theme.cluster_index
-      ).length,
-      avgConsensusPercent: avgConsensus,
-      selected: false,
-    };
-  });
+      return {
+        clusterIndex: theme.cluster_index,
+        name: theme.name,
+        description: theme.description || "",
+        statementCount: (buckets || []).filter(
+          (b) => b.cluster_index === theme.cluster_index
+        ).length,
+        avgConsensusPercent: avgConsensus,
+        selected: false,
+      };
+    })
+    .sort((a, b) => b.avgConsensusPercent - a.avgConsensusPercent);
 
   // 7. Build statement selection items
   const clusterNames = new Map(themes?.map((t) => [t.cluster_index, t.name]) || []);
 
-  const statements: StatementSelectionItem[] = (buckets || []).map((bucket) => {
-    const consensus = consensusMap.get(bucket.id);
-    return {
-      bucketId: bucket.id,
-      clusterIndex: bucket.cluster_index,
-      clusterName: clusterNames.get(bucket.cluster_index) || `Cluster ${bucket.cluster_index}`,
-      statementText: bucket.consolidated_statement,
-      agreePercent: consensus?.agreePercent ?? null,
-      totalVotes: consensus?.totalVotes ?? 0,
-      selected: false,
-      recommended: false, // Will be set by UI based on threshold
-    };
-  });
+  const statements: StatementSelectionItem[] = (buckets || [])
+    .map((bucket) => {
+      const consensus = consensusMap.get(bucket.id);
+      return {
+        bucketId: bucket.id,
+        clusterIndex: bucket.cluster_index,
+        clusterName: clusterNames.get(bucket.cluster_index) || `Cluster ${bucket.cluster_index}`,
+        statementText: bucket.consolidated_statement,
+        agreePercent: consensus?.agreePercent ?? null,
+        totalVotes: consensus?.totalVotes ?? 0,
+        selected: false,
+        recommended: false, // Will be set by UI based on threshold
+      };
+    })
+    .sort((a, b) => (b.agreePercent ?? -1) - (a.agreePercent ?? -1));
 
   return {
     sourceConversationId,

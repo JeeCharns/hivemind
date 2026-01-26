@@ -10,7 +10,7 @@ import { z } from "zod";
 // ENUMS
 // ============================================
 
-export const decisionVisibilitySchema = z.enum(["hidden", "aggregate", "transparent"]);
+export const decisionVisibilitySchema = z.enum(["hidden", "transparent"]);
 
 // ============================================
 // CREATE DECISION SESSION

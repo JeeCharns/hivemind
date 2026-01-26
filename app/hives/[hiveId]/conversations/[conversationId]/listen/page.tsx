@@ -41,6 +41,13 @@ export default async function ListenPage({ params }: ListenPageProps) {
   // 3. Verify membership (throws if not a member)
   await requireHiveMember(supabase, session.user.id, hive.id);
 
+  // 3b. Redirect decide conversations to the decide page
+  if (conversation.type === "decide") {
+    redirect(
+      `/hives/${hive.slug || hive.id}/conversations/${conversation.slug || conversation.id}/decide`
+    );
+  }
+
   // 4. Get current user's display name
   const { data: profile } = await supabase
     .from("profiles")

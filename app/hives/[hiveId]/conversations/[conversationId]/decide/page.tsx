@@ -19,10 +19,15 @@ interface DecidePageProps {
     hiveId: string;
     conversationId: string;
   }>;
+  searchParams: Promise<{
+    tab?: string;
+  }>;
 }
 
-export default async function DecidePage({ params }: DecidePageProps) {
+export default async function DecidePage({ params, searchParams }: DecidePageProps) {
   const { hiveId: hiveKey, conversationId: conversationKey } = await params;
+  const { tab } = await searchParams;
+  const activeTab = (tab as "vote" | "results") || "vote";
 
   // 1. Verify authentication
   const session = await getServerSession();
@@ -63,7 +68,7 @@ export default async function DecidePage({ params }: DecidePageProps) {
   // 7. Render client component with view model
   return (
     <div className="mx-auto w-full max-w-7xl px-6">
-      <DecisionViewContainer viewModel={viewModel} />
+      <DecisionViewContainer viewModel={viewModel} activeTab={activeTab} />
     </div>
   );
 }

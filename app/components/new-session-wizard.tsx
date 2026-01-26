@@ -93,6 +93,9 @@ export default function NewSessionWizard({
       <DecisionSetupWizard
         open={true}
         hiveId={hiveId}
+        hiveSlug={hiveSlug}
+        initialTitle={title}
+        initialDescription={description}
         onClose={() => {
           setShowDecisionWizard(false);
           onClose();

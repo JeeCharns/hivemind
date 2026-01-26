@@ -3,16 +3,14 @@
 /**
  * DecisionView - Decision Session Tabs Client Component
  *
- * Shows 3 tabs for decision sessions:
- * - Listen: Read-only view of proposals grouped by cluster
+ * Shows 2 tabs for decision sessions:
  * - Vote: Quadratic voting interface
  * - Results: Rankings with AI analysis (after round closes)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
-  Ear,
-  CheckSquare,
   ChartBar,
   Wallet,
   Plus,
@@ -20,41 +18,46 @@ import {
   Trophy,
   ArrowUp,
   ArrowDown,
-  Clock,
   Users,
+  ShieldCheck,
+  CaretDown,
+  CaretUp,
 } from "@phosphor-icons/react";
 import Button from "@/app/components/button";
 import type { DecisionViewModel } from "@/lib/decision-space/server/getDecisionViewModel";
 
+interface OriginalResponse {
+  id: number;
+  text: string;
+}
+
 export interface DecisionViewProps {
   viewModel: DecisionViewModel;
+  activeTab?: "vote" | "results";
   onVote: (proposalId: string, delta: 1 | -1) => Promise<void>;
+  onCloseRound?: () => Promise<void>;
+  isClosingRound?: boolean;
   error?: string | null;
   onVoteError?: (errorMessage: string) => void;
   onClearError?: () => void;
 }
 
-type TabType = "listen" | "vote" | "results";
-
 export default function DecisionView({
   viewModel,
+  activeTab = "vote",
   onVote,
+  onCloseRound,
+  isClosingRound = false,
   error,
   onVoteError,
   onClearError,
 }: DecisionViewProps) {
-  const [activeTab, setActiveTab] = useState<TabType>(() => {
-    // Default to vote tab if round is open, results if closed
-    if (viewModel.currentRound?.status === "voting_open") {
-      return "vote";
-    }
-    if (viewModel.results) {
-      return "results";
-    }
-    return "listen";
-  });
-
   const [loading, setLoading] = useState<string | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
+  const [expandedResponses, setExpandedResponses] = useState<Record<string, boolean>>({});
+  const [proposalResponses, setProposalResponses] = useState<Record<string, OriginalResponse[]>>({});
+  const [loadingResponses, setLoadingResponses] = useState<Record<string, boolean>>({});
   const [localVotes, setLocalVotes] = useState<Record<string, number>>(() => {
     const votes: Record<string, number> = {};
     viewModel.proposals.forEach((p) => {
@@ -64,6 +67,91 @@ export default function DecisionView({
   });
   const [creditsSpent, setCreditsSpent] = useState(viewModel.totalCreditsSpent);
   const [creditsRemaining, setCreditsRemaining] = useState(viewModel.remainingCredits);
+
+  // Calculate and update time remaining for deadline
+  useEffect(() => {
+    if (!viewModel.currentRound?.deadline) {
+      setTimeRemaining(null);
+      return;
+    }
+
+    const calculateTimeRemaining = () => {
+      const deadline = new Date(viewModel.currentRound!.deadline!);
+      const now = new Date();
+      const diff = deadline.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeRemaining("Deadline passed");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h remaining`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m remaining`);
+      } else {
+        setTimeRemaining(`${minutes}m remaining`);
+      }
+    };
+
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [viewModel.currentRound]);
+
+  const handleCloseRoundClick = async () => {
+    setShowCloseConfirm(false);
+    if (onCloseRound) {
+      await onCloseRound();
+    }
+  };
+
+  const toggleResponses = async (proposalId: string) => {
+    // If already expanded, just collapse
+    if (expandedResponses[proposalId]) {
+      setExpandedResponses((prev) => ({ ...prev, [proposalId]: false }));
+      return;
+    }
+
+    // If already loaded, just expand
+    if (proposalResponses[proposalId]) {
+      setExpandedResponses((prev) => ({ ...prev, [proposalId]: true }));
+      return;
+    }
+
+    // Fetch responses
+    setLoadingResponses((prev) => ({ ...prev, [proposalId]: true }));
+    try {
+      const url = `/api/decision-space/proposals/${proposalId}/responses`;
+      console.log("[DecisionView] Fetching responses from:", url);
+      const response = await fetch(url);
+      console.log("[DecisionView] Response status:", response.status, response.statusText);
+      const text = await response.text();
+      console.log("[DecisionView] Response body:", text.substring(0, 500));
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("[DecisionView] Failed to parse JSON:", text.substring(0, 200));
+        throw new Error("Invalid response from server");
+      }
+      if (!response.ok) {
+        console.error("[DecisionView] API error:", data);
+        throw new Error(data.error || "Failed to fetch responses");
+      }
+      setProposalResponses((prev) => ({ ...prev, [proposalId]: data.responses }));
+      setExpandedResponses((prev) => ({ ...prev, [proposalId]: true }));
+    } catch (err) {
+      console.error("[DecisionView] Failed to fetch responses:", err);
+    } finally {
+      setLoadingResponses((prev) => ({ ...prev, [proposalId]: false }));
+    }
+  };
 
   const handleVote = async (proposalId: string, delta: 1 | -1) => {
     setLoading(proposalId);
@@ -108,75 +196,77 @@ export default function DecisionView({
   };
 
   const isVotingOpen = viewModel.currentRound?.status === "voting_open";
+  const isTransparent = viewModel.currentRound?.visibility === "transparent";
 
-  // Group proposals by cluster for the Listen tab
-  const proposalsByCluster = viewModel.proposals.reduce((acc, proposal) => {
-    const key = proposal.sourceClusterIndex;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(proposal);
-    return acc;
-  }, {} as Record<number, typeof viewModel.proposals>);
-
-  const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
-    { id: "listen", label: "Listen", icon: <Ear size={18} weight="fill" /> },
-    { id: "vote", label: "Vote", icon: <CheckSquare size={18} weight="fill" /> },
-    { id: "results", label: "Results", icon: <ChartBar size={18} weight="fill" /> },
-  ];
+  // Sort proposals by total votes (descending) when transparent
+  const sortedProposals = isTransparent
+    ? [...viewModel.proposals].sort((a, b) => (b.totalVotes ?? 0) - (a.totalVotes ?? 0))
+    : viewModel.proposals;
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-6xl mx-auto py-6">
-      {/* Tab Navigation */}
-      <div className="flex items-center gap-1 bg-white border border-slate-200 px-1 py-1 rounded-lg self-start">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          const isDisabled = tab.id === "results" && !viewModel.results;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => !isDisabled && setActiveTab(tab.id)}
-              disabled={isDisabled}
-              className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-indigo-50 text-indigo-600"
-                  : isDisabled
-                  ? "text-slate-300 cursor-not-allowed"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-indigo-600"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Round Status Banner */}
-      {viewModel.currentRound && (
-        <div className={`rounded-lg border p-4 flex items-center justify-between ${
-          isVotingOpen
-            ? "bg-green-50 border-green-200"
-            : "bg-amber-50 border-amber-200"
-        }`}>
+    <div className="flex flex-col gap-6 w-full">
+      {/* Admin Panel - only shown to admins when voting is open */}
+      {viewModel.isAdmin && viewModel.currentRound && isVotingOpen && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`rounded-full p-2 ${isVotingOpen ? "bg-green-100" : "bg-amber-100"}`}>
-              {isVotingOpen ? (
-                <CheckSquare size={20} className="text-green-600" weight="fill" />
-              ) : (
-                <Clock size={20} className="text-amber-600" weight="fill" />
-              )}
+            <div className="rounded-full p-2 bg-slate-200">
+              <ShieldCheck size={20} className="text-slate-600" weight="fill" />
             </div>
             <div>
-              <p className={`font-medium ${isVotingOpen ? "text-green-800" : "text-amber-800"}`}>
-                Round {viewModel.currentRound.roundNumber}:{" "}
-                {isVotingOpen ? "Voting Open" : "Voting Closed"}
-              </p>
-              {viewModel.currentRound.deadline && (
-                <p className="text-sm text-slate-600">
-                  Deadline: {new Date(viewModel.currentRound.deadline).toLocaleString()}
-                </p>
+              <p className="font-medium text-slate-800">Admin panel</p>
+              {timeRemaining && (
+                <p className="text-sm text-slate-600">{timeRemaining}</p>
               )}
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            {viewModel.voterCount > 0 && (
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-700">
+                  {viewModel.averageCreditUsagePercent}% avg credit usage
+                </p>
+                <p className="text-xs text-slate-500">
+                  {viewModel.voterCount} voter{viewModel.voterCount !== 1 ? "s" : ""}
+                </p>
+              </div>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowCloseConfirm(true)}
+              disabled={isClosingRound}
+            >
+              {isClosingRound ? "Closing..." : "Close voting round"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Close Round Confirmation Modal */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              Close voting round?
+            </h3>
+            <p className="text-slate-600 mb-4">
+              Are you sure you want to close the voting round? This will end voting and generate the results. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => setShowCloseConfirm(false)}
+                disabled={isClosingRound}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCloseRoundClick}
+                disabled={isClosingRound}
+              >
+                {isClosingRound ? "Closing..." : "Close round"}
+              </Button>
             </div>
           </div>
         </div>
@@ -198,43 +288,18 @@ export default function DecisionView({
         </div>
       )}
 
-      {/* Listen Tab Content */}
-      {activeTab === "listen" && (
-        <div className="flex flex-col gap-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">Proposals</h2>
-            <p className="text-slate-600 mb-6">
-              These statements were selected from the problem space analysis. Review them before voting.
-            </p>
-
-            {Object.entries(proposalsByCluster).map(([clusterIndex, proposals]) => (
-              <div key={clusterIndex} className="mb-6 last:mb-0">
-                <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3">
-                  Theme {Number(clusterIndex) + 1}
-                </h3>
-                <div className="space-y-3">
-                  {proposals.map((proposal) => (
-                    <div
-                      key={proposal.id}
-                      className="bg-slate-50 rounded-lg p-4 border border-slate-100"
-                    >
-                      <p className="text-slate-800">{proposal.statementText}</p>
-                      {proposal.originalAgreePercent !== null && (
-                        <p className="text-sm text-slate-500 mt-2">
-                          Original agreement: {proposal.originalAgreePercent}%
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {viewModel.proposals.length === 0 && (
-              <p className="text-slate-500 text-center py-8">No proposals yet.</p>
-            )}
-          </div>
-        </div>
+      {/* Source Conversation Link */}
+      {viewModel.sourceConversation && (
+        <p className="text-sm text-slate-600">
+          These proposals were generated from &quot;
+          <Link
+            href={`/hives/${viewModel.sourceConversation.hiveSlug || viewModel.sourceConversation.hiveId}/conversations/${viewModel.sourceConversation.slug || viewModel.sourceConversation.id}/listen`}
+            style={{ color: "#2563eb", textDecoration: "underline" }}
+          >
+            {viewModel.sourceConversation.title}
+          </Link>
+          &quot;
+        </p>
       )}
 
       {/* Vote Tab Content */}
@@ -276,16 +341,14 @@ export default function DecisionView({
 
           {/* Proposals Grid */}
           <div className="grid gap-4">
-            {viewModel.proposals.length === 0 ? (
+            {sortedProposals.length === 0 ? (
               <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                 <p className="text-slate-500">No proposals yet.</p>
               </div>
             ) : (
-              viewModel.proposals.map((proposal) => {
+              sortedProposals.map((proposal) => {
                 const currentVotes = localVotes[proposal.id] || 0;
                 const currentCost = currentVotes * currentVotes;
-                const nextUpCost = getNextVoteCost(currentVotes, 1);
-                const nextDownCost = getNextVoteCost(currentVotes, -1);
                 const isLoading = loading === proposal.id;
 
                 return (
@@ -300,9 +363,46 @@ export default function DecisionView({
                           {proposal.statementText}
                         </p>
                         {proposal.originalAgreePercent !== null && (
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-slate-500 mb-2">
                             Original agreement: {proposal.originalAgreePercent}%
                           </p>
+                        )}
+                        {/* Show Original Responses - only if source bucket exists */}
+                        {proposal.sourceBucketId && (
+                          <div className="mt-2">
+                            <button
+                              onClick={() => toggleResponses(proposal.id)}
+                              className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                              disabled={loadingResponses[proposal.id]}
+                            >
+                              {loadingResponses[proposal.id] ? (
+                                "Loading..."
+                              ) : expandedResponses[proposal.id] ? (
+                                <>
+                                  <CaretUp size={14} weight="bold" />
+                                  Hide original responses
+                                </>
+                              ) : (
+                                <>
+                                  <CaretDown size={14} weight="bold" />
+                                  Show original responses
+                                </>
+                              )}
+                            </button>
+                            {expandedResponses[proposal.id] && proposalResponses[proposal.id] && (
+                              <div className="mt-3 pl-4 border-l-2 border-slate-200 space-y-2">
+                                {proposalResponses[proposal.id].length === 0 ? (
+                                  <p className="text-sm text-slate-400 italic">No original responses found</p>
+                                ) : (
+                                  proposalResponses[proposal.id].map((response) => (
+                                    <p key={response.id} className="text-sm text-slate-600">
+                                      &ldquo;{response.text}&rdquo;
+                                    </p>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
 
@@ -352,19 +452,18 @@ export default function DecisionView({
                           <div className="text-sm font-medium text-slate-700">
                             {currentCost} credits spent
                           </div>
-                          {currentVotes > 0 && (
-                            <div className="text-xs text-slate-500">
-                              Next: {nextUpCost > 0 ? "+" : ""}
-                              {nextUpCost} / {nextDownCost}
-                            </div>
-                          )}
-                          {currentVotes === 0 && nextUpCost > 0 && (
-                            <div className="text-xs text-slate-500">
-                              First vote: {nextUpCost} credit{nextUpCost !== 1 ? "s" : ""}
-                            </div>
-                          )}
                         </div>
                       </div>
+
+                      {/* Total Votes - shown when transparent */}
+                      {isTransparent && (
+                        <div className="flex flex-col items-center justify-center min-w-[80px] pl-4 border-l border-slate-200">
+                          <div className="text-2xl font-bold text-slate-700">
+                            {proposal.totalVotes ?? 0}
+                          </div>
+                          <div className="text-xs text-slate-500">total votes</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
