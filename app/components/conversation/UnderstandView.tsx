@@ -23,6 +23,11 @@ import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
 import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
 import { buildClusterSummaries } from "@/lib/conversations/domain/buildClusterSummaries";
 import type { AnalysisProgress } from "@/lib/conversations/react/useConversationAnalysisRealtime";
+import type { AnalysisUiState } from "./UnderstandViewContainer";
+import ClusterMapSkeleton from "./ClusterMapSkeleton";
+import ClusterListSkeleton from "./ClusterListSkeleton";
+import AnalysisProgressSteps from "./AnalysisProgressSteps";
+import type { AnalysisProgressStage } from "@/lib/conversations/server/broadcastAnalysisStatus";
 
 const palette = [
   "#4F46E5",
@@ -105,6 +110,7 @@ export interface UnderstandViewProps {
   conversationType?: "understand" | "decide";
   analysisInProgress?: boolean;
   analysisProgress?: AnalysisProgress | null;
+  uiState?: AnalysisUiState;
 }
 
 export default function UnderstandView({
@@ -112,7 +118,14 @@ export default function UnderstandView({
   conversationType = "understand",
   analysisInProgress = false,
   analysisProgress = null,
+  uiState = "idle",
 }: UnderstandViewProps) {
+  // Determine if we should show skeletons (during loading_results state)
+  const showSkeletons = uiState === "loading_results";
+  // Show progress overlay during starting or analysing states
+  // Falls back to analysisInProgress for backward compatibility
+  const showProgressOverlay =
+    uiState === "starting" || uiState === "analysing" || (uiState === "idle" && analysisInProgress);
   const {
     conversationId,
     responses,
@@ -528,56 +541,31 @@ export default function UnderstandView({
   }, [selectedTheme, themes]);
 
   return (
-    <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)] overflow-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start flex-1 overflow-hidden">
-        {/* Left column: Theme map */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 h-full relative">
-          {/* Loading overlay for left column only */}
-          {analysisInProgress && (
+    <div className="flex flex-col gap-6 pt-6 md:h-[calc(100vh-180px)] md:overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(200px,1fr)_minmax(320px,1fr)] gap-6 items-start md:flex-1 md:overflow-hidden">
+        {/* Left column: Theme map - shrinks on tablet, square on mobile */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 relative aspect-square w-full md:aspect-auto md:h-full md:min-h-[300px]">
+          {/* Skeleton overlay for loading_results state */}
+          {showSkeletons && (
+            <div className="absolute inset-0 z-30">
+              <ClusterMapSkeleton />
+            </div>
+          )}
+          {/* Progress overlay for starting/analysing states */}
+          {showProgressOverlay && (
             <div className="absolute inset-0 bg-white/95 z-30 flex items-center justify-center backdrop-blur-sm">
               <div className="max-w-md mx-auto space-y-4 text-center p-8">
-                {/* Circular progress indicator */}
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  {/* Background circle */}
-                  <svg className="w-24 h-24 transform -rotate-90">
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="#e2e8f0"
-                      strokeWidth="8"
-                      fill="none"
-                    />
-                    {/* Progress circle */}
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="#4F46E5"
-                      strokeWidth="8"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeDasharray={2 * Math.PI * 40}
-                      strokeDashoffset={
-                        2 * Math.PI * 40 * (1 - (analysisProgress?.progressPercent ?? 0) / 100)
-                      }
-                      className="transition-all duration-500 ease-out"
-                    />
-                  </svg>
-                  {/* Percentage text in center */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-semibold text-indigo-600">
-                      {analysisProgress?.progressPercent ?? 0}%
-                    </span>
-                  </div>
-                </div>
-
                 <h2 className="text-xl font-semibold text-slate-800">
                   Updating Theme Map
                 </h2>
-                <p className="text-sm text-slate-600">
-                  {analysisProgress?.progressMessage ?? "Regenerating clusters and themes..."}
-                </p>
+
+                {/* Step-based progress display */}
+                <AnalysisProgressSteps
+                  progressStage={analysisProgress?.progressStage as AnalysisProgressStage | undefined}
+                  customMessage={analysisProgress?.progressMessage}
+                  size="sm"
+                />
+
                 <p className="text-xs text-slate-500 mt-4">
                   The response list below remains interactive
                 </p>
@@ -813,10 +801,14 @@ export default function UnderstandView({
           </div>
         </div>
 
-        {/* Right column: Response list */}
-        <div className="bg-white space-y-4 p-8 rounded-2xl h-full overflow-y-auto shadow-sm border border-slate-100">
-          {/* Analysis in progress indicator */}
-          {analysisInProgress && (
+        {/* Right column: Response list - maintains readable width */}
+        <div className="bg-white space-y-4 p-4 md:p-6 lg:p-8 rounded-2xl shadow-sm border border-slate-100 md:h-full md:overflow-y-auto">
+          {/* Skeleton loading for loading_results state */}
+          {showSkeletons && (
+            <ClusterListSkeleton count={4} />
+          )}
+          {/* Analysis in progress indicator for starting/analysing states */}
+          {showProgressOverlay && (
             <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-700">
               <svg
                 className="w-4 h-4 animate-spin"
@@ -837,51 +829,58 @@ export default function UnderstandView({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span>Running analysis...</span>
-            </div>
-          )}
-          {/* Back button and theme title - shown when viewing a specific theme */}
-          {selectedTheme !== "all" && (
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="p-2! aspect-square"
-                onClick={() => setSelectedTheme("all")}
-                aria-label="Back to all themes"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </Button>
-              <span
-                className="font-display text-lg font-medium"
-                style={{
-                  color:
-                    selectedTheme === "unclustered"
-                      ? "#94a3b8"
-                      : getThemeColor(selectedTheme),
-                }}
-              >
-                {selectedThemeLabel}
+              <span>
+                {analysisProgress?.step
+                  ? `Step ${analysisProgress.step.current} of ${analysisProgress.step.total}: ${analysisProgress.step.label}`
+                  : "Running analysis..."}
               </span>
             </div>
           )}
+          {/* Hide content when showing skeletons */}
+          {!showSkeletons && (
+            <>
+              {/* Back button and theme title - shown when viewing a specific theme */}
+              {selectedTheme !== "all" && (
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="p-2! aspect-square"
+                    onClick={() => setSelectedTheme("all")}
+                    aria-label="Back to all themes"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </Button>
+                  <span
+                    className="font-display text-lg font-medium"
+                    style={{
+                      color:
+                        selectedTheme === "unclustered"
+                          ? "#94a3b8"
+                          : getThemeColor(selectedTheme),
+                    }}
+                  >
+                    {selectedThemeLabel}
+                  </span>
+                </div>
+              )}
 
-          <div
-            className={selectedTheme === "all" ? "space-y-8" : "space-y-8 pt-4"}
-          >
+              <div
+                className={selectedTheme === "all" ? "space-y-8" : "space-y-8 pt-4"}
+              >
             {filteredItems.length === 0 ? (
               <div className="text-body text-slate-600">
                 No responses yet. Upload on Listen to get started.
@@ -1047,7 +1046,9 @@ export default function UnderstandView({
                 ))}
               </>
             )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

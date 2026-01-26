@@ -8,6 +8,11 @@
  * - Loading state during analysis
  * - Realtime push updates via Supabase (with polling fallback)
  * - Error state on analysis failure
+ *
+ * UI State Machine:
+ * IDLE → STARTING → ANALYSING → LOADING_RESULTS → READY
+ *                       ↓              ↓
+ *                    ERROR ←──────────┘
  */
 
 import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
@@ -23,6 +28,25 @@ import { INCREMENTAL_THRESHOLD } from "@/lib/conversations/domain/thresholds";
 import Button from "@/app/components/button";
 import Alert from "@/app/components/alert";
 import { ArrowsClockwise } from "@phosphor-icons/react";
+import AnalysisProgressSteps from "./AnalysisProgressSteps";
+import type { AnalysisProgressStage } from "@/lib/conversations/server/broadcastAnalysisStatus";
+
+/**
+ * UI state for the analysis flow
+ * - idle: No analysis in progress, showing current data or empty state
+ * - starting: User clicked generate/regenerate, showing immediate feedback
+ * - analysing: Backend is processing, showing step-based progress
+ * - loading_results: Analysis complete, fetching full data
+ * - ready: Data loaded and displayed
+ * - error: Analysis failed
+ */
+export type AnalysisUiState =
+  | "idle"
+  | "starting"
+  | "analysing"
+  | "loading_results"
+  | "ready"
+  | "error";
 
 export interface UnderstandViewContainerProps {
   initialViewModel: UnderstandViewModel;
@@ -66,17 +90,39 @@ function AnalysisAlert({
   );
 }
 
+/**
+ * Determine initial UI state based on analysis status
+ */
+function getInitialUiState(analysisStatus: string | null | undefined): AnalysisUiState {
+  if (analysisStatus === "embedding" || analysisStatus === "analyzing") {
+    return "analysing";
+  }
+  if (analysisStatus === "not_started") {
+    return "starting";
+  }
+  if (analysisStatus === "error") {
+    return "error";
+  }
+  return "idle";
+}
+
 export default function UnderstandViewContainer({
   initialViewModel,
   conversationType = "understand",
   isAdmin = false,
 }: UnderstandViewContainerProps) {
   const [viewModel, setViewModel] = useState(initialViewModel);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  // Initialize uiState based on initial analysisStatus to handle page load during analysis
+  const [uiState, setUiState] = useState<AnalysisUiState>(() =>
+    getInitialUiState(initialViewModel.analysisStatus)
+  );
   const lastReadyViewModelRef = useRef<UnderstandViewModel | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Derive legacy flags from uiState for backward compatibility
+  const isGenerating = uiState === "starting" || uiState === "analysing";
+  const isRegenerating = uiState === "starting" || uiState === "analysing";
 
   const {
     conversationId,
@@ -89,15 +135,12 @@ export default function UnderstandViewContainer({
     analysisResponseCount = null,
   } = viewModel;
 
-  // Determine if analysis is actively running
-  // Show loading when:
-  // 1. Status is embedding or analyzing
-  // 2. User just clicked Generate/Regenerate (even before status updates)
+  // Determine if analysis is actively running based on UI state
+  // Show loading when in starting, analysing, or loading_results state
   const analysisInProgress =
-    analysisStatus === "embedding" ||
-    analysisStatus === "analyzing" ||
-    isGenerating ||
-    isRegenerating;
+    uiState === "starting" ||
+    uiState === "analysing" ||
+    uiState === "loading_results";
 
   const shouldShowStaleBanner =
     conversationType === "understand" &&
@@ -117,6 +160,7 @@ export default function UnderstandViewContainer({
     !hasGeneratedAnalysis;
 
   // Fetch fresh understand data
+  // KEY FIX: Transition to "ready" state only after data is fetched
   const fetchUnderstandData = useCallback(async () => {
     console.log("[Analysis] Fetching fresh understand data...");
     try {
@@ -130,28 +174,42 @@ export default function UnderstandViewContainer({
       console.log("[Analysis] → responseCount:", data.responseCount);
       console.log("[Analysis] → themes:", data.themes?.length ?? 0, "themes");
       console.log("[Analysis] → responses:", data.responses?.length ?? 0, "responses");
-      if (data.analysisStatus === "ready") {
-        console.log("[Analysis] ✓ Analysis complete!");
-      }
+
+      // Update viewModel with fresh data
       setViewModel(data);
+
+      // Only transition to ready state if data indicates analysis is complete
+      // This ensures we don't clear loading state until we have the actual data
+      if (data.analysisStatus === "ready") {
+        console.log("[Analysis] ✓ Analysis complete - transitioning to ready state");
+        setUiState("ready");
+        setAnalysisProgress(null);
+      }
     } catch (err) {
       console.error("[Analysis] Failed to refresh:", err);
+      // On fetch error, still try to clear loading state to avoid stuck UI
+      // But keep the previous data
+      setUiState("idle");
+      setAnalysisProgress(null);
     }
   }, [conversationId]);
 
   // Determine if we should enable realtime/polling
   // Subscribe when:
-  // 1. Analysis is actively running (embedding/analyzing)
-  // 2. We're in the process of generating/regenerating (even if status is still "ready" or "not_started")
+  // 1. UI state indicates we're expecting updates (starting, analysing, loading_results)
+  // 2. Backend status indicates analysis in progress
   const shouldSubscribe =
     responseCount >= threshold &&
-    (analysisStatus === "embedding" ||
+    (uiState === "starting" ||
+      uiState === "analysing" ||
+      uiState === "loading_results" ||
+      analysisStatus === "embedding" ||
       analysisStatus === "analyzing" ||
-      analysisStatus === "not_started" ||
-      isGenerating ||
-      isRegenerating);
+      analysisStatus === "not_started");
 
   // Handle status updates from broadcast (update UI without full refresh)
+  // KEY FIX: When status becomes "ready", transition to LOADING_RESULTS instead of
+  // clearing loading state. Only transition to READY after data fetch completes.
   const handleStatusUpdate = useCallback(
     (status: string, error?: string | null) => {
       setViewModel((prev) => ({
@@ -166,16 +224,21 @@ export default function UnderstandViewContainer({
           setViewModel(lastReadyViewModelRef.current);
         }
         setAnalysisProgress(null);
-        setIsGenerating(false);
-        setIsRegenerating(false);
+        setUiState("error");
         setToastMessage("Analysis failed - please ask an admin to regenerate the analysis");
       }
 
-      // Clear progress and loading flags when analysis completes
+      // When backend reports ready, transition to loading_results
+      // The actual data fetch will happen via onRefresh callback
+      // We'll transition to "ready" state after the fetch completes in fetchUnderstandData
       if (status === "ready") {
-        setAnalysisProgress(null);
-        setIsGenerating(false);
-        setIsRegenerating(false);
+        setUiState("loading_results");
+        // Keep analysisProgress for skeleton display context
+      }
+
+      // Update to analysing state when backend confirms it's processing
+      if (status === "embedding" || status === "analyzing") {
+        setUiState("analysing");
       }
     },
     []
@@ -268,58 +331,21 @@ export default function UnderstandViewContainer({
   const hasNoExistingAnalysis = !viewModel.responses || viewModel.responses.length === 0;
 
   if (analysisInProgress && hasNoExistingAnalysis) {
-    // Use progress message if available, otherwise fall back to status-based message
-    const statusMessage = analysisProgress?.progressMessage
-      ?? (analysisStatus === "embedding"
-        ? "Generating embeddings..."
-        : analysisStatus === "analyzing"
-        ? "Clustering responses and generating themes..."
-        : "Queued for analysis...");
-
-    const progressPercent = analysisProgress?.progressPercent ?? 0;
-
     return (
       <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)]">
         <div className="bg-white rounded-2xl p-12 text-center">
-          <div className="max-w-md mx-auto space-y-4">
-            {/* Circular progress indicator */}
-            <div className="relative w-32 h-32 mx-auto mb-4">
-              {/* Background circle */}
-              <svg className="w-32 h-32 transform -rotate-90">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="#e2e8f0"
-                  strokeWidth="8"
-                  fill="none"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="#4F46E5"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 56}
-                  strokeDashoffset={2 * Math.PI * 56 * (1 - progressPercent / 100)}
-                  className="transition-all duration-500 ease-out"
-                />
-              </svg>
-              {/* Percentage text in center */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-3xl font-semibold text-indigo-600">
-                  {progressPercent}%
-                </span>
-              </div>
-            </div>
-
+          <div className="max-w-md mx-auto space-y-6">
             <h2 className="text-2xl font-semibold text-slate-800">
               Generating Theme Map
             </h2>
-            <p className="text-slate-600">{statusMessage}</p>
+
+            {/* Step-based progress display */}
+            <AnalysisProgressSteps
+              progressStage={analysisProgress?.progressStage as AnalysisProgressStage | undefined}
+              customMessage={analysisProgress?.progressMessage}
+              size="md"
+            />
+
             <p className="text-sm text-slate-500 mt-6">
               This usually takes 30-60 seconds. We&apos;ll update automatically when ready.
             </p>
@@ -387,18 +413,22 @@ export default function UnderstandViewContainer({
     );
   }
 
-  // Initial analysis handler
+  // Initial analysis handler with optimistic UI
   const handleGenerate = async () => {
     if (!isAdmin) return;
-    lastReadyViewModelRef.current = viewModel;
-    try {
-      setIsGenerating(true);
-      setViewModel((prev) => ({
-        ...prev,
-        analysisStatus: "not_started",
-        analysisError: null,
-      }));
 
+    // Store current state for rollback on error
+    lastReadyViewModelRef.current = viewModel;
+
+    // OPTIMISTIC: Immediately show starting state before API call
+    setUiState("starting");
+    setViewModel((prev) => ({
+      ...prev,
+      analysisStatus: "not_started",
+      analysisError: null,
+    }));
+
+    try {
       const res = await fetch(`/api/conversations/${conversationId}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -411,37 +441,50 @@ export default function UnderstandViewContainer({
       if (!res.ok) {
         const data = await res.json();
         console.error("[Generate] Failed:", data.error);
+        // Revert on API failure
         if (lastReadyViewModelRef.current) {
           setViewModel(lastReadyViewModelRef.current);
         }
+        setUiState("idle");
+        setToastMessage("Failed to start analysis. Please try again.");
         return;
       }
 
+      // API accepted - transition to analysing state
+      // Realtime subscription will update progress from here
+      setUiState("analysing");
+
+      // Fetch initial status to sync with backend
       await fetchUnderstandData();
     } catch (err) {
       console.error("[Generate] Error:", err);
+      // Revert on network error
       if (lastReadyViewModelRef.current) {
         setViewModel(lastReadyViewModelRef.current);
       }
-    } finally {
-      setIsGenerating(false);
+      setUiState("idle");
+      setToastMessage("Failed to start analysis. Please try again.");
     }
   };
 
-  // Regenerate handler
+  // Regenerate handler with optimistic UI
   const handleRegenerate = async () => {
     if (!isAdmin) return;
+
+    // Store current state for rollback on error
     lastReadyViewModelRef.current = viewModel;
     console.log("[Analysis] Starting regeneration from UnderstandViewContainer...");
     console.log("[Analysis] → conversationId:", conversationId);
-    try {
-      setIsRegenerating(true);
-      setViewModel((prev) => ({
-        ...prev,
-        analysisStatus: "not_started",
-        analysisError: null,
-      }));
 
+    // OPTIMISTIC: Immediately show starting state before API call
+    setUiState("starting");
+    setViewModel((prev) => ({
+      ...prev,
+      analysisStatus: "not_started",
+      analysisError: null,
+    }));
+
+    try {
       const res = await fetch(`/api/conversations/${conversationId}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -454,9 +497,12 @@ export default function UnderstandViewContainer({
       if (!res.ok) {
         const data = await res.json();
         console.error("[Analysis] Regeneration failed:", data.error);
+        // Revert on API failure
         if (lastReadyViewModelRef.current) {
           setViewModel(lastReadyViewModelRef.current);
         }
+        setUiState("idle");
+        setToastMessage("Failed to start regeneration. Please try again.");
         return;
       }
 
@@ -464,15 +510,20 @@ export default function UnderstandViewContainer({
       console.log("[Analysis] Regeneration request accepted:", responseData);
       console.log("[Analysis] → Waiting for analysis to complete...");
 
-      // Ensure we start polling/realtime immediately even if we missed the first update.
+      // API accepted - transition to analysing state
+      // Realtime subscription will update progress from here
+      setUiState("analysing");
+
+      // Fetch initial status to sync with backend
       await fetchUnderstandData();
     } catch (err) {
       console.error("[Analysis] Regeneration error:", err);
+      // Revert on network error
       if (lastReadyViewModelRef.current) {
         setViewModel(lastReadyViewModelRef.current);
       }
-    } finally {
-      setIsRegenerating(false);
+      setUiState("idle");
+      setToastMessage("Failed to start regeneration. Please try again.");
     }
   };
 
@@ -541,6 +592,7 @@ export default function UnderstandViewContainer({
         conversationType={conversationType}
         analysisInProgress={analysisInProgress}
         analysisProgress={analysisProgress}
+        uiState={uiState}
       />
       {toastMessage && (
         <Toast

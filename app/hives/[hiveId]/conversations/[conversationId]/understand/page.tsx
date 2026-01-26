@@ -66,7 +66,7 @@ export default async function UnderstandPage({ params }: UnderstandPageProps) {
 
   // 6. Render client container with view model
   return (
-    <div className="mx-auto w-full max-w-7xl px-6">
+    <div className="mx-auto w-full max-w-7xl px-0 md:px-6">
       <UnderstandViewContainer
         initialViewModel={viewModel}
         conversationType={conversation.type as "understand" | "decide"}

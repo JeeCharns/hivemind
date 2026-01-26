@@ -205,9 +205,23 @@ export default function DecisionView({
 
   return (
     <div className="flex flex-col gap-6 w-full">
+      {/* Source Conversation Link - shown above admin panel */}
+      {viewModel.sourceConversation && (
+        <p className="text-sm text-slate-600 px-4 md:px-0">
+          These proposals were generated from &quot;
+          <Link
+            href={`/hives/${viewModel.sourceConversation.hiveSlug || viewModel.sourceConversation.hiveId}/conversations/${viewModel.sourceConversation.slug || viewModel.sourceConversation.id}/listen`}
+            style={{ color: "#2563eb", textDecoration: "underline" }}
+          >
+            {viewModel.sourceConversation.title}
+          </Link>
+          &quot;
+        </p>
+      )}
+
       {/* Admin Panel - only shown to admins when voting is open */}
       {viewModel.isAdmin && viewModel.currentRound && isVotingOpen && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 flex items-center justify-between">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-full p-2 bg-slate-200">
               <ShieldCheck size={20} className="text-slate-600" weight="fill" />
@@ -219,9 +233,9 @@ export default function DecisionView({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
             {viewModel.voterCount > 0 && (
-              <div className="text-right">
+              <div className="md:text-right">
                 <p className="text-sm font-medium text-slate-700">
                   {viewModel.averageCreditUsagePercent}% avg credit usage
                 </p>
@@ -235,6 +249,7 @@ export default function DecisionView({
               size="sm"
               onClick={() => setShowCloseConfirm(true)}
               disabled={isClosingRound}
+              className="w-full md:w-auto"
             >
               {isClosingRound ? "Closing..." : "Close voting round"}
             </Button>
@@ -288,31 +303,17 @@ export default function DecisionView({
         </div>
       )}
 
-      {/* Source Conversation Link */}
-      {viewModel.sourceConversation && (
-        <p className="text-sm text-slate-600">
-          These proposals were generated from &quot;
-          <Link
-            href={`/hives/${viewModel.sourceConversation.hiveSlug || viewModel.sourceConversation.hiveId}/conversations/${viewModel.sourceConversation.slug || viewModel.sourceConversation.id}/listen`}
-            style={{ color: "#2563eb", textDecoration: "underline" }}
-          >
-            {viewModel.sourceConversation.title}
-          </Link>
-          &quot;
-        </p>
-      )}
-
       {/* Vote Tab Content */}
       {activeTab === "vote" && (
         <div className="flex flex-col gap-6">
           {/* Wallet Header */}
-          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6 flex items-center justify-between">
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-indigo-100 rounded-full p-3">
+              <div className="bg-indigo-100 rounded-full p-2 md:p-3 shrink-0">
                 <Wallet size={24} className="text-indigo-600" weight="fill" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-base md:text-lg font-semibold text-slate-900">
                   Voting Credits
                 </h3>
                 <p className="text-sm text-slate-600">
@@ -320,8 +321,8 @@ export default function DecisionView({
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold text-indigo-600">
+            <div className="flex items-center justify-between md:block md:text-right bg-indigo-100 md:bg-transparent rounded-lg p-3 md:p-0">
+              <div className="text-2xl md:text-3xl font-bold text-indigo-600">
                 {creditsRemaining}
               </div>
               <div className="text-sm text-slate-600">
@@ -354,9 +355,9 @@ export default function DecisionView({
                 return (
                   <div
                     key={proposal.id}
-                    className="bg-white rounded-xl border border-slate-200 p-6 hover:border-slate-300 transition"
+                    className="bg-white rounded-xl border border-slate-200 p-4 md:p-6 hover:border-slate-300 transition"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-4">
                       {/* Proposal Content */}
                       <div className="flex-1 min-w-0">
                         <p className="text-base text-slate-900 mb-2">
@@ -406,64 +407,67 @@ export default function DecisionView({
                         )}
                       </div>
 
-                      {/* Voting Controls */}
-                      <div className="flex flex-col items-center gap-3 min-w-[180px]">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleVote(proposal.id, -1)}
-                            disabled={
-                              !isVotingOpen ||
-                              isLoading ||
-                              !canAfford(proposal.id, -1) ||
-                              currentVotes === 0
-                            }
-                            className="w-10 h-10"
-                            aria-label={`Remove vote from proposal: ${proposal.statementText.slice(0, 50)}`}
-                          >
-                            <Minus size={16} weight="bold" />
-                          </Button>
+                      {/* Voting Controls + Total Votes wrapper */}
+                      <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-100 md:border-t-0 md:pt-0">
+                        {/* Voting Controls */}
+                        <div className="flex flex-col items-center gap-2 md:gap-3 md:min-w-[180px]">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleVote(proposal.id, -1)}
+                              disabled={
+                                !isVotingOpen ||
+                                isLoading ||
+                                !canAfford(proposal.id, -1) ||
+                                currentVotes === 0
+                              }
+                              className="w-10 h-10"
+                              aria-label={`Remove vote from proposal: ${proposal.statementText.slice(0, 50)}`}
+                            >
+                              <Minus size={16} weight="bold" />
+                            </Button>
 
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <div className="text-2xl font-bold text-indigo-600">
-                              {currentVotes}
+                            <div className="flex flex-col items-center min-w-[60px]">
+                              <div className="text-2xl font-bold text-indigo-600">
+                                {currentVotes}
+                              </div>
+                              <div className="text-xs text-slate-500">votes</div>
                             </div>
-                            <div className="text-xs text-slate-500">votes</div>
+
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleVote(proposal.id, 1)}
+                              disabled={
+                                !isVotingOpen ||
+                                isLoading ||
+                                !canAfford(proposal.id, 1)
+                              }
+                              className="w-10 h-10"
+                              aria-label={`Add vote to proposal: ${proposal.statementText.slice(0, 50)}`}
+                            >
+                              <Plus size={16} weight="bold" />
+                            </Button>
                           </div>
 
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleVote(proposal.id, 1)}
-                            disabled={
-                              !isVotingOpen ||
-                              isLoading ||
-                              !canAfford(proposal.id, 1)
-                            }
-                            className="w-10 h-10"
-                            aria-label={`Add vote to proposal: ${proposal.statementText.slice(0, 50)}`}
-                          >
-                            <Plus size={16} weight="bold" />
-                          </Button>
-                        </div>
-
-                        <div className="text-center">
-                          <div className="text-sm font-medium text-slate-700">
-                            {currentCost} credits spent
+                          <div className="text-center">
+                            <div className="text-sm font-medium text-slate-700">
+                              {currentCost} credits spent
+                            </div>
                           </div>
                         </div>
+
+                        {/* Total Votes - shown when transparent */}
+                        {isTransparent && (
+                          <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px] pl-4 border-l border-slate-200">
+                            <div className="text-xl md:text-2xl font-bold text-slate-700">
+                              {proposal.totalVotes ?? 0}
+                            </div>
+                            <div className="text-xs text-slate-500">total votes</div>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Total Votes - shown when transparent */}
-                      {isTransparent && (
-                        <div className="flex flex-col items-center justify-center min-w-[80px] pl-4 border-l border-slate-200">
-                          <div className="text-2xl font-bold text-slate-700">
-                            {proposal.totalVotes ?? 0}
-                          </div>
-                          <div className="text-xs text-slate-500">total votes</div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -472,7 +476,7 @@ export default function DecisionView({
           </div>
 
           {/* Summary Footer */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center justify-between text-sm">
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 flex flex-col gap-1 md:flex-row md:items-center md:justify-between text-sm">
             <span className="text-slate-600">
               Total votes cast: {Object.values(localVotes).reduce((sum, v) => sum + v, 0)}
             </span>
@@ -511,7 +515,7 @@ export default function DecisionView({
                           : "bg-white border-slate-200"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
                         <div className="flex items-start gap-3">
                           <div
                             className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold ${
@@ -526,7 +530,7 @@ export default function DecisionView({
                           >
                             {ranking.rank}
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <p className="text-slate-900">{ranking.statementText}</p>
                             {ranking.changeFromPrevious !== undefined && (
                               <p
@@ -555,12 +559,12 @@ export default function DecisionView({
                             )}
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="flex items-center justify-between pl-11 md:pl-0 md:block md:text-right">
                           <div className="text-lg font-semibold text-indigo-600">
-                            {ranking.totalVotes}
+                            {ranking.totalVotes} votes
                           </div>
                           <div className="text-sm text-slate-500">
-                            {ranking.votePercent}% of votes
+                            {ranking.votePercent}% of total
                           </div>
                         </div>
                       </div>

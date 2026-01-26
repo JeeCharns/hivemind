@@ -176,7 +176,7 @@ export default function ConversationHeader({
 
   return (
     <div className="pt-4 pb-4">
-      <div className="mx-auto w-full max-w-7xl px-6 flex flex-col">
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-6 flex flex-col">
         <Link
           href={`/hives/${hiveKey}`}
           className="inline-flex items-center gap-2 text-body-lg text-text-primary hover:text-brand-primary transition-colors"
@@ -185,12 +185,13 @@ export default function ConversationHeader({
           All sessions
         </Link>
 
-        <div className="flex flex-row items-start justify-between gap-6">
+        {/* Row 1: Title and menu */}
+        <div className="flex flex-row items-start justify-between gap-4 md:gap-6">
           <div className="flex min-w-0 flex-1 items-start gap-3">
-            <h1 className="text-h2 text-text-primary wrap-break-word">
+            <h1 className="text-h3 md:text-h2 text-text-primary break-words">
               {title}
             </h1>
-            <div className="relative" ref={menuRef}>
+            <div className="relative shrink-0" ref={menuRef}>
               <Button
                 type="button"
                 variant="ghost"
@@ -208,7 +209,22 @@ export default function ConversationHeader({
                 />
               </Button>
               {menuOpen && (
-                <div className="absolute left-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
+                <div className="absolute left-0 md:left-auto md:right-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
+                  {/* Share - visible in menu on mobile */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50 md:hidden"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShareModalOpen(true);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ExportIcon size={16} />
+                      Share
+                    </span>
+                  </Button>
                   {isAdmin && conversationType !== "decide" && (
                     <Button
                       variant="ghost"
@@ -249,7 +265,8 @@ export default function ConversationHeader({
             </div>
           </div>
 
-          <div className="flex flex-nowrap items-center gap-4 shrink-0">
+          {/* Desktop/Tablet: tabs + action buttons inline */}
+          <div className="hidden md:flex flex-nowrap items-center gap-4 shrink-0">
             {tabs.length > 0 && (
               <div className="flex items-center gap-1 bg-white border border-white px-1 py-1 rounded-sm">
                 {tabs.map((tab) => {
@@ -299,6 +316,28 @@ export default function ConversationHeader({
             </Button>
           </div>
         </div>
+
+        {/* Mobile only: Tabs in separate row */}
+        {tabs.length > 0 && (
+          <div className="mt-3 flex md:hidden items-center gap-1 bg-white border border-slate-100 px-1 py-1 rounded-sm w-full">
+            {tabs.map((tab) => {
+              const isActive = activeSlug === tab.slug;
+              return (
+                <Link
+                  key={tab.slug}
+                  href={`${basePath}/${tab.slug}`}
+                  className={`flex-1 inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle transition-colors ${
+                    isActive
+                      ? "bg-[#EDEFFD] text-brand-primary"
+                      : "bg-[#FDFDFD] text-text-tertiary hover:text-brand-primary"
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
         {error && (
           <Alert variant="error" className="mt-3">
             {error}

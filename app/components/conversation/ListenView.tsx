@@ -28,7 +28,9 @@ import { useConversationFeed } from "@/lib/conversations/react/useConversationFe
 import { useConversationFeedRealtime } from "@/lib/conversations/react/useConversationFeedRealtime";
 import { useConversationPresence } from "@/lib/conversations/react/useConversationPresence";
 import { useAnalysisStatus } from "@/lib/conversations/react/useAnalysisStatus";
+import { useIsMobileOrTablet } from "@/lib/hooks/useIsMobile";
 import Button from "@/app/components/button";
+import MobileComposer from "@/app/components/conversation/MobileComposer";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -58,6 +60,8 @@ export default function ListenView({
     hiveId: string;
     conversationId: string;
   }>();
+
+  const isMobileOrTablet = useIsMobileOrTablet();
 
   const {
     feed,
@@ -292,8 +296,128 @@ export default function ListenView({
     return null;
   };
 
+  // Shared feed component for both mobile and desktop
+  const FeedContent = (
+    <div className={`bg-white border border-slate-200 rounded-2xl p-4 md:p-6 h-full overflow-y-auto ${isMobileOrTablet ? "max-h-none" : "max-h-[calc(100vh-220px)]"} space-y-4`}>
+      {/* High traffic alert - shown when realtime is paused */}
+      {realtimeStatus === "paused" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-start gap-3">
+          <span className="text-amber-600 text-lg leading-none">&#9889;</span>
+          <div className="flex-1">
+            <p className="text-subtitle text-amber-800">
+              It&apos;s busy here!
+            </p>
+            <p className="text-body text-amber-700">
+              Live updates paused — the feed refreshes every 30 seconds.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-h4 text-slate-900">Live Feed</h3>
+          {viewerCount > 0 && (
+            <span className="flex items-center gap-1 text-xs text-slate-500">
+              <span className={`w-1.5 h-1.5 rounded-full ${isHighTraffic ? "bg-amber-500" : "bg-emerald-500"}`} />
+              {viewerCount} viewing
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {showSpinner && (
+            <span className="inline-block w-4 h-4 aspect-square border-2 border-indigo-200 border-t-indigo-600 spinner-round animate-spin" />
+          )}
+          <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setFeedSort("new")}
+              className={`px-3 py-1 text-label transition-colors ${
+                feedSort === "new"
+                  ? "bg-indigo-50 text-indigo-700 border-r border-slate-200"
+                  : "bg-white text-slate-600 hover:bg-slate-50 border-r border-slate-200"
+              }`}
+            >
+              New
+            </button>
+            <button
+              type="button"
+              onClick={() => setFeedSort("top")}
+              className={`px-3 py-1 text-label transition-colors ${
+                feedSort === "top"
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Top
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Only show skeleton on initial load, not on subsequent refreshes */}
+      {isLoadingFeed && !hasLoadedOnce ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-16 bg-slate-100 rounded-lg animate-pulse"
+            />
+          ))}
+        </div>
+      ) : sortedFeed.length === 0 ? (
+        <div className="text-slate-500 text-body">
+          No responses yet. Be the first to share.
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {sortedFeed.map((resp) => (
+            <div key={resp.id} className="rounded-lg flex gap-3">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {resp.tag && (
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-label border ${getTagColors(
+                        resp.tag
+                      )}`}
+                    >
+                      {TAG_LABELS[resp.tag] || resp.tag}
+                    </span>
+                  )}
+                  <span className="text-subtitle text-slate-800">
+                    {resp.user?.name ?? "Anonymous"}
+                  </span>
+                  <span className="text-info text-slate-400">
+                    {new Date(resp.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-body text-slate-800">{resp.text}</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => toggleLike(resp.id)}
+                className={`flex items-center gap-1 text-subtitle px-2 py-1 rounded-md shrink-0 ${
+                  resp.likedByMe
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-slate-200 text-slate-500 hover:border-indigo-200"
+                }`}
+              >
+                <ThumbsUp
+                  size={16}
+                  weight={resp.likedByMe ? "fill" : "regular"}
+                />
+                <span>{resp.likeCount}</span>
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="pt-6" suppressHydrationWarning>
+    <div className={`pt-6 ${isMobileOrTablet ? "pb-20" : ""}`} suppressHydrationWarning>
       {!mounted ? (
         <div className="space-y-4">
           {[1, 2].map((i) => (
@@ -303,7 +427,28 @@ export default function ListenView({
             />
           ))}
         </div>
+      ) : isMobileOrTablet ? (
+        /* Mobile layout: Feed only + fixed bottom composer */
+        <>
+          {getStatusPill()}
+          {FeedContent}
+          <MobileComposer
+            text={text}
+            setText={setText}
+            tag={tag}
+            setTag={setTag}
+            postAs={postAs}
+            setPostAs={setPostAs}
+            displayName={displayName}
+            isDecisionSession={isDecisionSession}
+            isSubmitting={isSubmitting}
+            canSubmit={canSubmit}
+            onSubmit={submitResponse}
+            error={error}
+          />
+        </>
       ) : (
+        /* Desktop layout: Two columns */
         <>
           {getStatusPill()}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -446,122 +591,7 @@ export default function ListenView({
           </div>
 
           {/* Right column: Live feed */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 h-full overflow-y-auto max-h-[calc(100vh-220px)] space-y-4">
-            {/* High traffic alert - shown when realtime is paused */}
-            {realtimeStatus === "paused" && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-start gap-3">
-                <span className="text-amber-600 text-lg leading-none">⚡</span>
-                <div className="flex-1">
-                  <p className="text-subtitle text-amber-800">
-                    It&apos;s busy here!
-                  </p>
-                  <p className="text-body text-amber-700">
-                    Live updates paused — the feed refreshes every 30 seconds.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-h4 text-slate-900">Live Feed</h3>
-                {viewerCount > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-slate-500">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isHighTraffic ? "bg-amber-500" : "bg-emerald-500"}`} />
-                    {viewerCount} viewing
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {showSpinner && (
-                  <span className="inline-block w-4 h-4 aspect-square border-2 border-indigo-200 border-t-indigo-600 spinner-round animate-spin" />
-                )}
-                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setFeedSort("new")}
-                    className={`px-3 py-1 text-label transition-colors ${
-                      feedSort === "new"
-                        ? "bg-indigo-50 text-indigo-700 border-r border-slate-200"
-                        : "bg-white text-slate-600 hover:bg-slate-50 border-r border-slate-200"
-                    }`}
-                  >
-                    New
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFeedSort("top")}
-                    className={`px-3 py-1 text-label transition-colors ${
-                      feedSort === "top"
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    Top
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Only show skeleton on initial load, not on subsequent refreshes */}
-            {isLoadingFeed && !hasLoadedOnce ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-16 bg-slate-100 rounded-lg animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : sortedFeed.length === 0 ? (
-              <div className="text-slate-500 text-body">
-                No responses yet. Be the first to share.
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {sortedFeed.map((resp) => (
-                  <div key={resp.id} className="rounded-lg flex gap-3">
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        {resp.tag && (
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-label border ${getTagColors(
-                              resp.tag
-                            )}`}
-                          >
-                            {TAG_LABELS[resp.tag] || resp.tag}
-                          </span>
-                        )}
-                        <span className="text-subtitle text-slate-800">
-                          {resp.user?.name ?? "Anonymous"}
-                        </span>
-                        <span className="text-info text-slate-400">
-                          {new Date(resp.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-body text-slate-800">{resp.text}</p>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => toggleLike(resp.id)}
-                      className={`flex items-center gap-1 text-subtitle px-2 py-1 rounded-md ${
-                        resp.likedByMe
-                          ? "border-green-200 bg-green-50 text-green-700"
-                          : "border-slate-200 text-slate-500 hover:border-indigo-200"
-                      }`}
-                    >
-                      <ThumbsUp
-                        size={16}
-                        weight={resp.likedByMe ? "fill" : "regular"}
-                      />
-                      <span>{resp.likeCount}</span>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {FeedContent}
         </div>
         </>
       )}

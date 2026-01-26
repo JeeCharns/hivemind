@@ -95,7 +95,7 @@ export default async function ListenPage({ params }: ListenPageProps) {
 
   // 6. Render client component with initial data
   return (
-    <div className="mx-auto w-full max-w-7xl px-6">
+    <div className="mx-auto w-full max-w-7xl px-0 md:px-6">
       <ListenView
         conversationId={conversation.id}
         currentUserDisplayName={currentUserDisplayName}
