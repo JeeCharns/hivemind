@@ -22,6 +22,7 @@ export interface UseDecisionSetupWizardReturn {
   // Navigation
   step: 1 | 2 | 3 | 4;
   loading: boolean;
+  sourcesLoading: boolean;
   error: string | null;
 
   // Step 1: Source selection
@@ -71,6 +72,7 @@ export function useDecisionSetupWizard({
   const [error, setError] = useState<string | null>(null);
 
   // Step 1: Source selection
+  const [sourcesLoading, setSourcesLoading] = useState(true);
   const [sourceConversations, setSourceConversations] = useState<
     { id: string; title: string; clusterCount: number; date: string }[]
   >([]);
@@ -109,6 +111,7 @@ export function useDecisionSetupWizard({
     if (!open || !hiveId) return;
 
     let cancelled = false;
+    setSourcesLoading(true);
 
     fetch(`/api/hives/${hiveId}/understand-sessions?status=ready`)
       .then(async (res) => {
@@ -126,6 +129,9 @@ export function useDecisionSetupWizard({
         if (cancelled) return;
         console.error("[useDecisionSetupWizard] Failed to fetch sources:", err);
         setError("Failed to load understand sessions");
+      })
+      .finally(() => {
+        if (!cancelled) setSourcesLoading(false);
       });
 
     return () => {
@@ -327,6 +333,7 @@ export function useDecisionSetupWizard({
   return {
     step,
     loading,
+    sourcesLoading,
     error,
     sourceConversations,
     selectedSourceId,

@@ -20,6 +20,7 @@ export default function DecisionSetupWizard({
   const {
     step,
     loading,
+    sourcesLoading,
     error,
     sourceConversations,
     selectedSourceId,
@@ -130,14 +131,33 @@ export default function DecisionSetupWizard({
                 decision proposals from.
               </p>
 
-              {sourceConversations.length === 0 && !loading && (
+              {/* Skeleton loading state */}
+              {sourcesLoading && (
+                <div className="flex flex-col gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="w-full rounded-lg border border-slate-200 p-4 animate-pulse"
+                    >
+                      <div className="h-5 bg-slate-200 rounded w-2/3 mb-3" />
+                      <div className="flex gap-4">
+                        <div className="h-4 bg-slate-100 rounded w-20" />
+                        <div className="h-4 bg-slate-100 rounded w-24" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty state - only show after loading completes */}
+              {!sourcesLoading && sourceConversations.length === 0 && (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-body text-slate-600 text-center">
                   No ready understand sessions found. Complete an analysis first
                   to create decision sessions.
                 </div>
               )}
 
-              {sourceConversations.length > 0 && (
+              {!sourcesLoading && sourceConversations.length > 0 && (
                 <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto">
                   {sourceConversations.map((session) => (
                     <button
@@ -432,7 +452,7 @@ export default function DecisionSetupWizard({
         {/* Loading Spinner */}
         {loading && (
           <div className="flex items-center justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent" />
           </div>
         )}
 
