@@ -50,7 +50,7 @@ export async function generateDecisionAnalysis(
     (r) => r.votePercent >= 10 && r.rank > 3
   );
 
-  const prompt = `You are analyzing the results of a group decision-making session titled "${sessionTitle}".
+  const prompt = `You are analysing the results of a group decision-making session titled "${sessionTitle}".
 
 ## Voting Results (Round ${roundNumber})
 

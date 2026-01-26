@@ -67,6 +67,11 @@ If none apply, explicitly state “No doc updates needed” and why.
 - Prefer deterministic tests with mocked IO; avoid network calls in unit/integration tests.
 - Update the closest owner README and `docs/feature-map.md` when flows/routes change; avoid one-off docs.
 
+## Language & Spelling
+
+- Use **British English** spelling in all user-facing text and comments (e.g., "analysing" not "analyzing", "colour" not "color", "organised" not "organized").
+- Note: Database enum values (e.g., `analysis_status: 'analyzing'`) and existing API contracts should not be changed to avoid breaking changes.
+
 ## Completion Checklist (Required in Final Output)
 
 When you finish an implementation, your final response must include:

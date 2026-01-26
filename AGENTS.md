@@ -34,6 +34,7 @@
 - Use 2-space indentation, keep existing quote style (`"`), and avoid unused imports. Run `npm run lint` before pushing.
 - Components and hooks use `PascalCase` and `use` prefixes; route segments and files use `kebab-case` where applicable.
 - Favor `@/*` path aliases over long relative imports. Separate rendering from data fetching or stateful logic to maintain SRP.
+- **Language**: Use British English spelling in all user-facing text and comments (e.g., "analysing" not "analyzing", "colour" not "color", "organised" not "organized"). Note: Database enum values and existing API contracts should not be changed.
 
 ## Code Quality Principles (CLAUDE-aligned)
 

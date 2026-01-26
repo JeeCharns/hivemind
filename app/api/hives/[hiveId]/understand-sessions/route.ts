@@ -36,75 +36,81 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status"); // 'ready' to filter by analysis_status
 
-    // Build query for understand conversations with cluster buckets and their member response IDs
+    // Fetch understand conversations
     let query = supabase
       .from("conversations")
-      .select(`
-        id,
-        title,
-        created_at,
-        analysis_status,
-        conversation_clusters(count),
-        conversation_cluster_buckets(
-          id,
-          conversation_cluster_bucket_members(response_id)
-        )
-      `)
+      .select("id, title, analysis_status")
       .eq("hive_id", hiveId)
       .eq("type", "understand")
       .order("created_at", { ascending: false });
 
-    // Filter by analysis status if requested
     if (status === "ready") {
       query = query.eq("analysis_status", "ready");
     }
 
-    const { data: conversations, error } = await query;
+    const { data: conversations, error: convError } = await query;
 
-    if (error) {
-      console.error("[GET /api/hives/[hiveId]/understand-sessions] Query error:", error);
+    if (convError) {
+      console.error("[GET /api/hives/[hiveId]/understand-sessions] Conv query error:", convError);
       return jsonError("Failed to fetch sessions", 500, "DATABASE_ERROR");
     }
 
-    // Get all conversation IDs to fetch feedback counts
-    const conversationIds = (conversations || []).map((c) => c.id);
+    if (!conversations || conversations.length === 0) {
+      return NextResponse.json({ sessions: [] });
+    }
 
-    // Fetch all feedback for these conversations to calculate voting coverage
-    const { data: allFeedback } = conversationIds.length > 0
-      ? await supabase
-          .from("conversation_response_feedback")
-          .select("conversation_id, response_id")
-          .in("conversation_id", conversationIds)
-      : { data: [] };
+    const conversationIds = conversations.map((c) => c.id);
 
-    // Build a map of conversation_id -> Set of response_ids that have votes
+    // Fetch cluster buckets with their first member response for all conversations
+    const { data: buckets, error: bucketsError } = await supabase
+      .from("conversation_cluster_buckets")
+      .select(`
+        id,
+        conversation_id,
+        conversation_cluster_bucket_members(response_id)
+      `)
+      .in("conversation_id", conversationIds);
+
+    if (bucketsError) {
+      console.error("[GET /api/hives/[hiveId]/understand-sessions] Buckets query error:", bucketsError);
+      // Continue without bucket data - just show 0 for counts
+    }
+
+    // Fetch feedback to calculate voting coverage
+    const { data: feedback } = await supabase
+      .from("conversation_response_feedback")
+      .select("conversation_id, response_id")
+      .in("conversation_id", conversationIds);
+
+    // Build maps for efficient lookup
+    const bucketsByConv = new Map<string, Array<{ id: string; firstResponseId: string | null }>>();
+    (buckets || []).forEach((b) => {
+      if (!bucketsByConv.has(b.conversation_id)) {
+        bucketsByConv.set(b.conversation_id, []);
+      }
+      const members = b.conversation_cluster_bucket_members as Array<{ response_id: string }> | null;
+      const firstResponseId = members?.[0]?.response_id ?? null;
+      bucketsByConv.get(b.conversation_id)!.push({ id: b.id, firstResponseId });
+    });
+
     const votedResponsesByConv = new Map<string, Set<string>>();
-    (allFeedback || []).forEach((fb) => {
+    (feedback || []).forEach((fb) => {
       if (!votedResponsesByConv.has(fb.conversation_id)) {
         votedResponsesByConv.set(fb.conversation_id, new Set());
       }
-      votedResponsesByConv.get(fb.conversation_id)!.add(fb.response_id);
+      votedResponsesByConv.get(fb.conversation_id)!.add(String(fb.response_id));
     });
 
-    // Transform to expected format
-    const sessions = (conversations || []).map((conv) => {
-      const buckets = conv.conversation_cluster_buckets as Array<{
-        id: string;
-        conversation_cluster_bucket_members: Array<{ response_id: string }> | null;
-      }> || [];
+    // Build response
+    const sessions = conversations.map((conv) => {
+      const convBuckets = bucketsByConv.get(conv.id) || [];
+      const statementCount = convBuckets.length;
 
-      const statementCount = buckets.length;
-
-      // Calculate voting coverage: % of statements that have at least one vote
       const votedResponses = votedResponsesByConv.get(conv.id) || new Set();
       let statementsWithVotes = 0;
 
-      for (const bucket of buckets) {
-        // A statement has votes if any of its member responses have votes
-        // Use the first member response as the representative (that's what votes are cast on)
-        const members = bucket.conversation_cluster_bucket_members || [];
-        const firstMember = members[0];
-        if (firstMember && votedResponses.has(String(firstMember.response_id))) {
+      for (const bucket of convBuckets) {
+        if (bucket.firstResponseId && votedResponses.has(bucket.firstResponseId)) {
           statementsWithVotes++;
         }
       }
@@ -113,15 +119,10 @@ export async function GET(
         ? Math.round((statementsWithVotes / statementCount) * 100)
         : 0;
 
-      // Get cluster count
-      const clusterCount = Array.isArray(conv.conversation_clusters)
-        ? conv.conversation_clusters.length
-        : (conv.conversation_clusters as { count: number } | null)?.count || 0;
-
       return {
         id: conv.id,
         title: conv.title || "Untitled",
-        clusterCount,
+        clusterCount: 0, // Not needed for display anymore
         statementCount,
         votingCoverage,
       };

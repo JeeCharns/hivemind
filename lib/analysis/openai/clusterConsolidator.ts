@@ -109,7 +109,7 @@ export async function consolidateCluster(
       messages: [
         {
           role: "system",
-          content: `You are an expert at analyzing user feedback and identifying common themes. Your task is to:
+          content: `You are an expert at analysing user feedback and identifying common themes. Your task is to:
 1. Group similar responses into semantic buckets based on the core idea they express
 2. Create a consolidated statement for each bucket that captures all the distinct points
 3. Ensure traceability by correctly mapping response IDs to buckets
