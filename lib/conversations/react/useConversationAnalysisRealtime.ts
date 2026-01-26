@@ -21,6 +21,18 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 const ANALYSIS_STATUS_EVENT = "analysis_status" as const;
 
 /**
+ * Step information for UI display
+ */
+export interface AnalysisStep {
+  /** Current step number (1-4) */
+  current: number;
+  /** Total number of steps */
+  total: number;
+  /** Human-readable step label */
+  label: string;
+}
+
+/**
  * Progress information for analysis
  */
 export interface AnalysisProgress {
@@ -28,6 +40,10 @@ export interface AnalysisProgress {
   progressPercent: number;
   /** Human-readable status message */
   progressMessage: string;
+  /** Progress stage identifier */
+  progressStage?: string;
+  /** Step information for UI display */
+  step?: AnalysisStep;
 }
 
 interface UseConversationAnalysisRealtimeOptions {
@@ -110,13 +126,18 @@ export function useConversationAnalysisRealtime({
           progress?: {
             progressPercent: number;
             progressMessage: string;
+            progressStage?: string;
+            step?: AnalysisStep;
           };
         };
         console.log("[Analysis] Broadcast: status update received");
         console.log("[Analysis] → analysisStatus:", data.analysisStatus);
         if (data.progress) {
+          const stepInfo = data.progress.step
+            ? ` (Step ${data.progress.step.current}/${data.progress.step.total})`
+            : "";
           console.log(
-            `[Analysis] → progress: ${data.progress.progressPercent}% - ${data.progress.progressMessage}`
+            `[Analysis] → progress: ${data.progress.progressPercent}% - ${data.progress.progressMessage}${stepInfo}`
           );
         }
 
@@ -130,6 +151,8 @@ export function useConversationAnalysisRealtime({
           onProgressUpdate({
             progressPercent: data.progress.progressPercent,
             progressMessage: data.progress.progressMessage,
+            progressStage: data.progress.progressStage,
+            step: data.progress.step,
           });
         }
 

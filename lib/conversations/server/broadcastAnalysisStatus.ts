@@ -48,6 +48,15 @@ export const ANALYSIS_PROGRESS_STAGES = {
 
 export type AnalysisProgressStage = keyof typeof ANALYSIS_PROGRESS_STAGES;
 
+export interface AnalysisStep {
+  /** Current step number (1-4) */
+  current: number;
+  /** Total number of steps */
+  total: number;
+  /** Human-readable step label */
+  label: string;
+}
+
 export interface AnalysisProgressPayload {
   /** Progress percentage 0-100 */
   progressPercent: number;
@@ -55,6 +64,51 @@ export interface AnalysisProgressPayload {
   progressMessage: string;
   /** Optional stage identifier for programmatic handling */
   progressStage?: AnalysisProgressStage;
+  /** Step information for UI display */
+  step?: AnalysisStep;
+}
+
+/**
+ * Maps internal progress stages to user-facing step numbers
+ */
+export function getStepFromStage(stage: AnalysisProgressStage): AnalysisStep {
+  const total = 4;
+
+  // Step 1: Embedding
+  if (
+    stage === "starting" ||
+    stage === "fetching" ||
+    stage === "fetched" ||
+    stage === "embedding" ||
+    stage === "embedding_progress" ||
+    stage === "embedding_done"
+  ) {
+    return { current: 1, total, label: "Embedding responses..." };
+  }
+
+  // Step 2: Clustering
+  if (stage === "clustering") {
+    return { current: 2, total, label: "Clustering responses..." };
+  }
+
+  // Step 3: Generating themes
+  if (stage === "themes" || stage === "subthemes") {
+    return { current: 3, total, label: "Generating themes..." };
+  }
+
+  // Step 4: Consolidating
+  if (
+    stage === "consolidating" ||
+    stage === "saving" ||
+    stage === "umap" ||
+    stage === "finalizing" ||
+    stage === "complete"
+  ) {
+    return { current: 4, total, label: "Consolidating statements..." };
+  }
+
+  // Default fallback
+  return { current: 1, total, label: "Processing..." };
 }
 
 export interface AnalysisStatusPayload {
@@ -149,6 +203,7 @@ export async function broadcastAnalysisProgress(
   customMessage?: string
 ): Promise<void> {
   const stageInfo = ANALYSIS_PROGRESS_STAGES[stage];
+  const step = getStepFromStage(stage);
 
   // Determine the appropriate analysis status based on stage
   let analysisStatus: AnalysisStatusPayload["analysisStatus"] = "analyzing";
@@ -172,6 +227,7 @@ export async function broadcastAnalysisProgress(
         progressPercent: stageInfo.percent,
         progressMessage: customMessage ?? stageInfo.message,
         progressStage: stage,
+        step,
       },
     },
   });

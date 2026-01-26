@@ -58,6 +58,20 @@ export default function AuthCallbackPage() {
             return;
           }
 
+          // Check for invite token in cookie (works across tabs)
+          try {
+            const inviteContextResponse = await fetch("/api/auth/invite-context");
+            if (inviteContextResponse.ok) {
+              const { token } = await inviteContextResponse.json();
+              if (token) {
+                router.push(`/invite/${token}`);
+                return;
+              }
+            }
+          } catch {
+            // Silently continue if invite context check fails
+          }
+
           // Check profile status before routing
           const profileStatusResponse = await fetch("/api/profile/status");
           if (profileStatusResponse.ok) {
@@ -129,12 +143,26 @@ export default function AuthCallbackPage() {
         await refresh();
         notifySessionChange();
 
-        // Check for stored return URL
+        // Check for stored return URL in sessionStorage (same tab)
         const returnUrl = sessionStorage.getItem("returnUrl");
         if (returnUrl) {
           sessionStorage.removeItem("returnUrl");
           router.push(returnUrl);
           return;
+        }
+
+        // Check for invite token in cookie (works across tabs)
+        try {
+          const inviteContextResponse = await fetch("/api/auth/invite-context");
+          if (inviteContextResponse.ok) {
+            const { token } = await inviteContextResponse.json();
+            if (token) {
+              router.push(`/invite/${token}`);
+              return;
+            }
+          }
+        } catch {
+          // Silently continue if invite context check fails
         }
 
         // Check profile status before routing

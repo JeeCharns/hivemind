@@ -14,6 +14,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const intent = searchParams?.get("intent");
   const inviteToken = searchParams?.get("invite");
+  const hiveNameParam = searchParams?.get("hiveName");
 
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -23,7 +24,7 @@ function LoginPageContent() {
     "sent" | "rate_limit" | null
   >(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [hiveName, setHiveName] = useState<string | null>(null);
+  const [hiveName, setHiveName] = useState<string | null>(hiveNameParam);
   const intervalRef = useRef<number | null>(null);
   const { login, loading } = useAuth();
 
@@ -32,8 +33,9 @@ function LoginPageContent() {
     : 0;
   const isCoolingDown = secondsLeft > 0;
 
+  // Fallback: fetch hive name from API if not provided in URL (e.g., old bookmarked links)
   useEffect(() => {
-    if (intent === "join" && inviteToken) {
+    if (intent === "join" && inviteToken && !hiveNameParam) {
       fetch(`/api/invites/${inviteToken}/preview`)
         .then((res) => res.json())
         .then((data) => {
@@ -45,7 +47,7 @@ function LoginPageContent() {
           // Silently fail - will show default header
         });
     }
-  }, [intent, inviteToken]);
+  }, [intent, inviteToken, hiveNameParam]);
 
   useEffect(() => {
     const t = setTimeout(() => setPrefetching(false), 200);

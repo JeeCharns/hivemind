@@ -1,85 +1,97 @@
-"use client";
-
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth/react/useSession";
-import Spinner from "@/app/components/spinner";
+import { redirect } from "next/navigation";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
+import { inviteTokenSchema } from "@/lib/hives/schemas";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
+import { setInviteCookie } from "@/lib/auth/server/inviteCookie";
+import InviteAcceptClient from "./InviteAcceptClient";
 import CenteredCard from "@/app/components/centered-card";
 import BrandLogo from "@/app/components/brand-logo";
 import Alert from "@/app/components/alert";
 
+interface InvitePageProps {
+  params: Promise<{ token: string }>;
+}
+
 /**
- * Public invite acceptance page
- * If not authenticated: redirects to login with join intent
- * If authenticated: accepts the invite and redirects to hive
+ * Public invite acceptance page (server component).
+ *
+ * If not authenticated: sets invite cookie and redirects to login with hiveName param.
+ * If authenticated: renders client component to accept the invite.
  */
-export default function InviteAcceptancePage() {
-  const params = useParams();
-  const router = useRouter();
-  const { user, isLoading: authLoading } = useSession();
-  const [error, setError] = useState<string | null>(null);
-  const [accepting, setAccepting] = useState(false);
+export default async function InvitePage({ params }: InvitePageProps) {
+  const { token } = await params;
 
-  const token = params?.token as string | undefined;
+  // Validate token format
+  const parsed = inviteTokenSchema.safeParse({ token });
+  if (!parsed.success) {
+    return (
+      <InviteErrorPage
+        title="Invalid Invite Link"
+        message="This invite link is not valid. Please check the link and try again."
+      />
+    );
+  }
 
-  const acceptInvite = useCallback(async () => {
-    if (!token) return;
+  // Fetch invite link and hive name server-side
+  const supabase = supabaseAdminClient();
+  const { data: inviteLink, error: linkError } = await supabase
+    .from("hive_invite_links")
+    .select("hive_id, access_mode, hives(name)")
+    .eq("token", token)
+    .maybeSingle();
 
-    setAccepting(true);
-    setError(null);
+  if (linkError) {
+    console.error("[InvitePage] Error fetching invite link:", linkError);
+    return (
+      <InviteErrorPage
+        title="Something Went Wrong"
+        message="We couldn't load this invite. Please try again later."
+      />
+    );
+  }
 
-    try {
-      const response = await fetch(`/api/invites/${token}/accept`, {
-        method: "POST",
-      });
+  if (!inviteLink) {
+    return (
+      <InviteErrorPage
+        title="Invite Not Found"
+        message="This invite link doesn't exist or has expired."
+      />
+    );
+  }
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        const errorMessage =
-          data && typeof data === "object" && "error" in data
-            ? String(data.error)
-            : "Failed to accept invite";
-        throw new Error(errorMessage);
-      }
+  // Extract hive name from nested relation
+  const hive = inviteLink.hives as unknown as { name?: string } | null;
+  const hiveName = hive?.name || "this hive";
 
-      const data = await response.json();
-      const hiveKey = data?.hiveKey;
+  // Check if user is authenticated
+  const session = await getServerSession();
 
-      if (!hiveKey) {
-        throw new Error("Invalid response from server");
-      }
+  if (!session) {
+    // Not authenticated - set cookie and redirect to login
+    await setInviteCookie(token);
 
-      // Redirect to hive
-      router.push(`/hives/${hiveKey}`);
-    } catch (err) {
-      console.error("[InviteAcceptancePage] Error accepting invite:", err);
-      setError(err instanceof Error ? err.message : "Failed to accept invite");
-      setAccepting(false);
-    }
-  }, [token, router]);
+    const loginUrl = new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
+    loginUrl.searchParams.set("intent", "join");
+    loginUrl.searchParams.set("invite", token);
+    loginUrl.searchParams.set("hiveName", hiveName);
 
-  useEffect(() => {
-    if (authLoading) return;
+    redirect(loginUrl.pathname + loginUrl.search);
+  }
 
-    if (!token) {
-      setError("Invalid invite link");
-      return;
-    }
+  // User is authenticated - render client component to accept invite
+  return <InviteAcceptClient token={token} hiveName={hiveName} />;
+}
 
-    if (!user) {
-      // Not authenticated - redirect to login with join intent
-      // Store the return URL for after login
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("returnUrl", `/invite/${token}`);
-      }
-      router.push(`/login?intent=join&invite=${token}`);
-      return;
-    }
-
-    // User is authenticated - accept the invite
-    acceptInvite();
-  }, [user, authLoading, token, router, acceptInvite]);
-
+/**
+ * Error state component for invite page
+ */
+function InviteErrorPage({
+  title,
+  message,
+}: {
+  title: string;
+  message: string;
+}) {
   return (
     <div className="min-h-screen w-full bg-[#F0F0F5] flex flex-col items-center justify-center relative overflow-hidden px-4 py-12">
       <div className="mb-12">
@@ -91,29 +103,13 @@ export default function InviteAcceptancePage() {
         widthClass="max-w-full"
         style={{ width: 473, maxWidth: "100%" }}
       >
-        {error ? (
-          <>
-            <h1
-              className="text-center text-[#172847] text-2xl font-semibold leading-[31px]"
-              style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}
-            >
-              Unable to Join Hive
-            </h1>
-            <Alert variant="error">{error}</Alert>
-          </>
-        ) : (
-          <>
-            <h1
-              className="text-center text-[#172847] text-2xl font-semibold leading-[31px]"
-              style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}
-            >
-              {accepting ? "Joining Hive..." : "Processing Invite..."}
-            </h1>
-            <div className="w-full flex justify-center py-8">
-              <Spinner />
-            </div>
-          </>
-        )}
+        <h1
+          className="text-center text-[#172847] text-2xl font-semibold leading-[31px]"
+          style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}
+        >
+          {title}
+        </h1>
+        <Alert variant="error">{message}</Alert>
       </CenteredCard>
     </div>
   );

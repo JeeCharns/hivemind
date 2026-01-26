@@ -57,7 +57,7 @@ export default async function ResultPage({ params }: ResultPageProps) {
 
   // 5. Render client component with view model
   return (
-    <div className="mx-auto w-full max-w-7xl px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
       <ReportView viewModel={viewModel} />
     </div>
   );
