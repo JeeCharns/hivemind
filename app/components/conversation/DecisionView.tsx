@@ -29,11 +29,20 @@ import type { DecisionViewModel } from "@/lib/decision-space/server/getDecisionV
 export interface DecisionViewProps {
   viewModel: DecisionViewModel;
   onVote: (proposalId: string, delta: 1 | -1) => Promise<void>;
+  error?: string | null;
+  onVoteError?: (errorMessage: string) => void;
+  onClearError?: () => void;
 }
 
 type TabType = "listen" | "vote" | "results";
 
-export default function DecisionView({ viewModel, onVote }: DecisionViewProps) {
+export default function DecisionView({
+  viewModel,
+  onVote,
+  error,
+  onVoteError,
+  onClearError,
+}: DecisionViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     // Default to vote tab if round is open, results if closed
     if (viewModel.currentRound?.status === "voting_open") {
@@ -74,8 +83,10 @@ export default function DecisionView({ viewModel, onVote }: DecisionViewProps) {
         setCreditsSpent((prev) => prev + costDelta);
         setCreditsRemaining((prev) => prev - costDelta);
       }
-    } catch (error) {
-      console.error("Vote failed:", error);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Vote failed";
+      console.error("[DecisionView] Vote failed:", err);
+      onVoteError?.(message);
     } finally {
       setLoading(null);
     }
@@ -168,6 +179,22 @@ export default function DecisionView({ viewModel, onVote }: DecisionViewProps) {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-center justify-between">
+          <p className="text-red-800 text-sm">{error}</p>
+          {onClearError && (
+            <button
+              onClick={onClearError}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+              aria-label="Dismiss error message"
+            >
+              Dismiss
+            </button>
+          )}
         </div>
       )}
 
@@ -293,6 +320,7 @@ export default function DecisionView({ viewModel, onVote }: DecisionViewProps) {
                               currentVotes === 0
                             }
                             className="w-10 h-10"
+                            aria-label={`Remove vote from proposal: ${proposal.statementText.slice(0, 50)}`}
                           >
                             <Minus size={16} weight="bold" />
                           </Button>
@@ -314,6 +342,7 @@ export default function DecisionView({ viewModel, onVote }: DecisionViewProps) {
                               !canAfford(proposal.id, 1)
                             }
                             className="w-10 h-10"
+                            aria-label={`Add vote to proposal: ${proposal.statementText.slice(0, 50)}`}
                           >
                             <Plus size={16} weight="bold" />
                           </Button>
@@ -450,12 +479,9 @@ export default function DecisionView({ viewModel, onVote }: DecisionViewProps) {
                       Analysis
                     </h2>
                   </div>
-                  <div
-                    className="prose prose-slate max-w-none"
-                    dangerouslySetInnerHTML={{
-                      __html: viewModel.results.aiAnalysis.replace(/\n/g, "<br />"),
-                    }}
-                  />
+                  <div className="prose prose-slate max-w-none whitespace-pre-wrap">
+                    {viewModel.results.aiAnalysis}
+                  </div>
                 </div>
               )}
 

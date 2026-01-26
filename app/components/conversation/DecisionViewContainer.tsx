@@ -6,6 +6,7 @@
  * Handles API calls for voting actions
  */
 
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import DecisionView from "./DecisionView";
 import type { DecisionViewModel } from "@/lib/decision-space/server/getDecisionViewModel";
@@ -18,6 +19,7 @@ export default function DecisionViewContainer({
   viewModel,
 }: DecisionViewContainerProps) {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   const handleVote = async (proposalId: string, delta: 1 | -1) => {
     if (!viewModel.currentRound) {
@@ -38,18 +40,31 @@ export default function DecisionViewContainer({
     );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to vote");
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to vote");
     }
 
     // Refresh the page to get updated vote counts
     router.refresh();
   };
 
+  const handleVoteError = useCallback((errorMessage: string) => {
+    setError(errorMessage);
+    // Auto-clear error after 5 seconds
+    setTimeout(() => setError(null), 5000);
+  }, []);
+
+  const handleClearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return (
     <DecisionView
       viewModel={viewModel}
       onVote={handleVote}
+      error={error}
+      onVoteError={handleVoteError}
+      onClearError={handleClearError}
     />
   );
 }
