@@ -69,9 +69,6 @@ CREATE TABLE IF NOT EXISTS decision_votes (
   CONSTRAINT non_negative_votes CHECK (votes >= 0)
 );
 
-CREATE INDEX idx_decision_votes_round
-ON decision_votes(round_id);
-
 CREATE INDEX idx_decision_votes_user_round
 ON decision_votes(round_id, user_id);
 
@@ -205,6 +202,9 @@ BEGIN
   );
 END;
 $$;
+
+-- Grant execute to authenticated users
+GRANT EXECUTE ON FUNCTION vote_on_decision_proposal(UUID, UUID, UUID, INTEGER) TO authenticated;
 
 -- ============================================
 -- ROW LEVEL SECURITY
