@@ -141,8 +141,8 @@ export default function DecisionSetupWizard({
                     >
                       <div className="h-5 bg-slate-200 rounded w-2/3 mb-3" />
                       <div className="flex gap-4">
-                        <div className="h-4 bg-slate-100 rounded w-20" />
                         <div className="h-4 bg-slate-100 rounded w-24" />
+                        <div className="h-4 bg-slate-100 rounded w-32" />
                       </div>
                     </div>
                   ))}
@@ -181,8 +181,8 @@ export default function DecisionSetupWizard({
                         )}
                       </div>
                       <div className="flex gap-4 text-body text-text-secondary">
-                        <span>{session.clusterCount} clusters</span>
-                        <span>{session.date}</span>
+                        <span>{session.statementCount} statements</span>
+                        <span>{session.votingCoverage}% voting coverage</span>
                       </div>
                     </button>
                   ))}
