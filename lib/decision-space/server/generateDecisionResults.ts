@@ -1,6 +1,7 @@
 // lib/decision-space/server/generateDecisionResults.ts
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createOpenAIClient } from "@/lib/analysis/openai/embeddingsClient";
 import { generateDecisionAnalysis } from "@/lib/analysis/openai/generateDecisionAnalysis";
 import type { ProposalRanking } from "@/types/decision-space";
 
@@ -118,7 +119,8 @@ export async function generateDecisionResults(
   }));
 
   // 10. Generate AI analysis
-  const aiAnalysis = await generateDecisionAnalysis({
+  const openai = createOpenAIClient();
+  const aiAnalysis = await generateDecisionAnalysis(openai, {
     sessionTitle: conversation?.title || "Decision Session",
     rankings,
     previousRankings,
