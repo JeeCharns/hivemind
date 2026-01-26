@@ -70,6 +70,15 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 - Hives/members/settings: `types/members.ts`, `types/hive-settings.ts`, plus domain-ish types in `lib/hives/domain/hive.types.ts`
 - API: `types/api.ts` (shared API contracts)
 
+## Decision Space
+
+| Flow | UI entry | API | Core logic | Tests |
+| --- | --- | --- | --- | --- |
+| Fetch setup data (clusters + statements) | Decision Setup Wizard | `app/api/decision-space/setup/route.ts` (GET ?sourceConversationId=) | Service: `lib/decision-space/server/getDecisionSetupData.ts`; validation: `lib/decision-space/schemas.ts` (getDecisionSetupDataSchema) | (add test coverage if changing) |
+| Create decision session | Decision Setup Wizard | `app/api/decision-space/route.ts` (POST) | Service: `lib/decision-space/server/createDecisionSession.ts`; validation: `lib/decision-space/schemas.ts` (createDecisionSessionSchema); requires hive admin role | `lib/decision-space/server/__tests__/createDecisionSession.test.ts` |
+| Cast quadratic vote on proposal | Vote Tab UI | `app/api/decision-space/[conversationId]/vote/route.ts` (POST) | Service: `lib/decision-space/server/voteOnDecisionProposal.ts`; validation: `lib/decision-space/schemas.ts` (voteOnProposalSchema); RPC: `vote_on_decision_proposal` | `lib/decision-space/server/__tests__/voteOnDecisionProposal.test.ts` |
+| Close voting round | Admin action | `app/api/decision-space/[conversationId]/rounds/[roundId]/close/route.ts` (POST) | Service: `lib/decision-space/server/closeDecisionRound.ts`; triggers: `lib/decision-space/server/generateDecisionResults.ts`; requires hive admin role | (add test coverage if changing) |
+
 ## Database Schema
 
 - Migrations: `supabase/migrations/` (latest: `009_remove_public_invite_preview_policy.sql` restores safe invite preview behavior)
@@ -79,3 +88,9 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
   - `conversations.source_conversation_id` and `conversations.source_report_version` (link to problem space report)
   - `conversation_proposal_votes` table (userId, responseId, votes, quadratic voting)
   - `vote_on_proposal()` RPC function (atomic budget enforcement)
+- Key additions for decision space (migration 010):
+  - `decision_proposals` table (proposals from selected statements)
+  - `decision_rounds` table (voting rounds with status and visibility)
+  - `decision_votes` table (quadratic votes with credit tracking)
+  - `decision_results` table (round outcomes with AI-generated analysis)
+  - `vote_on_decision_proposal()` RPC function (atomic budget enforcement for decision voting)
