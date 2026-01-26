@@ -1,5 +1,6 @@
 // lib/decision-space/server/__tests__/createDecisionSession.test.ts
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createDecisionSession } from "../createDecisionSession";
 
 const mockSupabase = {
@@ -71,17 +72,21 @@ describe("createDecisionSession", () => {
       return { select: jest.fn().mockReturnThis() };
     });
 
-    const result = await createDecisionSession(mockSupabase as unknown, "user-1", {
-      hiveId: "hive-1",
-      sourceConversationId: "source-conv",
-      title: "Test Decision",
-      selectedClusters: [0],
-      selectedStatements: [
-        { bucketId: "bucket-1", clusterIndex: 0, statementText: "Statement 1", agreePercent: 80 },
-      ],
-      consensusThreshold: 70,
-      visibility: "hidden",
-    });
+    const result = await createDecisionSession(
+      mockSupabase as unknown as SupabaseClient,
+      "user-1",
+      {
+        hiveId: "hive-1",
+        sourceConversationId: "source-conv",
+        title: "Test Decision",
+        selectedClusters: [0],
+        selectedStatements: [
+          { bucketId: "bucket-1", clusterIndex: 0, statementText: "Statement 1", agreePercent: 80 },
+        ],
+        consensusThreshold: 70,
+        visibility: "hidden",
+      }
+    );
 
     expect(result.conversationId).toBe("conv-new");
     expect(result.roundId).toBe("round-1");
@@ -118,17 +123,21 @@ describe("createDecisionSession", () => {
     });
 
     await expect(
-      createDecisionSession(mockSupabase as unknown, "user-1", {
-        hiveId: "hive-1",
-        sourceConversationId: "source-conv",
-        title: "Test",
-        selectedClusters: [0],
-        selectedStatements: [
-          { bucketId: "b1", clusterIndex: 0, statementText: "S1", agreePercent: 80 },
-        ],
-        consensusThreshold: 70,
-        visibility: "hidden",
-      })
+      createDecisionSession(
+        mockSupabase as unknown as SupabaseClient,
+        "user-1",
+        {
+          hiveId: "hive-1",
+          sourceConversationId: "source-conv",
+          title: "Test",
+          selectedClusters: [0],
+          selectedStatements: [
+            { bucketId: "b1", clusterIndex: 0, statementText: "S1", agreePercent: 80 },
+          ],
+          consensusThreshold: 70,
+          visibility: "hidden",
+        }
+      )
     ).rejects.toThrow("Only hive admins can create decision sessions");
   });
 
@@ -145,17 +154,21 @@ describe("createDecisionSession", () => {
     });
 
     await expect(
-      createDecisionSession(mockSupabase as unknown, "user-1", {
-        hiveId: "hive-1",
-        sourceConversationId: "invalid",
-        title: "Test",
-        selectedClusters: [0],
-        selectedStatements: [
-          { bucketId: "b1", clusterIndex: 0, statementText: "S1", agreePercent: 80 },
-        ],
-        consensusThreshold: 70,
-        visibility: "hidden",
-      })
+      createDecisionSession(
+        mockSupabase as unknown as SupabaseClient,
+        "user-1",
+        {
+          hiveId: "hive-1",
+          sourceConversationId: "invalid",
+          title: "Test",
+          selectedClusters: [0],
+          selectedStatements: [
+            { bucketId: "b1", clusterIndex: 0, statementText: "S1", agreePercent: 80 },
+          ],
+          consensusThreshold: 70,
+          visibility: "hidden",
+        }
+      )
     ).rejects.toThrow("Source conversation not found");
   });
 });

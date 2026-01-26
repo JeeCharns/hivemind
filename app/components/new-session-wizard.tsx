@@ -7,6 +7,7 @@ import type { ConversationType } from "@/types/conversations";
 import { fetchProblemReports } from "@/lib/conversations/client/problemReportsApi";
 import { useState, useEffect } from "react";
 import type { ProblemReportListItem } from "@/lib/conversations/schemas";
+import DecisionSetupWizard from "@/app/components/decision-setup-wizard";
 
 export default function NewSessionWizard({
   open,
@@ -45,6 +46,9 @@ export default function NewSessionWizard({
     onFinish,
   } = useNewSessionWizard({ hiveId, hiveSlug, open });
 
+  // State for decision setup wizard
+  const [showDecisionWizard, setShowDecisionWizard] = useState(false);
+
   // Fetch problem reports for decision sessions
   const [reports, setReports] = useState<ProblemReportListItem[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -82,6 +86,20 @@ export default function NewSessionWizard({
   }, [step, type, open, hiveId]);
 
   if (!open) return null;
+
+  // Show DecisionSetupWizard for "decide" type
+  if (showDecisionWizard) {
+    return (
+      <DecisionSetupWizard
+        open={true}
+        hiveId={hiveId}
+        onClose={() => {
+          setShowDecisionWizard(false);
+          onClose();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
@@ -128,7 +146,7 @@ export default function NewSessionWizard({
                     key: "decide",
                     title: "Make a Decision",
                     desc: "Gather inputs to choose between options.",
-                    disabled: true,
+                    disabled: false,
                   },
                 ].map((opt) => (
                   <button
@@ -197,7 +215,13 @@ export default function NewSessionWizard({
               </Button>
               <Button
                 disabled={!title.trim() || loading}
-                onClick={onContinue}
+                onClick={() => {
+                  if (type === "decide") {
+                    setShowDecisionWizard(true);
+                  } else {
+                    onContinue();
+                  }
+                }}
               >
                 Continue
               </Button>

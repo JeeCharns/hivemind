@@ -1,5 +1,6 @@
 // lib/decision-space/server/__tests__/voteOnDecisionProposal.test.ts
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { voteOnDecisionProposal } from "../voteOnDecisionProposal";
 
 const mockSupabase = {
@@ -17,11 +18,15 @@ describe("voteOnDecisionProposal", () => {
       error: null,
     });
 
-    const result = await voteOnDecisionProposal(mockSupabase as unknown, "user-1", {
-      roundId: "round-1",
-      proposalId: "prop-1",
-      delta: 1,
-    });
+    const result = await voteOnDecisionProposal(
+      mockSupabase as unknown as SupabaseClient,
+      "user-1",
+      {
+        roundId: "round-1",
+        proposalId: "prop-1",
+        delta: 1,
+      }
+    );
 
     expect(result.success).toBe(true);
     expect(result.newVotes).toBe(2);
@@ -40,11 +45,15 @@ describe("voteOnDecisionProposal", () => {
       error: null,
     });
 
-    const result = await voteOnDecisionProposal(mockSupabase as unknown, "user-1", {
-      roundId: "round-1",
-      proposalId: "prop-1",
-      delta: 1,
-    });
+    const result = await voteOnDecisionProposal(
+      mockSupabase as unknown as SupabaseClient,
+      "user-1",
+      {
+        roundId: "round-1",
+        proposalId: "prop-1",
+        delta: 1,
+      }
+    );
 
     expect(result.success).toBe(false);
     expect(result.errorCode).toBe("BUDGET_EXCEEDED");
@@ -58,11 +67,15 @@ describe("voteOnDecisionProposal", () => {
     });
 
     await expect(
-      voteOnDecisionProposal(mockSupabase as unknown, "user-1", {
-        roundId: "round-1",
-        proposalId: "prop-1",
-        delta: 1,
-      })
+      voteOnDecisionProposal(
+        mockSupabase as unknown as SupabaseClient,
+        "user-1",
+        {
+          roundId: "round-1",
+          proposalId: "prop-1",
+          delta: 1,
+        }
+      )
     ).rejects.toThrow("Failed to record vote");
   });
 
@@ -73,11 +86,15 @@ describe("voteOnDecisionProposal", () => {
     });
 
     await expect(
-      voteOnDecisionProposal(mockSupabase as unknown, "user-1", {
-        roundId: "round-1",
-        proposalId: "prop-1",
-        delta: 1,
-      })
+      voteOnDecisionProposal(
+        mockSupabase as unknown as SupabaseClient,
+        "user-1",
+        {
+          roundId: "round-1",
+          proposalId: "prop-1",
+          delta: 1,
+        }
+      )
     ).rejects.toThrow("No response from vote RPC");
   });
 });
