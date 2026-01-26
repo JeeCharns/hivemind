@@ -96,9 +96,9 @@ export async function getDecisionSetupData(
 
       const responseIds = Array.from(bucketToResponse.values());
 
-      // Fetch feedback for these responses
+      // Fetch feedback for these responses (table name: response_feedback)
       const { data: feedback } = await supabase
-        .from("conversation_feedback")
+        .from("response_feedback")
         .select("response_id, feedback")
         .eq("conversation_id", sourceConversationId)
         .in("response_id", responseIds);
