@@ -9,6 +9,9 @@ import type {
   SelectedStatement,
 } from "@/types/decision-space";
 
+/** Default consensus threshold percentage for statement recommendations */
+const DEFAULT_CONSENSUS_THRESHOLD = 70;
+
 export interface UseDecisionSetupWizardProps {
   hiveId: string;
   hiveSlug?: string | null;
@@ -78,7 +81,7 @@ export function useDecisionSetupWizard({
 
   // Step 3: Statement selection
   const [statements, setStatements] = useState<StatementSelectionItem[]>([]);
-  const [consensusThreshold, setConsensusThreshold] = useState(70);
+  const [consensusThreshold, setConsensusThreshold] = useState(DEFAULT_CONSENSUS_THRESHOLD);
 
   // Step 4: Settings
   const [title, setTitle] = useState("");
@@ -94,7 +97,7 @@ export function useDecisionSetupWizard({
     setSelectedSourceId(null);
     setClusters([]);
     setStatements([]);
-    setConsensusThreshold(70);
+    setConsensusThreshold(DEFAULT_CONSENSUS_THRESHOLD);
     setTitle("");
     setDescription("");
     setVisibility("hidden");
@@ -108,7 +111,13 @@ export function useDecisionSetupWizard({
     let cancelled = false;
 
     fetch(`/api/hives/${hiveId}/understand-sessions?status=ready`)
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (cancelled) return;
         setSourceConversations(data.sessions || []);
@@ -132,7 +141,13 @@ export function useDecisionSetupWizard({
     setLoading(true);
 
     fetch(`/api/decision-space/setup?sourceConversationId=${selectedSourceId}`)
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (cancelled) return;
         setClusters(data.clusters || []);
@@ -290,6 +305,7 @@ export function useDecisionSetupWizard({
       const hiveKey = hiveSlug || hiveId;
       router.push(`/hives/${hiveKey}/conversations/${result.conversationId}/decide`);
     } catch (err) {
+      console.error("[useDecisionSetupWizard] Failed to finish:", err);
       setError(err instanceof Error ? err.message : "Failed to create session");
     } finally {
       setLoading(false);
