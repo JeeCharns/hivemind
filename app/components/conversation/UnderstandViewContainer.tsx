@@ -97,9 +97,9 @@ function getInitialUiState(analysisStatus: string | null | undefined): AnalysisU
   if (analysisStatus === "embedding" || analysisStatus === "analyzing") {
     return "analysing";
   }
-  if (analysisStatus === "not_started") {
-    return "starting";
-  }
+  // "not_started" is the default DB value for conversations that have never been analysed.
+  // Only map to "starting" when analysis is actively triggered (via handleGenerate/handleRegenerate).
+  // Treating it as "idle" here prevents the progress UI from showing on initial page load.
   if (analysisStatus === "error") {
     return "error";
   }

@@ -566,9 +566,6 @@ export default function UnderstandView({
                   size="sm"
                 />
 
-                <p className="text-xs text-slate-500 mt-4">
-                  The response list below remains interactive
-                </p>
               </div>
             </div>
           )}

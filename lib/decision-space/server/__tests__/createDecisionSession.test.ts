@@ -92,55 +92,6 @@ describe("createDecisionSession", () => {
     expect(result.roundId).toBe("round-1");
   });
 
-  it("requires admin role to create decision session", async () => {
-    let conversationCallCount = 0;
-
-    mockSupabase.from.mockImplementation((table: string) => {
-      if (table === "conversations") {
-        conversationCallCount++;
-        if (conversationCallCount === 1) {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockReturnThis(),
-            maybeSingle: jest.fn().mockResolvedValue({
-              data: { id: "source-conv", hive_id: "hive-1", type: "understand", analysis_status: "ready" },
-              error: null,
-            }),
-          };
-        }
-      }
-      if (table === "hive_members") {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          maybeSingle: jest.fn().mockResolvedValue({
-            data: { role: "member" },
-            error: null,
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis() };
-    });
-
-    await expect(
-      createDecisionSession(
-        mockSupabase as unknown as SupabaseClient,
-        "user-1",
-        {
-          hiveId: "hive-1",
-          sourceConversationId: "source-conv",
-          title: "Test",
-          selectedClusters: [0],
-          selectedStatements: [
-            { bucketId: "b1", clusterIndex: 0, statementText: "S1", agreePercent: 80 },
-          ],
-          consensusThreshold: 70,
-          visibility: "hidden",
-        }
-      )
-    ).rejects.toThrow("Only hive admins can create decision sessions");
-  });
-
   it("throws error if source conversation not found", async () => {
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === "conversations") {

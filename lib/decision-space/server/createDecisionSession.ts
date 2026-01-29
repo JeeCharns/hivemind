@@ -48,7 +48,7 @@ export async function createDecisionSession(
     throw new Error("Source analysis must be complete");
   }
 
-  // 2. Verify user is hive admin
+  // 2. Verify user is hive member
   const { data: membership, error: memberError } = await supabase
     .from("hive_members")
     .select("role")
@@ -58,10 +58,6 @@ export async function createDecisionSession(
 
   if (memberError || !membership) {
     throw new Error("User is not a member of this hive");
-  }
-
-  if (membership.role !== "admin") {
-    throw new Error("Only hive admins can create decision sessions");
   }
 
   // 3. Create the conversation
