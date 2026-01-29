@@ -16,21 +16,24 @@ interface PageSelectorProps {
   hiveId: string;
   hiveSlug?: string | null;
   currentPage?: NavbarPage;
+  isAdmin?: boolean;
 }
 
-const pages = [
-  { id: "home" as NavbarPage, label: "home", path: "" },
-  { id: "members" as NavbarPage, label: "members", path: "/members" },
-  { id: "settings" as NavbarPage, label: "settings", path: "/settings" },
-  { id: "invite" as NavbarPage, label: "invite", path: "/invite" },
+const allPages = [
+  { id: "home" as NavbarPage, label: "home", path: "", adminOnly: false },
+  { id: "members" as NavbarPage, label: "members", path: "/members", adminOnly: false },
+  { id: "settings" as NavbarPage, label: "settings", path: "/settings", adminOnly: true },
+  { id: "invite" as NavbarPage, label: "invite", path: "/invite", adminOnly: false },
 ];
 
-export default function PageSelector({ hiveId, hiveSlug, currentPage }: PageSelectorProps) {
+export default function PageSelector({ hiveId, hiveSlug, currentPage, isAdmin = false }: PageSelectorProps) {
   const pathname = usePathname();
   const baseKey = hiveSlug || hiveId;
   const basePath = `/hives/${baseKey}`;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const pages = allPages.filter((p) => !p.adminOnly || isAdmin);
 
   const pageFromPathname = pages.find((p) => {
     const fullPath = basePath + p.path;

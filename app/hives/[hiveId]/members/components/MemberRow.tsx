@@ -22,6 +22,7 @@ interface MemberRowProps {
   onChangeRole: (userId: string, role: HiveMemberRole) => void;
   onRemove: (userId: string) => void;
   isPending?: boolean;
+  showActions?: boolean;
 }
 
 const ROLE_OPTIONS: HiveMemberRole[] = ["admin", "member"];
@@ -35,6 +36,7 @@ export default function MemberRow({
   onChangeRole,
   onRemove,
   isPending = false,
+  showActions = true,
 }: MemberRowProps) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -85,7 +87,8 @@ export default function MemberRow({
         </div>
       </div>
 
-      {/* Actions Dropdown */}
+      {/* Actions Dropdown (admin only) */}
+      {showActions && (
       <div className="relative" ref={menuRef}>
         <Button
           type="button"
@@ -153,6 +156,7 @@ export default function MemberRow({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

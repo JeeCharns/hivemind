@@ -19,6 +19,7 @@ interface MembersViewProps {
   members: MemberViewModel[];
   isLoading: boolean;
   error: string | null;
+  isAdmin?: boolean;
 }
 
 export default function MembersView({
@@ -26,6 +27,7 @@ export default function MembersView({
   members,
   isLoading,
   error,
+  isAdmin = false,
 }: MembersViewProps) {
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -143,6 +145,7 @@ export default function MembersView({
                   onChangeRole={handleChangeRole}
                   onRemove={handleRemove}
                   isPending={pendingUserId === member.userId}
+                  showActions={isAdmin}
                 />
               );
             })}

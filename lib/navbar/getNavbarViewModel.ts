@@ -11,7 +11,7 @@
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import type { NavbarViewModel, NavbarPage } from "@/types/navbar";
-import { getUserHives, getHiveById, checkHiveMembership } from "./data/hiveRepository";
+import { getUserHives, getHiveById, getHiveMemberRole } from "./data/hiveRepository";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
 import { redirect } from "next/navigation";
 import { getAvatarUrl } from "@/lib/storage/server/getAvatarUrl";
@@ -87,9 +87,9 @@ export async function getNavbarViewModel(
         redirect("/hives");
       }
 
-      // Check membership first (security)
-      const isMember = await checkHiveMembership(supabase, session.user.id, hiveId);
-      if (!isMember) {
+      // Check membership and role (security)
+      const membership = await getHiveMemberRole(supabase, session.user.id, hiveId);
+      if (!membership.isMember) {
         console.warn(`[getNavbarViewModel] User ${session.user.id} not member of hive ${hiveId}`);
         redirect("/hives");
       }
@@ -106,6 +106,7 @@ export async function getNavbarViewModel(
         slug: hive.slug,
         name: hive.name,
         logoUrl: hive.logo_url,
+        isAdmin: membership.role === "admin",
       };
     } catch (error) {
       console.error("[getNavbarViewModel] Error fetching current hive:", error);

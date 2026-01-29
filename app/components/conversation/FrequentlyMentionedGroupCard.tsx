@@ -24,14 +24,12 @@ import Button from "@/app/components/button";
 export interface FrequentlyMentionedGroupCardProps {
   group: FrequentlyMentionedGroup;
   onVote: (responseId: string, feedback: Feedback) => void;
-  loadingId?: string | null;
   conversationType?: "understand" | "decide";
 }
 
 export default function FrequentlyMentionedGroupCard({
   group,
   onVote,
-  loadingId,
   conversationType = "understand",
 }: FrequentlyMentionedGroupCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -99,7 +97,7 @@ export default function FrequentlyMentionedGroupCard({
                 key={fb}
                 variant="secondary"
                 size="sm"
-                disabled={loadingId === representative.id || isDisabled}
+                disabled={isDisabled}
                 onClick={() => onVote(representative.id, fb)}
                 className={`flex-1 transition-colors ${
                   active ? activeStyles : isDisabled ? disabledStyles : inactiveStyles

@@ -9,6 +9,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
 import { getMembersWithSignedUrls } from "@/lib/members/server/getMembersWithSignedUrls";
+import { authorizeHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 import MembersView from "./MembersView";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -69,7 +70,10 @@ export default async function MembersPage({
     );
   }
 
-  // 4. Render with data (pass hiveId to client component)
+  // 4. Check if current user is admin
+  const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hiveId);
+
+  // 5. Render with data (pass hiveId to client component)
   return (
     <div className="min-h-screen bg-[#F7F8FB] p-4 md:p-8">
       <div className="mx-auto w-full max-w-7xl">
@@ -86,6 +90,7 @@ export default async function MembersPage({
           members={members}
           isLoading={false}
           error={null}
+          isAdmin={isAdmin}
         />
       </div>
     </div>

@@ -96,3 +96,28 @@ export async function checkHiveMembership(
 
   return !!membership;
 }
+
+/**
+ * Check if user is a member and return their role
+ */
+export async function getHiveMemberRole(
+  supabase: SupabaseClient,
+  userId: string,
+  hiveId: string
+): Promise<{ isMember: boolean; role: string | null }> {
+  const { data: membership, error } = await supabase
+    .from("hive_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("hive_id", hiveId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to check membership: ${error.message}`);
+  }
+
+  return {
+    isMember: !!membership,
+    role: membership?.role ?? null,
+  };
+}

@@ -164,7 +164,7 @@ function ConsensusMatrixContent({
                 onSortModeChange("agreement");
                 setVisibleCount(initialVisible);
               }}
-              className={`h-8 px-3 rounded-md border text-button transition ${
+              className={`min-h-8 py-1 px-3 rounded-md border text-button transition ${
                 sortMode === "agreement"
                   ? "bg-[#EDEFFD] text-brand-primary border-[#D7DBFF]"
                   : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -178,7 +178,7 @@ function ConsensusMatrixContent({
                 onSortModeChange("divisive");
                 setVisibleCount(initialVisible);
               }}
-              className={`h-8 px-3 rounded-md border text-button transition ${
+              className={`min-h-8 py-1 px-3 rounded-md border text-button transition ${
                 sortMode === "divisive"
                   ? "bg-[#EDEFFD] text-brand-primary border-[#D7DBFF]"
                   : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"

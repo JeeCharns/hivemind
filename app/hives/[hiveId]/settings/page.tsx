@@ -9,6 +9,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
 import { getHiveSettings } from "@/lib/hives/server/getHiveSettings";
+import { authorizeHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 import SettingsClient from "./SettingsClient";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -37,7 +38,13 @@ export default async function HiveSettingsPage({
   }
   const hiveId = resolvedId;
 
-  // 3. Fetch hive settings (includes membership check)
+  // 3. Verify admin access
+  const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hiveId);
+  if (!isAdmin) {
+    redirect(`/hives/${hiveKey}`);
+  }
+
+  // 4. Fetch hive settings (includes membership check)
   let settings;
   let error: string | null = null;
 
