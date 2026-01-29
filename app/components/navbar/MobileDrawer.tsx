@@ -18,11 +18,11 @@ interface MobileDrawerProps {
   viewModel: NavbarViewModel;
 }
 
-const pages: { id: NavbarPage; label: string; path: string }[] = [
-  { id: "home", label: "Home", path: "" },
-  { id: "members", label: "Members", path: "/members" },
-  { id: "settings", label: "Settings", path: "/settings" },
-  { id: "invite", label: "Invite", path: "/invite" },
+const allPages: { id: NavbarPage; label: string; path: string; adminOnly: boolean }[] = [
+  { id: "home", label: "Home", path: "", adminOnly: false },
+  { id: "members", label: "Members", path: "/members", adminOnly: false },
+  { id: "settings", label: "Settings", path: "/settings", adminOnly: true },
+  { id: "invite", label: "Invite", path: "/invite", adminOnly: false },
 ];
 
 export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawerProps) {
@@ -122,7 +122,7 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
           {currentHive ? (
             // Show page links when in a hive
             <>
-              {pages.map((page) => {
+              {allPages.filter((p) => !p.adminOnly || currentHive.isAdmin).map((page) => {
                 const isActive = page.id === currentPage;
                 const href = basePath + page.path;
                 return (

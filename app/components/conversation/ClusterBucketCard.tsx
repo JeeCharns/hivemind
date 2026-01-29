@@ -26,8 +26,6 @@ export interface ClusterBucketCardProps {
   themeColor?: string;
   /** Callback to submit a vote on a response */
   onVote?: (responseId: string, feedback: Feedback) => void;
-  /** ID of the response currently being voted on (for loading state) */
-  loadingId?: string | null;
   /** Conversation type determines if voting is enabled */
   conversationType?: "understand" | "decide";
   /** Map of response IDs to their feedback items (for vote state) */
@@ -39,7 +37,6 @@ export default function ClusterBucketCard({
   conversationId,
   themeColor,
   onVote,
-  loadingId,
   conversationType = "understand",
   feedbackById,
 }: ClusterBucketCardProps) {
@@ -136,7 +133,6 @@ export default function ClusterBucketCard({
                 key={fb}
                 variant="secondary"
                 size="sm"
-                disabled={loadingId === representativeId}
                 onClick={() => onVote(representativeId, fb)}
                 className={`flex-1 transition-colors ${active ? activeStyles : inactiveStyles}`}
               >

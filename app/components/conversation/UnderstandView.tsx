@@ -162,7 +162,6 @@ export default function UnderstandView({
   const {
     items,
     vote: baseVote,
-    loadingId,
   } = useConversationFeedback({
     conversationId,
     initialItems: feedbackItems,
@@ -224,8 +223,8 @@ export default function UnderstandView({
 
   // Build cluster summaries for "All themes" view
   const clusterSummaries = useMemo(
-    () => buildClusterSummaries(responses, themes, items, clusterBuckets),
-    [responses, themes, items, clusterBuckets]
+    () => buildClusterSummaries(responses, themes, items, clusterBuckets, unconsolidatedResponseIds),
+    [responses, themes, items, clusterBuckets, unconsolidatedResponseIds]
   );
 
   // Create a map of response IDs to feedback items for ClusterBucketCard voting
@@ -949,7 +948,6 @@ export default function UnderstandView({
                       conversationId={conversationId}
                       themeColor={getThemeColor(bucket.clusterIndex)}
                       onVote={vote}
-                      loadingId={loadingId}
                       conversationType={conversationType}
                       feedbackById={feedbackById}
                     />
@@ -962,7 +960,6 @@ export default function UnderstandView({
                       key={group.groupId}
                       group={group}
                       onVote={vote}
-                      loadingId={loadingId}
                       conversationType={conversationType}
                     />
                   ))}
@@ -1014,7 +1011,7 @@ export default function UnderstandView({
                                 key={fb}
                                 variant="secondary"
                                 size="sm"
-                                disabled={loadingId === resp.id || isDisabled}
+                                disabled={isDisabled}
                                 onClick={() => vote(resp.id, fb)}
                                 className={`flex-1 transition-colors ${
                                   active

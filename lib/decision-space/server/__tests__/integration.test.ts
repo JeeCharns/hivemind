@@ -153,7 +153,7 @@ describe("Decision Space Integration Tests", () => {
         if (table === "conversation_themes") return mockThemesSelect;
         if (table === "conversation_cluster_buckets") return mockBucketsSelect;
         if (table === "conversation_cluster_bucket_members") return mockMembersSelect;
-        if (table === "conversation_feedback") return mockFeedbackSelect;
+        if (table === "response_feedback") return mockFeedbackSelect;
         return { select: jest.fn().mockReturnThis() };
       });
 
@@ -169,13 +169,18 @@ describe("Decision Space Integration Tests", () => {
       expect(result.clusters).toHaveLength(3);
       expect(result.statements).toHaveLength(3);
 
-      // Verify cluster data
-      expect(result.clusters[0].name).toBe("Environment");
-      expect(result.clusters[0].statementCount).toBe(2);
+      // Verify cluster data (sorted by avgConsensusPercent descending)
+      expect(result.clusters[0].name).toBe("Economy");
+      expect(result.clusters[0].statementCount).toBe(1);
+      expect(result.clusters[1].name).toBe("Environment");
+      expect(result.clusters[1].statementCount).toBe(2);
 
-      // Verify statement data
-      expect(result.statements[0].statementText).toBe("We should invest more in renewable energy sources");
+      // Verify statement data (sorted by agreePercent descending)
+      // bucket-2: 100%, bucket-3: 100%, bucket-1: 67%
+      expect(result.statements[0].statementText).toBe("Stricter pollution regulations are needed");
       expect(result.statements[0].clusterIndex).toBe(0);
+      expect(result.statements[2].statementText).toBe("We should invest more in renewable energy sources");
+      expect(result.statements[2].clusterIndex).toBe(0);
     });
 
     it("validates source conversation is understand type", async () => {
@@ -313,7 +318,9 @@ describe("Decision Space Integration Tests", () => {
       expect(result.slug).toBe("my-decision-session");
     });
 
-    it("requires admin role to create decision session", async () => {
+    it("allows members (not just admins) to create decision sessions", async () => {
+      const newConversationId = "new-conv-member";
+      const newRoundId = "round-member-001";
       let conversationCallCount = 0;
 
       mockSupabase.from.mockImplementation((table: string) => {
@@ -334,13 +341,34 @@ describe("Decision Space Integration Tests", () => {
               }),
             };
           }
+          return {
+            insert: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: { id: newConversationId, slug: "member-decision" },
+              error: null,
+            }),
+          };
         }
         if (table === "hive_members") {
           return {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             maybeSingle: jest.fn().mockResolvedValue({
-              data: { role: "member" }, // Not admin
+              data: { role: "member" }, // Not admin — should still succeed
+              error: null,
+            }),
+          };
+        }
+        if (table === "decision_proposals") {
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }
+        if (table === "decision_rounds") {
+          return {
+            insert: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: { id: newRoundId },
               error: null,
             }),
           };
@@ -360,9 +388,12 @@ describe("Decision Space Integration Tests", () => {
         visibility: "hidden" as const,
       };
 
-      await expect(
-        createDecisionSession(mockSupabase as unknown as SupabaseClient, TEST_USER_ID, input)
-      ).rejects.toThrow("Only hive admins can create decision sessions");
+      const result = await createDecisionSession(
+        mockSupabase as unknown as SupabaseClient, TEST_USER_ID, input
+      );
+
+      expect(result.conversationId).toBe(newConversationId);
+      expect(result.roundId).toBe(newRoundId);
     });
 
     it("links to source conversation", async () => {

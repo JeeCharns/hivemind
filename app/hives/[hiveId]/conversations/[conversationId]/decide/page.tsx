@@ -67,7 +67,7 @@ export default async function DecidePage({ params, searchParams }: DecidePagePro
 
   // 7. Render client component with view model
   return (
-    <div className="mx-auto w-full max-w-7xl px-0 md:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
       <DecisionViewContainer viewModel={viewModel} activeTab={activeTab} />
     </div>
   );

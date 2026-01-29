@@ -207,7 +207,7 @@ export default function DecisionView({
     <div className="flex flex-col gap-6 w-full">
       {/* Source Conversation Link - shown above admin panel */}
       {viewModel.sourceConversation && (
-        <p className="text-sm text-slate-600 px-4 md:px-0">
+        <p className="text-sm text-slate-600">
           These proposals were generated from &quot;
           <Link
             href={`/hives/${viewModel.sourceConversation.hiveSlug || viewModel.sourceConversation.hiveId}/conversations/${viewModel.sourceConversation.slug || viewModel.sourceConversation.id}/listen`}

@@ -5,7 +5,7 @@
  * Follows DIP: accepts client injection for testing
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Feedback, FeedbackItem } from "@/types/conversation-understand";
 import {
   feedbackClient as defaultFeedbackClient,
@@ -44,6 +44,28 @@ export function useConversationFeedback({
   const [items, setItems] = useState<FeedbackItem[]>(initialItems);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync items when initialItems change (e.g. after analysis completes and
+  // feedbackItems are re-fetched with updated clusterIndex values).
+  // Preserves in-flight optimistic vote state by merging counts/current
+  // from existing items when a vote is in progress.
+  useEffect(() => {
+    setItems((prev) => {
+      // If nothing is loading, take the new items wholesale
+      if (!loadingId) return initialItems;
+
+      // Merge: use new data but keep optimistic vote state for the loading item
+      const prevById = new Map(prev.map((i) => [i.id, i]));
+      return initialItems.map((item) => {
+        const existing = prevById.get(item.id);
+        if (existing && existing.id === loadingId) {
+          // Preserve optimistic counts/current, but update everything else
+          return { ...item, counts: existing.counts, current: existing.current };
+        }
+        return item;
+      });
+    });
+  }, [initialItems, loadingId]);
 
   /**
    * Vote on a response with optimistic update

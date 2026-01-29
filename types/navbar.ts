@@ -22,6 +22,7 @@ export interface CurrentHive {
   slug: string | null;
   name: string;
   logoUrl: string | null;
+  isAdmin: boolean;
 }
 
 export type NavbarPage = "home" | "members" | "settings" | "invite";

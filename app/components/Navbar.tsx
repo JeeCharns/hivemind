@@ -60,6 +60,7 @@ export default function Navbar({ viewModel }: NavbarProps) {
                     hiveId={currentHive.id}
                     hiveSlug={currentHive.slug}
                     currentPage={currentPage}
+                    isAdmin={currentHive.isAdmin}
                   />
                 </>
               )}

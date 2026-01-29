@@ -131,10 +131,12 @@ export function buildClusterSummaries(
   responses: ResponsePoint[],
   themes: ThemeRow[],
   feedbackItems: FeedbackItem[],
-  clusterBuckets?: ClusterBucket[]
+  clusterBuckets?: ClusterBucket[],
+  unconsolidatedResponseIds?: string[]
 ): ClusterSummary[] {
   const feedbackById = new Map(feedbackItems.map((item) => [item.id, item]));
   const buckets = clusterBuckets || [];
+  const unconsolidatedSet = new Set(unconsolidatedResponseIds || []);
 
   // Group responses by cluster index
   const byCluster = new Map<number, ResponsePoint[]>();
@@ -164,6 +166,20 @@ export function buildClusterSummaries(
       theme.description
     );
 
+    // When cluster buckets exist, count voteable statements
+    // (consolidated buckets + unconsolidated responses) instead of raw responses
+    const bucketsForCluster = buckets.filter(
+      (b) => b.clusterIndex === theme.clusterIndex
+    );
+    const unconsolidatedInCluster =
+      bucketsForCluster.length > 0
+        ? clusterResponses.filter((r) => unconsolidatedSet.has(r.id)).length
+        : 0;
+    const statementCount =
+      bucketsForCluster.length > 0
+        ? bucketsForCluster.length + unconsolidatedInCluster
+        : clusterResponses.length;
+
     summaries.push({
       key: `cluster-${theme.clusterIndex}`,
       title: theme.name || `Theme ${theme.clusterIndex}`,
@@ -171,7 +187,7 @@ export function buildClusterSummaries(
       bucketNames,
       representativeText: text,
       representativeItem: item,
-      responseCount: clusterResponses.length,
+      responseCount: statementCount,
       filterValue: theme.clusterIndex,
       clusterIndex: theme.clusterIndex,
     });
