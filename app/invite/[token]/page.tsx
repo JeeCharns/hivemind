@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import { inviteTokenSchema } from "@/lib/hives/schemas";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
-import { setInviteCookie } from "@/lib/auth/server/inviteCookie";
 import InviteAcceptClient from "./InviteAcceptClient";
 import CenteredCard from "@/app/components/centered-card";
 import BrandLogo from "@/app/components/brand-logo";
@@ -67,9 +66,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
   const session = await getServerSession();
 
   if (!session) {
-    // Not authenticated - set cookie and redirect to login
-    await setInviteCookie(token);
-
+    // Not authenticated - redirect to login (cookie is set by login page via API)
     const loginUrl = new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
     loginUrl.searchParams.set("intent", "join");
     loginUrl.searchParams.set("invite", token);

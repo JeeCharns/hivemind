@@ -33,6 +33,19 @@ function LoginPageContent() {
     : 0;
   const isCoolingDown = secondsLeft > 0;
 
+  // Store invite token in cookie so it survives the OAuth/magic-link redirect
+  useEffect(() => {
+    if (inviteToken) {
+      fetch("/api/auth/invite-context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: inviteToken }),
+      }).catch(() => {
+        // Best-effort; callback page will still check the cookie
+      });
+    }
+  }, [inviteToken]);
+
   // Fallback: fetch hive name from API if not provided in URL (e.g., old bookmarked links)
   useEffect(() => {
     if (intent === "join" && inviteToken && !hiveNameParam) {
