@@ -63,7 +63,7 @@ export interface ConsensusItem {
 export interface ConsensusMetrics {
   /** Total number of votes cast */
   totalVotes: number;
-  /** Number of unique participants (people who submitted responses) */
+  /** Number of unique participants (people who submitted responses or voted) */
   totalParticipants: number;
   /** Number of unique voters (people who voted on at least one statement) */
   uniqueVoters: number;

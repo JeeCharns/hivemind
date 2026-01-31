@@ -1,7 +1,7 @@
 /**
  * Conversation Report API Route
  *
- * POST - Generate a new report version using OpenAI
+ * POST - Generate a new report version using Claude Sonnet 4
  * Requires authentication, hive membership, and sufficient responses
  */
 
@@ -17,6 +17,7 @@ import {
   computeResponseConsensusItems,
   computeConsolidatedConsensusItems,
 } from "@/lib/conversations/domain/responseConsensus";
+import { getAnthropicClient } from "@/lib/ai/anthropic";
 
 interface ClusterBucketRow {
   id: string;
@@ -39,6 +40,65 @@ interface ConsolidatedStatementWithVotes {
   agreePercent: number;
   passPercent: number;
   disagreePercent: number;
+}
+
+interface ResponseRow {
+  id: number;
+  response_text: string;
+  tag: string | null;
+  cluster_index: number | null;
+}
+
+/**
+ * Sample up to `maxSamples` responses, distributed proportionally across themes.
+ * Responses without a theme are included in a catch-all bucket.
+ */
+function sampleResponsesAcrossThemes(
+  responses: ResponseRow[],
+  maxSamples: number
+): ResponseRow[] {
+  if (responses.length <= maxSamples) return responses;
+
+  // Group by cluster_index
+  const buckets = new Map<number | null, ResponseRow[]>();
+  for (const r of responses) {
+    const key = r.cluster_index;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(r);
+  }
+
+  const result: ResponseRow[] = [];
+  const bucketEntries = [...buckets.entries()];
+
+  // Allocate proportionally, minimum 1 per bucket
+  let remaining = maxSamples;
+  const allocations = bucketEntries.map(([, items]) => {
+    const share = Math.max(1, Math.round((items.length / responses.length) * maxSamples));
+    return Math.min(share, items.length);
+  });
+
+  // Adjust if over budget
+  const total = allocations.reduce((a, b) => a + b, 0);
+  if (total > maxSamples) {
+    const scale = maxSamples / total;
+    for (let i = 0; i < allocations.length; i++) {
+      allocations[i] = Math.max(1, Math.floor(allocations[i] * scale));
+    }
+  }
+
+  for (let i = 0; i < bucketEntries.length; i++) {
+    const items = bucketEntries[i][1];
+    const count = Math.min(allocations[i], remaining);
+    // Take evenly spaced samples
+    const step = items.length / count;
+    for (let j = 0; j < count; j++) {
+      result.push(items[Math.floor(j * step)]);
+    }
+    remaining -= count;
+    if (remaining <= 0) break;
+  }
+
+  return result;
 }
 
 export async function POST(
@@ -139,8 +199,7 @@ export async function POST(
         .from("conversation_responses")
         .select("id, response_text, tag, cluster_index")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: false })
-        .limit(100), // Limit for prompt size
+        .order("created_at", { ascending: false }),
 
       supabase
         .from("response_feedback")
@@ -254,232 +313,109 @@ export async function POST(
       return b.totalVotes - a.totalVotes;
     });
 
-    // Categorize statements for the prompt
-    const highConsensusStatements = consolidatedStatements.filter(
-      (s) => s.totalVotes >= 3 && s.agreePercent >= 70
-    );
-    const divisiveStatements = consolidatedStatements.filter(
-      (s) =>
-        s.totalVotes >= 3 &&
-        s.agreePercent >= 30 &&
-        s.agreePercent <= 60 &&
-        s.disagreePercent >= 25
-    );
-    const lowConsensusStatements = consolidatedStatements.filter(
-      (s) => s.totalVotes >= 3 && s.disagreePercent >= 50
-    );
+    // 10. Build prompt data for Claude Sonnet 4
+    const responses = responsesResult.data || [];
 
-    // 10. Build OpenAI prompt focused on consolidated statements
     const themesText = themes
       .map(
         (t) =>
-          `Theme ${t.cluster_index}: ${t.name || "Untitled"}\n  Description: ${t.description || "N/A"}\n  Size: ${t.size || 0} responses`
+          `- ${t.name || "Untitled"}: ${t.description || "N/A"} (${t.size || 0} responses)`
       )
-      .join("\n\n");
+      .join("\n");
 
     const formatStatement = (s: ConsolidatedStatementWithVotes) =>
       `- "${s.statement}"\n  Votes: ${s.agreeVotes} agree (${s.agreePercent}%), ${s.passVotes} pass (${s.passPercent}%), ${s.disagreeVotes} disagree (${s.disagreePercent}%) | Total: ${s.totalVotes} votes`;
 
     const allStatementsText = consolidatedStatements
-      .filter((s) => s.totalVotes > 0)
-      .slice(0, 50) // Limit for prompt size
       .map(formatStatement)
       .join("\n\n");
 
-    const highConsensusText =
-      highConsensusStatements.length > 0
-        ? highConsensusStatements.map(formatStatement).join("\n\n")
-        : "No statements have achieved high consensus yet.";
+    // Sample up to 50 raw responses, distributed proportionally across themes
+    const sampleResponses = sampleResponsesAcrossThemes(responses, 50);
+    const sampleResponsesText = sampleResponses
+      .map((r) => `- "${r.response_text}"`)
+      .join("\n");
 
-    const divisiveText =
-      divisiveStatements.length > 0
-        ? divisiveStatements.map(formatStatement).join("\n\n")
-        : "No clearly divisive statements identified.";
+    // Compute participant stats for the prompt
+    const totalParticipants = new Set([
+      ...responses.map((r: { id: number }) => r.id),
+      ...feedbackRows.map((r) => r.response_id),
+    ]).size;
+    const uniqueVoters = new Set(feedbackRows.map((r) => r.response_id)).size;
+    const totalStatements = consolidatedStatements.length;
+    const statementsWithVotes = consolidatedStatements.filter(
+      (s) => s.totalVotes > 0
+    ).length;
+    const totalVotesCast = consolidatedStatements.reduce(
+      (sum, s) => sum + s.totalVotes,
+      0
+    );
+    const maxPossibleVotes = uniqueVoters * totalStatements;
+    const voteCoveragePercent =
+      maxPossibleVotes > 0
+        ? Math.round((totalVotesCast / maxPossibleVotes) * 100)
+        : 0;
 
-    const lowConsensusText =
-      lowConsensusStatements.length > 0
-        ? lowConsensusStatements.map(formatStatement).join("\n\n")
-        : "No statements with majority disagreement.";
+    const userMessage = `# Conversation: ${conversation.title || "Untitled Conversation"}
 
-    const prompt = `Generate an executive summary report for the conversation titled "${conversation.title || "Untitled Conversation"}".
+## Participants
+- ${totalParticipants} total participants
+- ${uniqueVoters} voted on statements
+- ${totalStatements} consolidated statements (${statementsWithVotes} with votes)
+- ${voteCoveragePercent}% vote coverage
 
-This report should focus on the CONSOLIDATED STATEMENTS from the consensus matrix - these are synthesized viewpoints that represent groups of similar responses, along with the votes they have received.
+## Themes
+${themesText || "No themes identified."}
 
-**Overview:**
-- Total responses collected: ${responseCount}
-- Total consolidated statements: ${consolidatedStatements.length}
-- Statements with votes: ${consolidatedStatements.filter((s) => s.totalVotes > 0).length}
-- Themes identified: ${themes.length}
+## Consolidated Statements with Votes
+${allStatementsText || "No statements yet."}
 
-**Themes:**
-${themesText || "No themes identified yet."}
+## Sample of Participant Responses
+${sampleResponsesText || "No responses available."}
 
-**All Consolidated Statements with Votes (Consensus Matrix):**
-${allStatementsText || "No voted statements yet."}
+---
 
-**High Consensus Statements (70%+ agreement):**
-${highConsensusText}
+Write a narrative executive summary of this conversation for its participants.
+Do not simply list statements — synthesise, draw connections, and explain
+what the collective voice is saying. Cover what the data warrants: areas of
+agreement, points of division, cross-theme connections, notable minority
+viewpoints, and the overall direction of the group.`;
 
-**Divisive/Contentious Statements (30-60% agree, 25%+ disagree):**
-${divisiveText}
-
-**Statements with Majority Disagreement (50%+ disagree):**
-${lowConsensusText}
-
-Your task is to analyze this consensus data and produce a comprehensive executive summary report.
-
-IMPORTANT GUIDELINES:
-1. Focus primarily on the consolidated statements and their vote distributions
-2. High consensus items (70%+ agree) represent clear areas of alignment
-3. Divisive items represent topics where the group is split and may need further discussion
-4. Use the original response themes only for additional context when helpful
-5. Recommendations should be actionable and based on the consensus data
-
-The report MUST be formatted as valid HTML using these EXACT sections:
-
-<h1>Executive Summary</h1>
-<p>[2-3 paragraph overview of the conversation, participation levels, and key findings from the consensus data]</p>
-
-<h2>Key Themes</h2>
-<p>[Analysis of the main themes that emerged, with context from the consolidated statements]</p>
-<ul>
-  <li>[Theme with supporting consolidated statements]</li>
-</ul>
-
-<h2>Areas of Agreement</h2>
-<p>[Identify consolidated statements with strong agreement (70%+). Quote the actual statements and explain their significance.]</p>
-<ul>
-  <li>[High consensus statement with vote breakdown]</li>
-</ul>
-
-<h2>Divisive or Contentious Points</h2>
-<p>[Identify consolidated statements where opinions are split. These are important for understanding where further deliberation is needed.]</p>
-<ul>
-  <li>[Divisive statement with vote breakdown and analysis]</li>
-</ul>
-
-<h2>Recommendations</h2>
-<p>Based on the consensus analysis, here are actionable recommendations:</p>
-<h3>Clear Actions (High Consensus)</h3>
-<ol>
-  <li>[Specific action based on a high-consensus statement - these can be acted upon with confidence]</li>
-</ol>
-<h3>Items Requiring Further Deliberation</h3>
-<ol>
-  <li>[Topic that needs more discussion or an explicit vote due to divided opinions]</li>
-</ol>
-
-Output ONLY the HTML content. Do not include markdown code fences, explanations, or apologies. Start directly with the HTML tags.`;
-
-    // 10. Call OpenAI (using environment variable for API key)
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      return jsonError("OpenAI API key not configured", 500);
+    // 11. Call Claude Sonnet 4
+    let anthropic;
+    try {
+      anthropic = getAnthropicClient();
+    } catch {
+      return jsonError("Anthropic API key not configured", 500);
     }
 
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert at synthesizing conversation data into executive summaries. You always output valid HTML without any markdown formatting, code fences, or explanations. You respond only with the requested HTML content.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 3000,
-      }),
+    const aiResponse = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 8000,
+      temperature: 0.4,
+      system:
+        "You are a skilled analyst writing for participants of a collective conversation. Your role is to help them understand what the group collectively expressed. Write in a natural narrative style — not a list of results, but a cohesive document that synthesises findings, draws connections between themes, and surfaces meaningful insights. Use a neutral, evidence-grounded tone that shifts to empathetic warmth when discussing points of genuine concern or division. Always reference specific vote data to support your narrative (e.g. \"78% agreed that...\"). Output valid HTML only — no markdown, no code fences, no preamble. Scale the depth and length of your writing to match the complexity of the data: a small simple conversation warrants a focused summary, a large complex one warrants deeper analysis.",
+      messages: [
+        {
+          role: "user",
+          content: userMessage,
+        },
+      ],
     });
 
-    if (!openaiResponse.ok) {
-      console.error("[POST report] OpenAI error:", await openaiResponse.text());
-      return jsonError("Failed to generate report with AI", 500);
-    }
-
-    const openaiData = await openaiResponse.json();
-    let reportHtml = openaiData.choices?.[0]?.message?.content || "";
+    const textBlock = aiResponse.content.find((block) => block.type === "text");
+    let reportHtml = textBlock?.text || "";
 
     if (!reportHtml) {
       return jsonError("AI generated empty report", 500);
     }
 
-    // Clean up the response: remove markdown code fences and trim whitespace
+    // Clean up: remove markdown code fences if present
     reportHtml = reportHtml
-      .replace(/^```html\s*/i, "") // Remove opening ```html
-      .replace(/^```\s*/m, "") // Remove opening ```
-      .replace(/\s*```\s*$/m, "") // Remove closing ```
+      .replace(/^```html\s*/i, "")
+      .replace(/^```\s*/m, "")
+      .replace(/\s*```\s*$/m, "")
       .trim();
-
-    // If the response doesn't contain HTML tags, convert plain text to HTML
-    if (!reportHtml.includes("<h1>") && !reportHtml.includes("<h2>")) {
-      // Split into lines and convert to HTML
-      const lines = reportHtml.split("\n");
-      const htmlLines: string[] = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (!line) {
-          continue; // Skip empty lines
-        }
-
-        // Detect section headers based on content
-        if (line.toLowerCase().includes("executive summary") && i === 0) {
-          htmlLines.push(`<h1>${line}</h1>`);
-        } else if (
-          line.toLowerCase().includes("key themes") ||
-          line.toLowerCase().includes("areas of agreement") ||
-          line.toLowerCase().includes("divisive") ||
-          line.toLowerCase().includes("contentious") ||
-          line.toLowerCase().includes("recommendations")
-        ) {
-          htmlLines.push(`<h2>${line}</h2>`);
-        } else if (line.match(/^\d+\./)) {
-          // Numbered list item
-          const content = line.replace(/^\d+\.\s*/, "");
-          if (!htmlLines[htmlLines.length - 1]?.startsWith("<ol>")) {
-            htmlLines.push("<ol>");
-          }
-          htmlLines.push(`<li>${content}</li>`);
-        } else if (line.startsWith("- ") || line.startsWith("• ")) {
-          // Bullet list item
-          const content = line.replace(/^[-•]\s*/, "");
-          if (!htmlLines[htmlLines.length - 1]?.startsWith("<ul>")) {
-            htmlLines.push("<ul>");
-          }
-          htmlLines.push(`<li>${content}</li>`);
-        } else {
-          // Close any open lists
-          if (htmlLines[htmlLines.length - 1] === "</li>") {
-            const lastTag = htmlLines[htmlLines.length - 2];
-            if (lastTag?.includes("<ol>") || lastTag?.includes("<ul>")) {
-              htmlLines.push(lastTag.includes("<ol>") ? "</ol>" : "</ul>");
-            }
-          }
-          // Regular paragraph
-          htmlLines.push(`<p>${line}</p>`);
-        }
-      }
-
-      // Close any unclosed lists
-      if (htmlLines[htmlLines.length - 1] === "</li>") {
-        const listType = htmlLines.find((l) => l.startsWith("<ol>") || l.startsWith("<ul>"));
-        if (listType) {
-          htmlLines.push(listType.includes("<ol>") ? "</ol>" : "</ul>");
-        }
-      }
-
-      reportHtml = htmlLines.join("\n");
-    }
 
     // 11. Determine next version number
     const latestVersionResult = await supabase
