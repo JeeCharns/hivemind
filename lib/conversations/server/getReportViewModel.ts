@@ -309,8 +309,9 @@ export async function getReportViewModel(
       ? Math.round((votersWhoAreParticipants / totalParticipants) * 100)
       : 0;
 
-  // Vote coverage = (total votes / (participants * statements)) * 100
-  const maxPossibleVotes = totalParticipants * totalStatements;
+  // Vote coverage = (total votes / (voters * statements)) * 100
+  // Use uniqueVoters (not totalParticipants) because voters may not have submitted responses
+  const maxPossibleVotes = uniqueVoters * totalStatements;
   const voteCoveragePercent =
     maxPossibleVotes > 0
       ? Math.round((totalVotes / maxPossibleVotes) * 100)
