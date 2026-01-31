@@ -28,6 +28,15 @@ Supabase Dashboard → SQL Editor, run these in order:
 12. `supabase/migrations/022_add_vote_composite_index.sql` (vote budget query optimization)
 13. `supabase/migrations/023_allow_members_to_create_invite_links.sql` (fix: allow non-admin members to create invite links)
 14. `supabase/migrations/024_decision_space_tables.sql` (decision space: proposals, rounds, votes, results for decision sessions)
+15. `supabase/migrations/025_add_missing_fk_indexes.sql` (add covering indexes for all unindexed foreign keys)
+16. `supabase/migrations/026_fix_rls_initplan_performance.sql` (wrap auth.uid()/auth.role() in select for RLS performance)
+17. `supabase/migrations/027_drop_duplicate_analysis_jobs_index.sql` (drop duplicate unique index on conversation_analysis_jobs)
+18. `supabase/migrations/028_fix_function_search_paths.sql` (set search_path on all public functions to prevent hijacking)
+19. `supabase/migrations/029_enable_missing_rls.sql` (enable RLS on conversation_cluster_models, conversation_response_embeddings, conversation_analysis_jobs)
+20. `supabase/migrations/030_tighten_rls_batch_a.sql` (replace USING(true) policies on profiles, conversation_themes, conversation_attachments, quadratic_vote_allocations, quadratic_vote_budgets)
+21. `supabase/migrations/031_tighten_rls_batch_b.sql` (replace USING(true) policies on conversations, conversation_responses, hive_members, hives, response_feedback)
+22. `supabase/migrations/032_consolidate_permissive_policies.sql` (drop redundant service-role FOR ALL policies, old duplicates, and split hive_invite_links admin FOR ALL into targeted UPDATE/DELETE)
+23. `supabase/migrations/033_consolidate_decision_votes_select.sql` (merge two decision_votes SELECT policies into one combined policy)
 
 ## What These Migrations Enable
 
@@ -38,6 +47,21 @@ Supabase Dashboard → SQL Editor, run these in order:
 - Hive invite links via `hive_invite_links` (token-based join links)
 - Profile avatars via `profiles.avatar_path`
 - Hive visibility via `hives.visibility` (public/private; private hives hidden from search and require invite link to join)
+
+## Convention: Foreign Key Indexes
+
+Postgres does **not** auto-create indexes on foreign key columns. Without a covering index, `DELETE`/`UPDATE` on the parent table triggers a sequential scan on the child.
+
+**Rule:** every migration that adds a foreign key must include a matching `CREATE INDEX` for the FK column(s). Name it `idx_<table>_<column>`.
+
+## Convention: RLS Init Plan
+
+Always wrap `auth.uid()` and `auth.role()` calls in RLS policies with `(select ...)` so Postgres evaluates them once per query, not once per row:
+
+```sql
+-- Bad:  hm.user_id = auth.uid()
+-- Good: hm.user_id = (select auth.uid())
+```
 
 ## Notes
 

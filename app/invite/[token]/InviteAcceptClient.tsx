@@ -49,6 +49,22 @@ export default function InviteAcceptClient({
         throw new Error("Invalid response from server");
       }
 
+      // Check if new user needs profile setup before entering hive
+      try {
+        const profileRes = await fetch("/api/profile/status");
+        if (profileRes.ok) {
+          const profileStatus = await profileRes.json();
+          if (profileStatus.needsSetup) {
+            router.push(
+              `/profile-setup?redirect=${encodeURIComponent(`/hives/${hiveKey}`)}`
+            );
+            return;
+          }
+        }
+      } catch {
+        // If profile check fails, continue to hive
+      }
+
       // Redirect to hive
       router.push(`/hives/${hiveKey}`);
     } catch (err) {

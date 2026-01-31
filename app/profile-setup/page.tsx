@@ -11,7 +11,11 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { AVATAR_BUCKET } from "@/lib/storage/avatarBucket";
 import ProfileSetupForm from "./ProfileSetupForm";
 
-export default async function ProfileSetupPage() {
+export default async function ProfileSetupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>;
+}) {
   // 1. Require authentication
   const session = await getServerSession();
   if (!session) {
@@ -30,16 +34,20 @@ export default async function ProfileSetupPage() {
     console.error("[ProfileSetupPage] Query error:", error);
   }
 
-  // 3. If profile already complete, redirect to hives
+  // 3. Resolve redirect destination
+  const { redirect: redirectParam } = await searchParams;
+  const redirectTo = redirectParam || "/hives";
+
+  // 4. If profile already complete, redirect to destination
   if (
     profile &&
     profile.display_name &&
     profile.display_name.trim().length > 0
   ) {
-    redirect("/hives");
+    redirect(redirectTo);
   }
 
-  // 4. Get avatar URL if path exists
+  // 5. Get avatar URL if path exists
   let avatarUrl: string | null = null;
   if (profile?.avatar_path) {
     const { data: urlData } = supabase.storage
@@ -48,7 +56,7 @@ export default async function ProfileSetupPage() {
     avatarUrl = urlData.publicUrl;
   }
 
-  // 5. Render form
+  // 6. Render form
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 pb-8">
       <div className="w-full max-w-[480px] bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex flex-col items-center gap-6">

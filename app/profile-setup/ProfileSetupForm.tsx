@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ProfileForm from "@/app/components/profile/ProfileForm";
 
 interface ProfileSetupFormProps {
@@ -20,10 +20,11 @@ export default function ProfileSetupForm({
   initialAvatarUrl,
 }: ProfileSetupFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSuccess = () => {
-    // Redirect to hives page on success
-    router.push("/hives");
+    const redirectTo = searchParams.get("redirect") || "/hives";
+    router.push(redirectTo);
   };
 
   return (
