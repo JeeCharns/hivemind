@@ -156,7 +156,10 @@ export default function ConversationHeader({
       const body = await res.json().catch(() => null);
 
       if (!res.ok) {
-        console.error("[Analysis] Regeneration request failed:", body?.error ?? res.status);
+        console.error(
+          "[Analysis] Regeneration request failed:",
+          body?.error ?? res.status
+        );
         throw new Error(body?.error ?? "Failed to regenerate analysis");
       }
 
