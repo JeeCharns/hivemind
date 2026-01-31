@@ -56,24 +56,24 @@ export function canOpenReport(
  *
  * Requirements:
  * - Must pass canOpenReport gate
- * - User must be hive admin
+ * - User must be a hive member
  * - Conversation type must be "understand"
  * - Analysis status must be "ready"
  *
- * @param isAdmin - Whether user is admin of the hive
+ * @param isMember - Whether user is a member of the hive
  * @param conversationType - Type of conversation
  * @param analysisStatus - Current analysis status
  * @param gate - Result from canOpenReport
  * @returns true if user can generate
  */
 export function canGenerateReport(
-  isAdmin: boolean,
+  isMember: boolean,
   conversationType: string,
   analysisStatus: string | null,
   gate: ReportGate
 ): boolean {
   if (!gate.allowed) return false;
-  if (!isAdmin) return false;
+  if (!isMember) return false;
   if (conversationType !== "understand") return false;
   if (analysisStatus !== "ready") return false;
 

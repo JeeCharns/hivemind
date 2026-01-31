@@ -2,13 +2,13 @@
  * Conversation Report API Route
  *
  * POST - Generate a new report version using OpenAI
- * Requires authentication, admin role, and sufficient responses
+ * Requires authentication, hive membership, and sufficient responses
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
-import { requireHiveAdmin } from "@/lib/conversations/server/requireHiveAdmin";
+import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { canOpenReport } from "@/lib/conversations/domain/reportRules";
 import { MIN_RESPONSES_FOR_REPORT } from "@/lib/conversations/domain/reportRules";
 import { jsonError } from "@/lib/api/errors";
@@ -73,11 +73,11 @@ export async function POST(
       return jsonError("Conversation not found", 404);
     }
 
-    // 3. Verify admin membership
+    // 3. Verify hive membership
     try {
-      await requireHiveAdmin(supabase, session.user.id, conversation.hive_id);
+      await requireHiveMember(supabase, session.user.id, conversation.hive_id);
     } catch {
-      return jsonError("Unauthorized: Admin access required", 403);
+      return jsonError("Unauthorized: Must be a hive member", 403);
     }
 
     // 4. Validate conversation type
@@ -183,7 +183,6 @@ export async function POST(
     }
 
     const themes = themesResult.data || [];
-    const responses = responsesResult.data || [];
     const feedbackRows = feedbackResult.data || [];
     const summaryResponses = summaryResponsesResult.data || [];
     const clusterBuckets = (clusterBucketsResult?.data ||
@@ -191,123 +190,62 @@ export async function POST(
     const unconsolidatedRows = (unconsolidatedResult?.data ||
       []) as UnconsolidatedResponseRow[];
 
-    // 8. Build feedback summary by response ID
-    const feedbackByResponseId = new Map<
-      string,
-      { agree: number; pass: number; disagree: number }
-    >();
-
-    feedbackRows.forEach((fb) => {
-      if (!feedbackByResponseId.has(fb.response_id)) {
-        feedbackByResponseId.set(fb.response_id, { agree: 0, pass: 0, disagree: 0 });
-      }
-      const counts = feedbackByResponseId.get(fb.response_id)!;
-      if (fb.feedback === "agree") {
-        counts.agree++;
-      } else if (fb.feedback === "pass") {
-        counts.pass++;
-      } else if (fb.feedback === "disagree") {
-        counts.disagree++;
-      }
-    });
+    // 8. Build normalised feedback rows (explicit String keys for consistent Map lookups)
+    const feedbackRowsMapped = feedbackRows.map((r) => ({
+      responseId: String(r.response_id),
+      feedback: String(r.feedback),
+    }));
 
     // 9. Build consolidated statements with aggregated votes
+    //    Reuse the same consensus functions used by the report view model
+    //    to avoid duplicated logic and inconsistent key handling.
     const hasConsolidatedData = clusterBuckets.length > 0;
-    const consolidatedStatements: ConsolidatedStatementWithVotes[] = [];
 
+    let consensusItemsForPrompt;
     if (hasConsolidatedData) {
-      // Process cluster buckets - only count votes on the representative (first) response
-      // Votes are cast on the representative, not aggregated from all original responses
-      for (const bucket of clusterBuckets) {
-        const representativeId = bucket.conversation_cluster_bucket_members[0]?.response_id;
-        const counts = representativeId
-          ? feedbackByResponseId.get(String(representativeId))
-          : undefined;
+      const bucketsMapped = clusterBuckets.map((b) => ({
+        bucketId: b.id,
+        consolidatedStatement: b.consolidated_statement,
+        responseIds: b.conversation_cluster_bucket_members.map((m) =>
+          String(m.response_id)
+        ),
+      }));
 
-        const totalAgree = counts?.agree ?? 0;
-        const totalPass = counts?.pass ?? 0;
-        const totalDisagree = counts?.disagree ?? 0;
+      const unconsolidatedMapped = unconsolidatedRows
+        .filter((r) => r.conversation_responses?.[0]?.response_text)
+        .map((r) => ({
+          responseId: String(r.response_id),
+          responseText: r.conversation_responses![0].response_text,
+        }));
 
-        const totalVotes = totalAgree + totalPass + totalDisagree;
-        const agreePercent =
-          totalVotes > 0 ? Math.round((totalAgree / totalVotes) * 100) : 0;
-        const passPercent =
-          totalVotes > 0 ? Math.round((totalPass / totalVotes) * 100) : 0;
-        const disagreePercent =
-          totalVotes > 0 ? Math.round((totalDisagree / totalVotes) * 100) : 0;
-
-        consolidatedStatements.push({
-          id: bucket.id,
-          statement: bucket.consolidated_statement,
-          agreeVotes: totalAgree,
-          passVotes: totalPass,
-          disagreeVotes: totalDisagree,
-          totalVotes,
-          agreePercent,
-          passPercent,
-          disagreePercent,
-        });
-      }
-
-      // Add unconsolidated responses as individual statements
-      for (const row of unconsolidatedRows) {
-        const responseText = row.conversation_responses?.[0]?.response_text;
-        if (!responseText) continue;
-
-        const counts = feedbackByResponseId.get(String(row.response_id)) || {
-          agree: 0,
-          pass: 0,
-          disagree: 0,
-        };
-        const totalVotes = counts.agree + counts.pass + counts.disagree;
-        const agreePercent =
-          totalVotes > 0 ? Math.round((counts.agree / totalVotes) * 100) : 0;
-        const passPercent =
-          totalVotes > 0 ? Math.round((counts.pass / totalVotes) * 100) : 0;
-        const disagreePercent =
-          totalVotes > 0 ? Math.round((counts.disagree / totalVotes) * 100) : 0;
-
-        consolidatedStatements.push({
-          id: String(row.response_id),
-          statement: responseText,
-          agreeVotes: counts.agree,
-          passVotes: counts.pass,
-          disagreeVotes: counts.disagree,
-          totalVotes,
-          agreePercent,
-          passPercent,
-          disagreePercent,
-        });
-      }
+      consensusItemsForPrompt = computeConsolidatedConsensusItems(
+        bucketsMapped,
+        unconsolidatedMapped,
+        feedbackRowsMapped
+      );
     } else {
-      // Fallback: use individual responses as statements
-      for (const r of responses) {
-        const counts = feedbackByResponseId.get(r.id) || {
-          agree: 0,
-          pass: 0,
-          disagree: 0,
-        };
-        const totalVotes = counts.agree + counts.pass + counts.disagree;
-        const agreePercent =
-          totalVotes > 0 ? Math.round((counts.agree / totalVotes) * 100) : 0;
-        const passPercent =
-          totalVotes > 0 ? Math.round((counts.pass / totalVotes) * 100) : 0;
-        const disagreePercent =
-          totalVotes > 0 ? Math.round((counts.disagree / totalVotes) * 100) : 0;
-
-        consolidatedStatements.push({
-          id: r.id,
-          statement: r.response_text,
-          agreeVotes: counts.agree,
-          passVotes: counts.pass,
-          disagreeVotes: counts.disagree,
-          totalVotes,
-          agreePercent,
-          passPercent,
-          disagreePercent,
-        });
-      }
+      consensusItemsForPrompt = computeResponseConsensusItems(
+        summaryResponses.map((r) => ({
+          id: String(r.id),
+          responseText: String(r.response_text ?? ""),
+        })),
+        feedbackRowsMapped
+      );
     }
+
+    // Map consensus items to the prompt format
+    const consolidatedStatements: ConsolidatedStatementWithVotes[] =
+      consensusItemsForPrompt.map((item) => ({
+        id: item.id,
+        statement: item.responseText,
+        agreeVotes: item.agreeVotes,
+        passVotes: item.passVotes,
+        disagreeVotes: item.disagreeVotes,
+        totalVotes: item.totalVotes,
+        agreePercent: item.agreePercent,
+        passPercent: item.passPercent,
+        disagreePercent: item.disagreePercent,
+      }));
 
     // Sort statements: those with votes first (by total votes desc), then those without
     consolidatedStatements.sort((a, b) => {
@@ -600,11 +538,6 @@ Output ONLY the HTML content. Do not include markdown code fences, explanations,
     }
 
     // 15. Return new report (+ refreshed agreement/divisive summaries and consensus items)
-    const feedbackRowsMapped = feedbackRows.map((r) => ({
-      responseId: String(r.response_id),
-      feedback: String(r.feedback),
-    }));
-
     const agreementSummaries = computeAgreementSummaries(
       summaryResponses.map((r) => ({
         id: String(r.id),
@@ -614,38 +547,8 @@ Output ONLY the HTML content. Do not include markdown code fences, explanations,
       { maxPerType: 100 }
     );
 
-    // Use consolidated consensus items when cluster buckets exist
-    let consensusItems;
-    if (hasConsolidatedData) {
-      const bucketsMapped = clusterBuckets.map((b) => ({
-        bucketId: b.id,
-        consolidatedStatement: b.consolidated_statement,
-        responseIds: b.conversation_cluster_bucket_members.map((m) =>
-          String(m.response_id)
-        ),
-      }));
-
-      const unconsolidatedMapped = unconsolidatedRows
-        .filter((r) => r.conversation_responses?.[0]?.response_text)
-        .map((r) => ({
-          responseId: String(r.response_id),
-          responseText: r.conversation_responses![0].response_text,
-        }));
-
-      consensusItems = computeConsolidatedConsensusItems(
-        bucketsMapped,
-        unconsolidatedMapped,
-        feedbackRowsMapped
-      );
-    } else {
-      consensusItems = computeResponseConsensusItems(
-        summaryResponses.map((r) => ({
-          id: String(r.id),
-          responseText: String(r.response_text ?? ""),
-        })),
-        feedbackRowsMapped
-      );
-    }
+    // Reuse the consensus items already computed for the prompt
+    const consensusItems = consensusItemsForPrompt;
 
     const totalInteractionsResult = await supabase
       .from("response_feedback")

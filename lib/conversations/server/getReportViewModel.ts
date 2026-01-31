@@ -66,29 +66,6 @@ function parseAnalysisStatus(
 }
 
 /**
- * Checks if user is an admin of a hive
- *
- * @param supabase - Supabase client
- * @param userId - User UUID
- * @param hiveId - Hive UUID
- * @returns true if user is admin
- */
-async function checkIsAdmin(
-  supabase: SupabaseClient,
-  userId: string,
-  hiveId: string
-): Promise<boolean> {
-  const { data } = await supabase
-    .from("hive_members")
-    .select("role")
-    .eq("hive_id", hiveId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return data?.role === "admin";
-}
-
-/**
  * Assembles the complete Report view model
  *
  * @param supabase - Supabase client with service role
@@ -117,8 +94,8 @@ export async function getReportViewModel(
   // 2. Verify membership
   await requireHiveMember(supabase, userId, conversation.hive_id);
 
-  // 3. Check if user is admin
-  const isAdmin = await checkIsAdmin(supabase, userId, conversation.hive_id);
+  // 3. User is already verified as member (requireHiveMember above)
+  const isMember = true;
 
   // 4. Fetch data in parallel
   const [
@@ -223,7 +200,7 @@ export async function getReportViewModel(
   const gate = canOpenReport(conversation.phase, responseCount);
 
   const canGenerate = canGenerateReport(
-    isAdmin,
+    isMember,
     conversation.type,
     conversation.analysis_status,
     gate

@@ -50,7 +50,7 @@ describe("canGenerateReport", () => {
 
   it("should return true when all conditions met", () => {
     const result = canGenerateReport(
-      true,  // isAdmin
+      true,  // isMember
       "understand",
       "ready",
       allowedGate
@@ -58,9 +58,9 @@ describe("canGenerateReport", () => {
     expect(result).toBe(true);
   });
 
-  it("should return false when not admin", () => {
+  it("should return false when not a member", () => {
     const result = canGenerateReport(
-      false,  // not admin
+      false,  // not a member
       "understand",
       "ready",
       allowedGate
