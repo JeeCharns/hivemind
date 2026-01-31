@@ -384,10 +384,14 @@ Structure the document with the following sections (using HTML headings):
 2. Key Themes — the main themes that emerged, with narrative connecting them
 3. Areas of Agreement — where participants aligned, grounded in vote data
 4. Areas of Contention — where opinions were divided, exploring the nature of the disagreement
-5. Recommended Next Steps — actionable suggestions based on the collective findings
+5. Recommended Next Steps — actionable suggestions for what the group should do next on the platform. Consider recommending:
+   - Creating a "decision space" conversation to vote on specific proposals drawn from high-consensus or contentious statements
+   - Running a follow-up "understand" conversation to explore a divisive or under-explored topic in more depth
+   - Acting on clear areas of agreement that don't need further discussion
+   Be specific about which statements or themes each recommendation relates to.
 
-Within each section, write in flowing narrative prose — not bullet lists of statements.
-Reference specific vote data to support your narrative (e.g. "78% agreed that...").`;
+Use whatever writing style best communicates each point — narrative prose, lists, or a mix.
+Reference specific vote data to support your points (e.g. "78% agreed that...").`;
 
     // 11. Call Claude Sonnet 4
     let anthropic;
