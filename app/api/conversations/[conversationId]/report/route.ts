@@ -390,8 +390,8 @@ Structure the document with the following sections (using HTML headings):
    - Acting on clear areas of agreement that don't need further discussion
    Be specific about which statements or themes each recommendation relates to.
 
-Within each section, write in flowing narrative prose — not bullet lists of statements.
-Reference specific vote data to support your narrative (e.g. "78% agreed that...").`;
+Use whatever writing style best communicates each point — narrative prose, lists, or a mix.
+Reference specific vote data to support your points (e.g. "78% agreed that...").`;
 
     // 11. Call Claude Sonnet 4
     let anthropic;
