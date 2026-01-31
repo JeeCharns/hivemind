@@ -377,9 +377,17 @@ ${sampleResponsesText || "No responses available."}
 
 Write a narrative executive summary of this conversation for its participants.
 Do not simply list statements — synthesise, draw connections, and explain
-what the collective voice is saying. Cover what the data warrants: areas of
-agreement, points of division, cross-theme connections, notable minority
-viewpoints, and the overall direction of the group.`;
+what the collective voice is saying.
+
+Structure the document with the following sections (using HTML headings):
+1. Executive Summary — a concise overview of the conversation, participation, and headline findings
+2. Key Themes — the main themes that emerged, with narrative connecting them
+3. Areas of Agreement — where participants aligned, grounded in vote data
+4. Areas of Contention — where opinions were divided, exploring the nature of the disagreement
+5. Recommended Next Steps — actionable suggestions based on the collective findings
+
+Within each section, write in flowing narrative prose — not bullet lists of statements.
+Reference specific vote data to support your narrative (e.g. "78% agreed that...").`;
 
     // 11. Call Claude Sonnet 4
     let anthropic;
