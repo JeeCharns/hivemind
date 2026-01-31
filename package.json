@@ -21,6 +21,7 @@
     "diagnose-table": "tsx scripts/diagnose-postgrest-table.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.72.1",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.85.0",
     "@upstash/ratelimit": "^2.0.8",

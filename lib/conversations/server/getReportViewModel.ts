@@ -262,12 +262,13 @@ export async function getReportViewModel(
   );
 
   // 8. Compute consensus metrics
-  // Total participants = unique users who submitted responses
-  const uniqueParticipantIds = new Set(responses.map((r) => r.user_id));
+  // Total participants = unique users who participated (submitted responses OR voted)
+  const uniqueRespondentIds = new Set(responses.map((r) => r.user_id));
+  const uniqueVoterIds = new Set(feedbackRows.map((r) => r.user_id));
+  const uniqueParticipantIds = new Set([...uniqueRespondentIds, ...uniqueVoterIds]);
   const totalParticipants = uniqueParticipantIds.size;
 
   // Unique voters = unique users who voted on at least one statement
-  const uniqueVoterIds = new Set(feedbackRows.map((r) => r.user_id));
   const uniqueVoters = uniqueVoterIds.size;
 
   // Total statements in the matrix
@@ -276,14 +277,10 @@ export async function getReportViewModel(
   // Total votes
   const totalVotes = totalInteractions;
 
-  // % of participants voting = (voters who are also participants / total participants) * 100
-  // A voter counts if they submitted at least one response
-  const votersWhoAreParticipants = [...uniqueVoterIds].filter((id) =>
-    uniqueParticipantIds.has(id)
-  ).length;
+  // % of participants who have voted on at least one statement
   const participantVotingPercent =
     totalParticipants > 0
-      ? Math.round((votersWhoAreParticipants / totalParticipants) * 100)
+      ? Math.round((uniqueVoters / totalParticipants) * 100)
       : 0;
 
   // Vote coverage = (total votes / (voters * statements)) * 100
