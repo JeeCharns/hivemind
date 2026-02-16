@@ -80,29 +80,35 @@ export async function PATCH(
     }
     console.log("[PATCH response] Validation passed, text length:", validation.data.text.length);
 
-    // 4. Update response
+    // 4. Update response (separate update and select due to Supabase RLS quirks)
     console.log("[PATCH response] Updating response...");
-    const { data: updated, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from("conversation_responses")
       .update({
         response_text: validation.data.text.trim(),
       })
-      .eq("id", numericId)
-      .select("id, response_text, tag, created_at, user_id, is_anonymous, profiles:user_id(display_name, avatar_path)")
-      .maybeSingle();
+      .eq("id", numericId);
 
     if (updateError) {
       console.error("[PATCH response] Update error:", updateError);
       return jsonError("Failed to update response", 500);
     }
+    console.log("[PATCH response] Update executed, fetching updated row...");
 
-    if (!updated) {
-      console.error("[PATCH response] No rows updated for id:", numericId);
+    // 5. Fetch the updated response
+    const { data: updated, error: fetchUpdatedError } = await supabase
+      .from("conversation_responses")
+      .select("id, response_text, tag, created_at, user_id, is_anonymous, profiles:user_id(display_name, avatar_path)")
+      .eq("id", numericId)
+      .maybeSingle();
+
+    if (fetchUpdatedError || !updated) {
+      console.error("[PATCH response] Fetch updated error:", fetchUpdatedError);
       return jsonError("Failed to update response", 500);
     }
-    console.log("[PATCH response] Update successful, updated data:", updated);
+    console.log("[PATCH response] Fetched updated data:", updated);
 
-    // 5. Format response
+    // 6. Format response
     const profile = updated.profiles as
       | { display_name?: string | null; avatar_path?: string | null }
       | null
