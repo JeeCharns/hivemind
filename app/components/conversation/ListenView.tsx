@@ -54,6 +54,7 @@ import MobileComposer from "@/app/components/conversation/MobileComposer";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { formatRelativeTimestamp } from "@/lib/formatters";
 
 const MAX_LEN = 200;
 const THEMES_READY_ALERT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -493,7 +494,7 @@ export default function ListenView({
                     {resp.user?.name ?? "Anonymous"}
                   </span>
                   <span className="text-info text-slate-400">
-                    {new Date(resp.createdAt).toLocaleString()}
+                    {formatRelativeTimestamp(resp.createdAt)}
                   </span>
                 </div>
                 {/* Inline edit mode or display text */}
@@ -662,8 +663,14 @@ export default function ListenView({
                   <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value.slice(0, MAX_LEN))}
+                    onKeyDown={(e) => {
+                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                        e.preventDefault();
+                        submitResponse();
+                      }
+                    }}
                     maxLength={MAX_LEN}
-                    placeholder="Submit your thoughts, one at a time!"
+                    placeholder="Submit as many thoughts as you can! Each submission should be concise and make one point only"
                     className="w-full h-32 border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                   />
                   <span className="absolute bottom-2 left-3 text-info text-slate-500">
@@ -749,7 +756,12 @@ export default function ListenView({
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end items-center gap-3">
+                  <span className="text-xs text-slate-400">
+                    {typeof navigator !== "undefined" && navigator.platform?.toLowerCase().includes("mac")
+                      ? "⌘ Enter"
+                      : "Ctrl + Enter"}
+                  </span>
                   <Button
                     disabled={!canSubmit || isSubmitting}
                     onClick={submitResponse}

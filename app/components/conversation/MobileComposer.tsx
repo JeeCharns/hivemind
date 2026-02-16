@@ -160,8 +160,14 @@ export default function MobileComposer({
                 ref={textareaRef}
                 value={text}
                 onChange={(e) => setText(e.target.value.slice(0, MAX_LEN))}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
                 maxLength={MAX_LEN}
-                placeholder="Submit your thoughts, one at a time!"
+                placeholder="Submit as many thoughts as you can! Each submission should be concise and make one point only"
                 className="w-full min-h-[120px] border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                 style={{ height: "auto" }}
               />
@@ -266,14 +272,21 @@ export default function MobileComposer({
 
           {/* Submit button - fixed at bottom of drawer */}
           <div className="p-4 border-t border-slate-100">
-            <Button
-              disabled={!canSubmit || isSubmitting}
-              onClick={handleSubmit}
-              className="w-full gap-2"
-            >
-              <PaperPlaneTilt size={16} />
-              {isSubmitting ? "Submitting..." : "Submit"}
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400">
+                {typeof navigator !== "undefined" && navigator.platform?.toLowerCase().includes("mac")
+                  ? "⌘ Enter"
+                  : "Ctrl + Enter"}
+              </span>
+              <Button
+                disabled={!canSubmit || isSubmitting}
+                onClick={handleSubmit}
+                className="flex-1 gap-2"
+              >
+                <PaperPlaneTilt size={16} />
+                {isSubmitting ? "Submitting..." : "Submit"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

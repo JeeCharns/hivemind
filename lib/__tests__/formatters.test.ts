@@ -24,22 +24,22 @@ describe("formatRelativeTimestamp", () => {
     expect(formatRelativeTimestamp(twelveHoursAgo, now)).toBe("12h ago");
   });
 
-  it('returns "yesterday at HH:MM" for yesterday', () => {
+  it('returns "Yesterday HH:MM" for yesterday', () => {
     const yesterday = new Date("2026-02-15T10:45:00Z");
-    expect(formatRelativeTimestamp(yesterday, now)).toBe("yesterday at 10:45");
+    expect(formatRelativeTimestamp(yesterday, now)).toBe("Yesterday 10:45");
   });
 
-  it("returns date and time for older dates in same year", () => {
+  it("returns full date for older dates", () => {
     const lastWeek = new Date("2026-02-10T09:15:00Z");
-    expect(formatRelativeTimestamp(lastWeek, now)).toBe("10 Feb at 09:15");
+    expect(formatRelativeTimestamp(lastWeek, now)).toBe("February 10 2026 09:15");
 
     const january = new Date("2026-01-05T16:30:00Z");
-    expect(formatRelativeTimestamp(january, now)).toBe("5 Jan at 16:30");
+    expect(formatRelativeTimestamp(january, now)).toBe("January 5 2026 16:30");
   });
 
-  it("returns date with year for different year", () => {
+  it("returns full date with year for different year", () => {
     const lastYear = new Date("2025-12-25T08:00:00Z");
-    expect(formatRelativeTimestamp(lastYear, now)).toBe("25 Dec 2025 at 08:00");
+    expect(formatRelativeTimestamp(lastYear, now)).toBe("December 25 2025 08:00");
   });
 
   it("handles string date input", () => {
@@ -50,7 +50,7 @@ describe("formatRelativeTimestamp", () => {
   it("formats time without seconds", () => {
     const withSeconds = new Date("2026-02-15T10:45:30Z");
     const result = formatRelativeTimestamp(withSeconds, now);
-    expect(result).toBe("yesterday at 10:45");
+    expect(result).toBe("Yesterday 10:45");
     expect(result).not.toContain(":30");
   });
 });

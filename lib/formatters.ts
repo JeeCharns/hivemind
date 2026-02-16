@@ -3,11 +3,10 @@
  *
  * Examples:
  * - "just now" for < 1 minute
- * - "5m ago" for < 1 hour
- * - "2h ago" for < 24 hours
- * - "yesterday at 10:45" for yesterday
- * - "10 Feb at 09:15" for same year
- * - "25 Dec 2025 at 08:00" for previous years
+ * - "1m ago" for < 1 hour
+ * - "1h ago" for < 24 hours
+ * - "Yesterday 12:30" for yesterday
+ * - "January 20 2026 12:39" for older dates
  */
 export function formatRelativeTimestamp(
   timestamp: Date | string,
@@ -33,7 +32,7 @@ export function formatRelativeTimestamp(
     return `${diffHours}h ago`;
   }
 
-  // Format the time portion
+  // Format the time portion (no seconds)
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
   const timeStr = `${hours}:${minutes}`;
@@ -46,19 +45,18 @@ export function formatRelativeTimestamp(
     date.getMonth() === yesterday.getMonth() &&
     date.getDate() === yesterday.getDate()
   ) {
-    return `yesterday at ${timeStr}`;
+    return `Yesterday ${timeStr}`;
   }
 
-  // Format the date portion
-  const day = date.getDate();
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  // Full month names
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
   const month = months[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
 
-  // Same year
-  if (date.getFullYear() === now.getFullYear()) {
-    return `${day} ${month} at ${timeStr}`;
-  }
-
-  // Different year
-  return `${day} ${month} ${date.getFullYear()} at ${timeStr}`;
+  // Format: "January 20 2026 12:39"
+  return `${month} ${day} ${year} ${timeStr}`;
 }
