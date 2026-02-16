@@ -43,7 +43,7 @@ export default function LoginForm({
         disabled={loading || disabled}
         className="font-semibold h-10 rounded-lg bg-[#3A1DC8] hover:bg-[#341ab3]"
       >
-        {loading ? "Sending..." : (buttonText ?? "Send a magic link")}
+        {loading ? "Sending..." : (buttonText ?? "Send verification code")}
       </Button>
     </form>
   );
