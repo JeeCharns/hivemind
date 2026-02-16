@@ -65,6 +65,51 @@ function Profile() {
 }
 ```
 
+## Auth Flows
+
+### OTP Authentication (Primary)
+
+The primary login method uses 6-digit OTP codes sent via email:
+
+1. User enters email on `/login`
+2. `sendOtp()` calls Supabase `signInWithOtp()` (no redirect URL = sends code)
+3. User enters 6-digit code on same page
+4. `verifyOtp()` exchanges code for session
+5. Session stored in cookies, user redirected to destination
+
+```tsx
+import { useAuth } from '@/app/(auth)/hooks/useAuth';
+
+function LoginFlow() {
+  const { sendOtp, verifyOtp, loading } = useAuth();
+  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [email, setEmail] = useState('');
+
+  const handleSendOtp = async (email: string) => {
+    await sendOtp(email);
+    setEmail(email);
+    setStep('otp');
+  };
+
+  const handleVerifyOtp = async (code: string) => {
+    await verifyOtp(email, code);
+    // Session established, redirect happens automatically
+  };
+
+  // ... render email form or OTP input based on step
+}
+```
+
+### Password Authentication
+
+For users with passwords (legacy or admin accounts):
+
+```tsx
+const { login } = useAuth();
+await login(email, password);
+// Redirects to /hives on success
+```
+
 ## API Reference
 
 ### Hooks

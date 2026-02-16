@@ -7,7 +7,8 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 
 | Flow | UI entry | API | Core logic | Tests |
 | --- | --- | --- | --- | --- |
-| Login / register / callback | `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`, `app/(auth)/callback/page.tsx` | `app/api/auth/session/route.ts` | Canonical module: `lib/auth/*` (server: `lib/auth/server/requireAuth.ts`, react: `lib/auth/react/*`) | `app/tests/hooks/useAuth.test.ts`, `app/tests/hooks/useSession.test.ts`, `lib/auth/server/__tests__/sessionValidation.test.ts` |
+| Login (OTP) | `app/(auth)/login/LoginPageClient.tsx` (2-step: email → OTP entry), `app/(auth)/components/OtpInput.tsx` (6-box code input) | `app/api/auth/session/route.ts` | Auth hook: `app/(auth)/hooks/useAuth.ts` (`sendOtp`, `verifyOtp`); Session: `lib/auth/*` | `app/tests/hooks/useAuth.test.ts`, `app/(auth)/components/__tests__/OtpInput.test.ts` |
+| Callback (legacy) | `app/(auth)/callback/page.tsx` | `app/api/auth/session/route.ts` | PKCE code exchange for OAuth/magic link; routes to invite/profile-setup/hives | `lib/auth/server/__tests__/sessionValidation.test.ts` |
 | Logout | `app/(auth)/logout/page.tsx` | `app/api/auth/logout/route.ts` | `lib/auth/server/requireAuth.ts` (session) | `app/tests/supabase-auth-cookie.test.ts` |
 
 ## Profile Onboarding

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import LoginForm from "../components/LoginForm";
+import OtpInput from "../components/OtpInput";
 import { useAuth } from "../hooks/useAuth";
 import AuthError from "../components/AuthError";
 import CenteredCard from "../../components/centered-card";
@@ -10,30 +11,32 @@ import BrandLogo from "../../components/brand-logo";
 import Spinner from "../../components/spinner";
 import { GuestGuard } from "@/lib/auth/react/GuestGuard";
 
+type Step = "email" | "otp";
+
 function LoginPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const intent = searchParams?.get("intent");
   const inviteToken = searchParams?.get("invite");
   const hiveNameParam = searchParams?.get("hiveName");
 
+  const [step, setStep] = useState<Step>("email");
+  const [submittedEmail, setSubmittedEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [prefetching, setPrefetching] = useState(true);
   const [cooldownUntilMs, setCooldownUntilMs] = useState<number | null>(null);
-  const [cooldownMode, setCooldownMode] = useState<
-    "sent" | "rate_limit" | null
-  >(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [hiveName, setHiveName] = useState<string | null>(hiveNameParam);
   const intervalRef = useRef<number | null>(null);
-  const { login, loading } = useAuth();
+  const { sendOtp, verifyOtp, loading } = useAuth();
 
   const secondsLeft = cooldownUntilMs
     ? Math.max(0, Math.ceil((cooldownUntilMs - nowMs) / 1000))
     : 0;
   const isCoolingDown = secondsLeft > 0;
 
-  // Store invite token in cookie so it survives the OAuth/magic-link redirect
+  // Store invite token in cookie so it survives the auth flow
   useEffect(() => {
     if (inviteToken) {
       fetch("/api/auth/invite-context", {
@@ -41,12 +44,12 @@ function LoginPageContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: inviteToken }),
       }).catch(() => {
-        // Best-effort; callback page will still check the cookie
+        // Best-effort; routing will still check the cookie
       });
     }
   }, [inviteToken]);
 
-  // Fallback: fetch hive name from API if not provided in URL (e.g., old bookmarked links)
+  // Fallback: fetch hive name from API if not provided in URL
   useEffect(() => {
     if (intent === "join" && inviteToken && !hiveNameParam) {
       fetch(`/api/invites/${inviteToken}/preview`)
@@ -90,38 +93,97 @@ function LoginPageContent() {
     };
   }, [cooldownUntilMs]);
 
-  const handleLogin = async (email: string) => {
+  const handleSendOtp = async (email: string) => {
     if (isCoolingDown) return;
 
     try {
       setError(null);
-      setStatusMessage(null);
-      setCooldownMode(null);
-      setCooldownUntilMs(null);
-
-      await login(email, "");
-      setStatusMessage(`Magic link sent to ${email}. Check your inbox.`);
-      setCooldownMode("sent");
+      await sendOtp(email);
+      setSubmittedEmail(email);
+      setStep("otp");
       setCooldownUntilMs(Date.now() + 30_000);
     } catch (err) {
-      const parsed = getMagicLinkError(err);
+      const parsed = getOtpError(err);
       if (parsed.isRateLimit) {
-        setStatusMessage(null);
-        setError(null);
-        setCooldownMode("rate_limit");
         setCooldownUntilMs(Date.now() + 30_000);
+        setError("Too many requests. Please wait and try again.");
         return;
       }
       setError(parsed.message);
-      setCooldownMode(null);
-      setCooldownUntilMs(null);
     }
   };
 
-  const errorToShow =
-    cooldownMode === "rate_limit" && isCoolingDown
-      ? `Too many requests. Please wait ${secondsLeft}s and try again.`
-      : error;
+  const handleVerifyOtp = async (code: string) => {
+    try {
+      setError(null);
+      await verifyOtp(submittedEmail, code);
+
+      // Successful verification - route to appropriate destination
+      await routeAfterAuth();
+    } catch (err) {
+      const parsed = getOtpError(err);
+      setOtp(""); // Clear input on error
+      setError(parsed.message);
+    }
+  };
+
+  const routeAfterAuth = async () => {
+    // Check for invite token
+    try {
+      const inviteContextResponse = await fetch("/api/auth/invite-context");
+      if (inviteContextResponse.ok) {
+        const { token } = await inviteContextResponse.json();
+        if (token) {
+          router.push(`/invite/${token}`);
+          return;
+        }
+      }
+    } catch {
+      // Continue to other checks
+    }
+
+    // Check profile status
+    try {
+      const profileStatusResponse = await fetch("/api/profile/status");
+      if (profileStatusResponse.ok) {
+        const profileStatus = await profileStatusResponse.json();
+        if (profileStatus.needsSetup) {
+          router.push("/profile-setup");
+          return;
+        }
+      }
+    } catch {
+      // Default to hives
+    }
+
+    router.push("/hives");
+  };
+
+  const handleResendOtp = async () => {
+    if (isCoolingDown) return;
+
+    try {
+      setError(null);
+      setOtp("");
+      await sendOtp(submittedEmail);
+      setCooldownUntilMs(Date.now() + 30_000);
+    } catch (err) {
+      const parsed = getOtpError(err);
+      setError(parsed.message);
+    }
+  };
+
+  const handleChangeEmail = () => {
+    setStep("email");
+    setSubmittedEmail("");
+    setOtp("");
+    setError(null);
+    setCooldownUntilMs(null);
+  };
+
+  const handleOtpComplete = (code: string) => {
+    void handleVerifyOtp(code);
+  };
 
   return (
     <GuestGuard
@@ -139,14 +201,13 @@ function LoginPageContent() {
         <CenteredCard
           className="items-center gap-4 shadow-md border border-[#E2E8F0] p-8"
           widthClass="max-w-full"
-          /* Inline width to avoid arbitrary-class issues */
           style={{ width: 473, maxWidth: "100%" }}
         >
           {prefetching ? (
             <div className="w-full flex justify-center py-8">
               <Spinner />
             </div>
-          ) : (
+          ) : step === "email" ? (
             <>
               <h1 className="text-center text-text-primary text-h2 font-display">
                 {intent === "join" && hiveName
@@ -154,35 +215,81 @@ function LoginPageContent() {
                   : "Sign Up or Create Account"}
               </h1>
               <p className="text-center text-text-secondary text-body max-w-md font-display">
-                Let us know your email address, click the link we send you and
-                we&apos;ll do the rest!
+                Enter your email address and we&apos;ll send you a verification
+                code.
               </p>
 
-              {errorToShow && (
+              {error && (
                 <div className="w-full">
-                  <AuthError message={errorToShow} />
-                </div>
-              )}
-
-              {statusMessage && (
-                <div className="w-full text-body text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
-                  <p>{statusMessage}</p>
+                  <AuthError message={error} />
                 </div>
               )}
 
               <div className="w-full space-y-3">
                 <LoginForm
-                  onSubmit={handleLogin}
+                  onSubmit={handleSendOtp}
                   loading={loading}
                   disabled={isCoolingDown}
                   buttonText={
                     isCoolingDown
-                      ? cooldownMode === "rate_limit"
-                        ? `Try again in ${secondsLeft}s`
-                        : "Check your email"
-                      : "Send a magic link"
+                      ? `Try again in ${secondsLeft}s`
+                      : "Send verification code"
                   }
                 />
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-center text-text-primary text-h2 font-display">
+                Enter your code
+              </h1>
+              <p className="text-center text-text-secondary text-body max-w-md font-display">
+                We sent a 6-digit code to{" "}
+                <span className="font-semibold">{submittedEmail}</span>
+              </p>
+
+              {error && (
+                <div className="w-full">
+                  <AuthError message={error} />
+                </div>
+              )}
+
+              <div className="w-full py-4">
+                <OtpInput
+                  value={otp}
+                  onChange={setOtp}
+                  onComplete={handleOtpComplete}
+                  disabled={loading}
+                  error={!!error}
+                />
+              </div>
+
+              <div className="w-full flex flex-col items-center gap-2 text-sm">
+                <p className="text-text-secondary">
+                  Didn&apos;t receive the code?{" "}
+                  {isCoolingDown ? (
+                    <span className="text-text-disabled">
+                      Resend in {secondsLeft}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={loading}
+                      className="text-brand-primary hover:underline disabled:opacity-50"
+                    >
+                      Resend code
+                    </button>
+                  )}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  disabled={loading}
+                  className="text-brand-primary hover:underline disabled:opacity-50"
+                >
+                  Change email
+                </button>
               </div>
             </>
           )}
@@ -192,7 +299,7 @@ function LoginPageContent() {
   );
 }
 
-function getMagicLinkError(err: unknown): {
+function getOtpError(err: unknown): {
   message: string;
   isRateLimit: boolean;
 } {
@@ -218,9 +325,30 @@ function getMagicLinkError(err: unknown): {
     return { message: "", isRateLimit: true };
   }
 
+  // Handle invalid/expired OTP errors
+  if (
+    code === "otp_expired" ||
+    message.toLowerCase().includes("expired")
+  ) {
+    return {
+      message: "Code expired. Please request a new one.",
+      isRateLimit: false,
+    };
+  }
+
+  if (
+    message.toLowerCase().includes("invalid") ||
+    message.toLowerCase().includes("incorrect")
+  ) {
+    return {
+      message: "Invalid code. Please check and try again.",
+      isRateLimit: false,
+    };
+  }
+
   if (!message) {
     return {
-      message: "Failed to send magic link. Please try again.",
+      message: "Something went wrong. Please try again.",
       isRateLimit: false,
     };
   }
