@@ -88,6 +88,7 @@ describe("useConversationFeedRealtime", () => {
     user: { name: "Test User", avatarUrl: null },
     likeCount: 0,
     likedByMe: false,
+    isMine: false,
   };
 
   beforeEach(() => {

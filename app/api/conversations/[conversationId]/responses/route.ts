@@ -87,6 +87,7 @@ export async function GET(
           response_text: string;
           tag: string | null;
           created_at: string;
+          user_id: string;
           is_anonymous?: boolean | null;
           profiles?: { display_name?: string | null; avatar_path?: string | null } | null;
         };
@@ -104,6 +105,7 @@ export async function GET(
           },
           likeCount: likeCounts.get(row.id) ?? 0,
           likedByMe: userLikes.has(row.id),
+          isMine: row.user_id === session.user.id,
         };
       }) ?? [];
 
@@ -198,6 +200,7 @@ export async function POST(
       },
       likeCount: 0,
       likedByMe: false,
+      isMine: true,
     };
 
     // 7. Broadcast response to all feed subscribers (fire-and-forget)

@@ -21,6 +21,7 @@ export interface LiveResponse {
   };
   likeCount: number;
   likedByMe: boolean;
+  isMine: boolean; // Whether the current user owns this response
   isAnonymous?: boolean; // Optional for debugging/moderation, API always normalizes user fields
 }
 

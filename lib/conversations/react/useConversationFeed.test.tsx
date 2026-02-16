@@ -45,6 +45,7 @@ class MockResponsesClient implements IConversationResponsesClient {
       user: { name: input.anonymous ? "Anonymous" : "Test User", avatarUrl: null },
       likeCount: 0,
       likedByMe: false,
+      isMine: false,
     };
     this.responses.unshift(newResponse);
     return newResponse;
@@ -92,6 +93,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 1", avatarUrl: null },
         likeCount: 5,
         likedByMe: false,
+        isMine: false,
       },
       {
         id: "2",
@@ -101,6 +103,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 2", avatarUrl: null },
         likeCount: 3,
         likedByMe: true,
+        isMine: false,
       },
     ];
 
@@ -167,6 +170,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 1", avatarUrl: null },
         likeCount: 5,
         likedByMe: false,
+        isMine: false,
       },
     ];
 
@@ -207,6 +211,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 1", avatarUrl: null },
         likeCount: 5,
         likedByMe: true,
+        isMine: false,
       },
     ];
 
@@ -247,6 +252,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 1", avatarUrl: null },
         likeCount: 5,
         likedByMe: false,
+        isMine: false,
       },
     ];
 
@@ -327,6 +333,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 1", avatarUrl: null },
         likeCount: 5,
         likedByMe: false,
+        isMine: false,
       },
     ];
 
@@ -355,6 +362,7 @@ describe("useConversationFeed", () => {
       user: { name: "User 2", avatarUrl: null },
       likeCount: 0,
       likedByMe: false,
+      isMine: false,
     });
 
     // Refresh
@@ -376,6 +384,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 1", avatarUrl: null },
         likeCount: 5,
         likedByMe: false,
+        isMine: false,
       },
     ];
 
@@ -409,6 +418,7 @@ describe("useConversationFeed", () => {
       user: { name: "User 1", avatarUrl: null },
       likeCount: 5,
       likedByMe: false,
+      isMine: false,
     };
 
     mockResponsesClient.setResponses([existingResponse]);
@@ -433,6 +443,7 @@ describe("useConversationFeed", () => {
       user: { name: "User 2", avatarUrl: null },
       likeCount: 0,
       likedByMe: false,
+      isMine: false,
     };
 
     // Append new response
@@ -461,6 +472,7 @@ describe("useConversationFeed", () => {
         user: { name: "User 1", avatarUrl: null },
         likeCount: 5,
         likedByMe: false,
+        isMine: false,
       },
     ];
 
@@ -487,6 +499,7 @@ describe("useConversationFeed", () => {
       user: { name: "User 2", avatarUrl: null },
       likeCount: 0,
       likedByMe: false,
+      isMine: false,
     });
 
     // Silent refresh - should NOT set isLoadingFeed to true

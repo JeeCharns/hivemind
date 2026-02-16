@@ -52,6 +52,7 @@ describe("broadcastResponse", () => {
     },
     likeCount: 0,
     likedByMe: false,
+    isMine: false,
   };
 
   it("broadcasts response to correct channel", async () => {
