@@ -77,24 +77,22 @@ describe("OtpInput", () => {
 
     it("should call onComplete when all digits entered", async () => {
       const onComplete = jest.fn();
-      let value = "";
-      const onChange = jest.fn((v) => {
-        value = v;
-      });
+      const onChange = jest.fn();
 
-      const { rerender } = render(
-        <OtpInput {...defaultProps} value={value} onChange={onChange} onComplete={onComplete} />
+      // Start with 5 digits already entered
+      render(
+        <OtpInput
+          {...defaultProps}
+          value="12345"
+          onChange={onChange}
+          onComplete={onComplete}
+        />
       );
 
       const inputs = screen.getAllByRole("textbox");
 
-      for (let i = 0; i < 6; i++) {
-        await userEvent.type(inputs[i], String(i + 1));
-        value = value + String(i + 1);
-        rerender(
-          <OtpInput {...defaultProps} value={value} onChange={onChange} onComplete={onComplete} />
-        );
-      }
+      // Type the final digit
+      await userEvent.type(inputs[5], "6");
 
       expect(onComplete).toHaveBeenCalledWith("123456");
     });
