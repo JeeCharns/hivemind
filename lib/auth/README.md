@@ -65,6 +65,36 @@ function Profile() {
 }
 ```
 
+## Auth Flows
+
+### OTP Authentication (Primary)
+
+The primary authentication method uses one-time passcodes (OTP) sent via email:
+
+1. User enters email on `/login`
+2. `sendOtp()` calls Supabase `signInWithOtp()` (no redirect URL = sends 6-digit code)
+3. User enters 6-digit code on same page using `OtpInput` component
+4. `verifyOtp()` exchanges code for session
+5. Session stored in cookies, user redirected to destination
+
+**Files:**
+- `app/(auth)/login/LoginPageClient.tsx` - Two-step login flow (email → OTP)
+- `app/(auth)/components/OtpInput.tsx` - 6-box code input component
+- `app/(auth)/hooks/useAuth.ts` - `sendOtp()`, `verifyOtp()` functions
+
+**Benefits over magic link:**
+- No redirect issues across email clients
+- User stays in same browser tab
+- Better mobile experience
+
+### Password Authentication
+
+For users with passwords (rare):
+
+1. User enters email and password on `/login`
+2. `signInWithPassword()` authenticates directly
+3. Session stored in cookies, user redirected to `/hives`
+
 ## API Reference
 
 ### Hooks
