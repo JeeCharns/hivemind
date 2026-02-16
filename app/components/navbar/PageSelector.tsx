@@ -11,10 +11,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { NavbarPage } from "@/types/navbar";
+import LeaveHiveButton from "./LeaveHiveButton";
 
 interface PageSelectorProps {
   hiveId: string;
   hiveSlug?: string | null;
+  hiveName?: string;
   currentPage?: NavbarPage;
   isAdmin?: boolean;
 }
@@ -26,7 +28,7 @@ const allPages = [
   { id: "invite" as NavbarPage, label: "invite", path: "/invite", adminOnly: false },
 ];
 
-export default function PageSelector({ hiveId, hiveSlug, currentPage, isAdmin = false }: PageSelectorProps) {
+export default function PageSelector({ hiveId, hiveSlug, hiveName, currentPage, isAdmin = false }: PageSelectorProps) {
   const pathname = usePathname();
   const baseKey = hiveSlug || hiveId;
   const basePath = `/hives/${baseKey}`;
@@ -96,6 +98,16 @@ export default function PageSelector({ hiveId, hiveSlug, currentPage, isAdmin = 
               </Link>
             );
           })}
+
+          {/* Divider */}
+          <div className="my-2 border-t border-slate-200" />
+
+          {/* Leave Hive Button */}
+          <LeaveHiveButton
+            hiveId={hiveId}
+            hiveName={hiveName || "this hive"}
+            onMenuClose={() => setMenuOpen(false)}
+          />
         </div>
       )}
     </div>

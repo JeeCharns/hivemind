@@ -56,7 +56,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { formatRelativeTimestamp } from "@/lib/formatters";
 
-const MAX_LEN = 200;
+const MAX_LEN = 300;
 const THEMES_READY_ALERT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const HIGH_TRAFFIC_VIEWER_THRESHOLD = 50; // Pause realtime when more viewers than this
 
@@ -502,7 +502,9 @@ export default function ListenView({
                   <div className="space-y-2">
                     <textarea
                       value={editText}
-                      onChange={(e) => setEditText(e.target.value.slice(0, MAX_LEN))}
+                      onChange={(e) =>
+                        setEditText(e.target.value.slice(0, MAX_LEN))
+                      }
                       maxLength={MAX_LEN}
                       className="w-full border border-slate-200 rounded-lg p-2 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                       rows={2}
@@ -514,7 +516,9 @@ export default function ListenView({
                       </span>
                       <div className="flex-1" />
                       {editError && (
-                        <span className="text-info text-red-600">{editError}</span>
+                        <span className="text-info text-red-600">
+                          {editError}
+                        </span>
                       )}
                       <Button
                         variant="secondary"
@@ -670,7 +674,7 @@ export default function ListenView({
                       }
                     }}
                     maxLength={MAX_LEN}
-                    placeholder="Submit as many thoughts as you can! Each submission should be concise and make one point only"
+                    placeholder="Submit as many thoughts as you can! One at a time"
                     className="w-full h-32 border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                   />
                   <span className="absolute bottom-2 left-3 text-info text-slate-500">
@@ -758,7 +762,8 @@ export default function ListenView({
 
                 <div className="flex justify-end items-center gap-3">
                   <span className="text-xs text-slate-400">
-                    {typeof navigator !== "undefined" && navigator.platform?.toLowerCase().includes("mac")
+                    {typeof navigator !== "undefined" &&
+                    navigator.platform?.toLowerCase().includes("mac")
                       ? "⌘ Enter"
                       : "Ctrl + Enter"}
                   </span>

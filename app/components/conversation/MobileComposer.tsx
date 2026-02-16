@@ -167,7 +167,7 @@ export default function MobileComposer({
                   }
                 }}
                 maxLength={MAX_LEN}
-                placeholder="Submit as many thoughts as you can! Each submission should be concise and make one point only"
+                placeholder="Submit as many thoughts as you can! One at a time"
                 className="w-full min-h-[120px] border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                 style={{ height: "auto" }}
               />
@@ -274,7 +274,8 @@ export default function MobileComposer({
           <div className="p-4 border-t border-slate-100">
             <div className="flex items-center gap-3">
               <span className="text-xs text-slate-400">
-                {typeof navigator !== "undefined" && navigator.platform?.toLowerCase().includes("mac")
+                {typeof navigator !== "undefined" &&
+                navigator.platform?.toLowerCase().includes("mac")
                   ? "⌘ Enter"
                   : "Ctrl + Enter"}
               </span>
