@@ -13,7 +13,7 @@ import { jsonError } from "@/lib/api/errors";
 import { z } from "zod";
 
 const editResponseSchema = z.object({
-  text: z.string().min(1).max(200),
+  text: z.string().min(1).max(300),
 });
 
 type RouteParams = { conversationId: string; responseId: string };
@@ -33,15 +33,26 @@ export async function PATCH(
 
     const supabase = await supabaseServerClient();
 
+    // Parse numeric ID (conversation_responses.id is bigint)
+    const numericId = parseInt(responseId, 10);
+    if (isNaN(numericId)) {
+      return jsonError("Invalid response ID", 400);
+    }
+
     // 2. Verify response exists and belongs to user
     const { data: response, error: fetchError } = await supabase
       .from("conversation_responses")
       .select("id, user_id, conversation_id")
-      .eq("id", responseId)
+      .eq("id", numericId)
       .eq("conversation_id", conversationId)
       .maybeSingle();
 
-    if (fetchError || !response) {
+    if (fetchError) {
+      console.error("[PATCH response] Fetch error:", fetchError);
+      return jsonError("Response not found", 404);
+    }
+
+    if (!response) {
       return jsonError("Response not found", 404);
     }
 
@@ -54,6 +65,7 @@ export async function PATCH(
     const validation = editResponseSchema.safeParse(body);
 
     if (!validation.success) {
+      console.error("[PATCH response] Validation error:", validation.error);
       return jsonError("Invalid request body", 400, "INVALID_INPUT");
     }
 
@@ -63,12 +75,17 @@ export async function PATCH(
       .update({
         response_text: validation.data.text.trim(),
       })
-      .eq("id", responseId)
+      .eq("id", numericId)
       .select("id, response_text, tag, created_at, user_id, is_anonymous, profiles:user_id(display_name, avatar_path)")
       .maybeSingle();
 
-    if (updateError || !updated) {
+    if (updateError) {
       console.error("[PATCH response] Update error:", updateError);
+      return jsonError("Failed to update response", 500);
+    }
+
+    if (!updated) {
+      console.error("[PATCH response] No rows updated for id:", numericId);
       return jsonError("Failed to update response", 500);
     }
 
@@ -114,11 +131,17 @@ export async function DELETE(
 
     const supabase = await supabaseServerClient();
 
+    // Parse numeric ID (conversation_responses.id is bigint)
+    const numericId = parseInt(responseId, 10);
+    if (isNaN(numericId)) {
+      return jsonError("Invalid response ID", 400);
+    }
+
     // 2. Verify response exists and belongs to user
     const { data: response, error: fetchError } = await supabase
       .from("conversation_responses")
       .select("id, user_id, conversation_id")
-      .eq("id", responseId)
+      .eq("id", numericId)
       .eq("conversation_id", conversationId)
       .maybeSingle();
 
@@ -134,7 +157,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from("conversation_responses")
       .delete()
-      .eq("id", responseId);
+      .eq("id", numericId);
 
     if (deleteError) {
       console.error("[DELETE response] Delete error:", deleteError);
