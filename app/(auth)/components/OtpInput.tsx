@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useCallback, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
+import {
+  useRef,
+  useCallback,
+  KeyboardEvent,
+  ClipboardEvent,
+  ChangeEvent,
+} from "react";
 
 type OtpInputProps = {
   length?: number;
@@ -21,10 +27,13 @@ export default function OtpInput({
 }: OtpInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const focusInput = useCallback((index: number) => {
-    const clampedIndex = Math.max(0, Math.min(index, length - 1));
-    inputRefs.current[clampedIndex]?.focus();
-  }, [length]);
+  const focusInput = useCallback(
+    (index: number) => {
+      const clampedIndex = Math.max(0, Math.min(index, length - 1));
+      inputRefs.current[clampedIndex]?.focus();
+    },
+    [length]
+  );
 
   const handleChange = useCallback(
     (index: number) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -103,7 +112,11 @@ export default function OtpInput({
   const disabledClass = disabled ? "bg-slate-100 cursor-not-allowed" : "";
 
   return (
-    <div className="flex gap-2 justify-center" role="group" aria-label="One-time password input">
+    <div
+      className="flex gap-2 justify-center"
+      role="group"
+      aria-label="One-time password input"
+    >
       {Array.from({ length }).map((_, index) => (
         <input
           key={index}

@@ -5,9 +5,9 @@ const pushMock = jest.fn();
 const refreshMock = jest.fn();
 const notifyMock = jest.fn();
 const signInWithOtpMock = jest.fn();
-const verifyOtpMock = jest.fn();
 const signInWithPasswordMock = jest.fn();
 const signOutMock = jest.fn();
+const verifyOtpMock = jest.fn();
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
@@ -25,9 +25,9 @@ jest.mock("@/lib/supabase/client", () => ({
   supabase: {
     auth: {
       signInWithOtp: (...args: unknown[]) => signInWithOtpMock(...args),
-      verifyOtp: (...args: unknown[]) => verifyOtpMock(...args),
       signInWithPassword: (...args: unknown[]) => signInWithPasswordMock(...args),
       signOut: (...args: unknown[]) => signOutMock(...args),
+      verifyOtp: (...args: unknown[]) => verifyOtpMock(...args),
     },
   },
 }));
@@ -38,13 +38,13 @@ describe("useAuth", () => {
     refreshMock.mockReset();
     notifyMock.mockReset();
     signInWithOtpMock.mockReset();
-    verifyOtpMock.mockReset();
     signInWithPasswordMock.mockReset();
     signOutMock.mockReset();
+    verifyOtpMock.mockReset();
   });
 
   describe("sendOtp", () => {
-    it("sends OTP code when called", async () => {
+    it("sends OTP without emailRedirectTo", async () => {
       signInWithOtpMock.mockResolvedValueOnce({ error: null });
       const { result } = renderHook(() => useAuth());
 
@@ -101,7 +101,7 @@ describe("useAuth", () => {
   });
 
   describe("login", () => {
-    it("sends OTP when password is empty", async () => {
+    it("calls sendOtp when password is empty", async () => {
       signInWithOtpMock.mockResolvedValueOnce({ error: null });
       const { result } = renderHook(() => useAuth());
 

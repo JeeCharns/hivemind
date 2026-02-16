@@ -69,31 +69,46 @@ function Profile() {
 
 ### OTP Authentication (Primary)
 
-The primary authentication method uses one-time passcodes (OTP) sent via email:
+The primary login method uses 6-digit OTP codes sent via email:
 
 1. User enters email on `/login`
-2. `sendOtp()` calls Supabase `signInWithOtp()` (no redirect URL = sends 6-digit code)
-3. User enters 6-digit code on same page using `OtpInput` component
+2. `sendOtp()` calls Supabase `signInWithOtp()` (no redirect URL = sends code)
+3. User enters 6-digit code on same page
 4. `verifyOtp()` exchanges code for session
 5. Session stored in cookies, user redirected to destination
 
-**Files:**
-- `app/(auth)/login/LoginPageClient.tsx` - Two-step login flow (email → OTP)
-- `app/(auth)/components/OtpInput.tsx` - 6-box code input component
-- `app/(auth)/hooks/useAuth.ts` - `sendOtp()`, `verifyOtp()` functions
+```tsx
+import { useAuth } from '@/app/(auth)/hooks/useAuth';
 
-**Benefits over magic link:**
-- No redirect issues across email clients
-- User stays in same browser tab
-- Better mobile experience
+function LoginFlow() {
+  const { sendOtp, verifyOtp, loading } = useAuth();
+  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [email, setEmail] = useState('');
+
+  const handleSendOtp = async (email: string) => {
+    await sendOtp(email);
+    setEmail(email);
+    setStep('otp');
+  };
+
+  const handleVerifyOtp = async (code: string) => {
+    await verifyOtp(email, code);
+    // Session established, redirect happens automatically
+  };
+
+  // ... render email form or OTP input based on step
+}
+```
 
 ### Password Authentication
 
-For users with passwords (rare):
+For users with passwords (legacy or admin accounts):
 
-1. User enters email and password on `/login`
-2. `signInWithPassword()` authenticates directly
-3. Session stored in cookies, user redirected to `/hives`
+```tsx
+const { login } = useAuth();
+await login(email, password);
+// Redirects to /hives on success
+```
 
 ## API Reference
 

@@ -75,24 +75,17 @@ describe("OtpInput", () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
-    it("should call onComplete when all digits entered", async () => {
+    it("should call onComplete when all digits entered via paste", async () => {
       const onComplete = jest.fn();
       const onChange = jest.fn();
 
-      // Start with 5 digits already entered
       render(
-        <OtpInput
-          {...defaultProps}
-          value="12345"
-          onChange={onChange}
-          onComplete={onComplete}
-        />
+        <OtpInput {...defaultProps} onChange={onChange} onComplete={onComplete} />
       );
 
       const inputs = screen.getAllByRole("textbox");
-
-      // Type the final digit
-      await userEvent.type(inputs[5], "6");
+      await userEvent.click(inputs[0]);
+      await userEvent.paste("123456");
 
       expect(onComplete).toHaveBeenCalledWith("123456");
     });

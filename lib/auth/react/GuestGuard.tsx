@@ -32,65 +32,58 @@ export function GuestGuard({
 
   // Track whether we've mounted (to avoid hydration mismatch with URL params)
   const [mounted, setMounted] = useState(false);
+  // Capture logged_out state BEFORE clearing URL - persists across renders
+  const [justLoggedOut, setJustLoggedOut] = useState(false);
+  // Track if we have a next param (for post-logout redirect scenarios)
+  const [hasNextParam, setHasNextParam] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate hydration guard pattern
-    setMounted(true);
-  }, []);
-
-  // Only read URL params after mount to avoid hydration mismatch
-  // (server renders with false, client may have different URL params)
-  const justLoggedOut =
-    mounted &&
-    Boolean(new URLSearchParams(window.location.search).get("logged_out"));
-
-  const hasNextParam =
-    mounted &&
-    Boolean(new URLSearchParams(window.location.search).get("next"));
-
-  useEffect(() => {
-    // Check if user just logged out (prevents redirect loop)
+    // Capture URL params BEFORE any clearing happens
     const urlParams = new URLSearchParams(window.location.search);
     const loggedOut = urlParams.get("logged_out");
     const nextParam = urlParams.get("next");
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate hydration guard pattern
+    setMounted(true);
+    if (loggedOut) {
+      setJustLoggedOut(true);
+    }
+    if (nextParam) {
+      setHasNextParam(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Wait for mount to complete before taking any action
+    if (!mounted) return;
+
     console.log("[GuestGuard] Effect running:", {
-      loggedOut,
-      nextParam,
+      justLoggedOut,
+      hasNextParam,
       isAuthenticated,
       isLoading,
-      justLoggedOut,
       url: window.location.href,
     });
 
-    if (loggedOut) {
-      console.log("[GuestGuard] Detected logged_out param, clearing state");
-      // Note: justLoggedOut state is already initialized from URL param
-      // Clear any returnUrl to prevent redirect loop
-      sessionStorage.removeItem("returnUrl");
-
-      // Clean up the URL without causing navigation
-      if (window.history.replaceState) {
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, "", cleanUrl);
-      }
-      return;
+    // Clean up URL params if present (do this once after mount)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasUrlParams = urlParams.has("logged_out") || urlParams.has("next");
+    if (hasUrlParams && window.history.replaceState) {
+      console.log("[GuestGuard] Cleaning URL params");
+      window.history.replaceState({}, "", window.location.pathname);
     }
 
-    // Don't redirect if we just logged out, even if session still shows authenticated
+    // Clear returnUrl if just logged out to prevent redirect loop
     if (justLoggedOut) {
-      console.log("[GuestGuard] Just logged out, skipping redirect");
+      sessionStorage.removeItem("returnUrl");
+      console.log("[GuestGuard] Just logged out, showing login form");
       return;
     }
 
-    // If there's a "next" parameter but we're unauthenticated, ignore it after logout
-    if (nextParam && !isLoading && !isAuthenticated) {
-      console.log("[GuestGuard] Found 'next' param but unauthenticated, clearing URL");
-      // Check if this might be a post-logout redirect loop
-      // Clear the next parameter to show the login form
-      if (window.history.replaceState) {
-        window.history.replaceState({}, "", window.location.pathname);
-      }
+    // If there's a "next" parameter but we're unauthenticated, we already captured it
+    // Just show the login form
+    if (hasNextParam && !isLoading && !isAuthenticated) {
+      console.log("[GuestGuard] Has next param but unauthenticated, showing login form");
       sessionStorage.removeItem("returnUrl");
       return;
     }
@@ -110,7 +103,7 @@ export function GuestGuard({
       console.log("[GuestGuard] Redirecting to default:", redirectTo || "/hives");
       router.push(redirectTo || "/hives");
     }
-  }, [isAuthenticated, isLoading, justLoggedOut, router, redirectTo]);
+  }, [mounted, isAuthenticated, isLoading, justLoggedOut, hasNextParam, router, redirectTo]);
 
   // Show fallback while loading or redirecting (but not if we just logged out or have a next param)
   // When hasNextParam is true, we're likely in a post-logout redirect scenario where middleware
