@@ -11,11 +11,13 @@ import { NextRequest } from "next/server";
 // Mock dependencies
 jest.mock("@/lib/supabase/serverClient");
 jest.mock("@/lib/auth/server/requireAuth");
-jest.mock("@/lib/conversations/server/requireHiveAdmin");
+jest.mock("@/lib/conversations/server/requireHiveMember");
+jest.mock("@/lib/ai/anthropic");
 
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
-import { requireHiveAdmin } from "@/lib/conversations/server/requireHiveAdmin";
+import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
+import { getAnthropicClient } from "@/lib/ai/anthropic";
 
 type SupabaseChain = {
   from: jest.Mock;
@@ -33,15 +35,17 @@ describe("POST /api/conversations/[conversationId]/report", () => {
   const mockGetServerSession = getServerSession as jest.MockedFunction<
     typeof getServerSession
   >;
-  const mockRequireHiveAdmin = requireHiveAdmin as jest.MockedFunction<
-    typeof requireHiveAdmin
+  const mockRequireHiveMember = requireHiveMember as jest.MockedFunction<
+    typeof requireHiveMember
   >;
   const mockSupabaseServerClient = supabaseServerClient as jest.MockedFunction<
     typeof supabaseServerClient
   >;
+  const mockGetAnthropicClient = getAnthropicClient as jest.MockedFunction<
+    typeof getAnthropicClient
+  >;
 
   let mockSupabase: SupabaseChain;
-  let mockFetch: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -52,7 +56,7 @@ describe("POST /api/conversations/[conversationId]/report", () => {
     });
 
     // Mock admin check (default: passes)
-    mockRequireHiveAdmin.mockResolvedValue(undefined);
+    mockRequireHiveMember.mockResolvedValue(undefined);
 
     // Create mock Supabase client with proper chaining
     const createMockChain = (): SupabaseChain => {
@@ -75,23 +79,19 @@ describe("POST /api/conversations/[conversationId]/report", () => {
       mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
     );
 
-    // Mock global fetch for OpenAI calls
-    mockFetch = jest.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        choices: [
-          {
-            message: {
-              content: "<h1>Executive Summary</h1><p>Test report content</p>",
+    // Mock Anthropic client
+    mockGetAnthropicClient.mockReturnValue({
+      messages: {
+        create: jest.fn().mockResolvedValue({
+          content: [
+            {
+              type: "text",
+              text: "<h1>Executive Summary</h1><p>Test report content</p>",
             },
-          },
-        ],
-      }),
-    } as Response);
-  });
-
-  afterEach(() => {
-    mockFetch.mockRestore();
+          ],
+        }),
+      },
+    } as unknown as ReturnType<typeof getAnthropicClient>);
   });
 
   describe("authentication and authorization", () => {
@@ -111,9 +111,9 @@ describe("POST /api/conversations/[conversationId]/report", () => {
       expect(data.error).toContain("Unauthorized");
     });
 
-    it("should return 403 when not admin", async () => {
-      mockRequireHiveAdmin.mockRejectedValueOnce(
-        new Error("Not an admin")
+    it("should return 403 when not a hive member", async () => {
+      mockRequireHiveMember.mockRejectedValueOnce(
+        new Error("Not a hive member")
       );
 
       mockSupabase.maybeSingle.mockResolvedValueOnce({
@@ -138,7 +138,7 @@ describe("POST /api/conversations/[conversationId]/report", () => {
 
       expect(response.status).toBe(403);
       const data = await response.json();
-      expect(data.error).toContain("Admin access required");
+      expect(data.error).toContain("Must be a hive member");
     });
   });
 
