@@ -62,7 +62,6 @@ export async function PATCH(
       .from("conversation_responses")
       .update({
         response_text: validation.data.text.trim(),
-        updated_at: new Date().toISOString(),
       })
       .eq("id", responseId)
       .select("id, response_text, tag, created_at, user_id, is_anonymous, profiles:user_id(display_name, avatar_path)")
