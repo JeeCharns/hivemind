@@ -17,7 +17,6 @@ import { useConversationFeedback } from "@/lib/conversations/react/useConversati
 import { getTagColors } from "@/lib/conversations/domain/tags";
 import Button from "@/app/components/button";
 import type { Feedback } from "@/types/conversation-understand";
-import FrequentlyMentionedGroupCard from "./FrequentlyMentionedGroupCard";
 import ClusterBucketCard from "./ClusterBucketCard";
 import { MISC_CLUSTER_INDEX } from "@/lib/conversations/domain/thresholds";
 import { generateClusterHullPath } from "@/lib/visualization/clusterHull";
@@ -131,7 +130,6 @@ export default function UnderstandView({
     responses,
     themes,
     feedbackItems,
-    frequentlyMentionedGroups: initialGroups,
     clusterBuckets,
     unconsolidatedResponseIds,
   } = viewModel;
@@ -153,71 +151,16 @@ export default function UnderstandView({
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const viewBoxStart = useRef(initialViewBox);
-  const [frequentlyMentionedGroups, setFrequentlyMentionedGroups] = useState(
-    initialGroups || []
-  );
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const {
     items,
-    vote: baseVote,
+    vote,
   } = useConversationFeedback({
     conversationId,
     initialItems: feedbackItems,
   });
-
-  // Wrap vote to also update frequentlyMentionedGroups
-  const vote = useCallback(
-    async (responseId: string, feedback: Feedback) => {
-      // First, do the base vote (handles ungrouped items)
-      await baseVote(responseId, feedback);
-
-      // Then, update frequentlyMentionedGroups if the response is a representative
-      setFrequentlyMentionedGroups((prevGroups) =>
-        prevGroups.map((group) => {
-          if (group.representative.id !== responseId) return group;
-
-          // Clone the group and update representative
-          const newCounts = { ...group.representative.counts };
-          const previousCurrent = group.representative.current;
-
-          // Check if this is a toggle-off (clicking the same button)
-          const isToggleOff = previousCurrent === feedback;
-
-          let newCurrent: Feedback | null = feedback;
-
-          if (isToggleOff) {
-            // Toggle off: decrement the current choice and set current to null
-            newCounts[feedback] = Math.max(0, newCounts[feedback] - 1);
-            newCurrent = null;
-          } else {
-            // Switching or new vote
-            // Decrement previous choice if exists
-            if (previousCurrent) {
-              newCounts[previousCurrent] = Math.max(
-                0,
-                newCounts[previousCurrent] - 1
-              );
-            }
-
-            // Increment new choice
-            newCounts[feedback] = newCounts[feedback] + 1;
-          }
-
-          return {
-            ...group,
-            representative: {
-              ...group.representative,
-              counts: newCounts,
-              current: newCurrent,
-            },
-          };
-        })
-      );
-    },
-    [baseVote]
-  );
 
   const points = useMemo(() => scalePoints(responses), [responses]);
 
@@ -315,31 +258,7 @@ export default function UnderstandView({
     });
   }
 
-  // Filter groups for selected theme (legacy - used when no cluster buckets available)
-  const filteredGroups = useMemo(() => {
-    if (!frequentlyMentionedGroups) return [];
-    const groups =
-      selectedTheme === "all"
-        ? frequentlyMentionedGroups
-        : selectedTheme === "unclustered"
-          ? [] // Unclustered responses don't have groups
-          : frequentlyMentionedGroups.filter(
-              (g) => g.clusterIndex === selectedTheme
-            );
-
-    // When viewing "All themes", prefer showing the most frequently mentioned groups first.
-    // Also applies within a single theme for consistency.
-    return groups.slice().sort((a, b) => {
-      const aSize = a.size ?? a.similarResponses.length + 1;
-      const bSize = b.size ?? b.similarResponses.length + 1;
-      if (bSize !== aSize) return bSize - aSize;
-      if (a.clusterIndex !== b.clusterIndex)
-        return a.clusterIndex - b.clusterIndex;
-      return a.groupId.localeCompare(b.groupId);
-    });
-  }, [frequentlyMentionedGroups, selectedTheme]);
-
-  // Filter cluster buckets for selected theme (new LLM-driven consolidation)
+  // Filter cluster buckets for selected theme (LLM-driven consolidation)
   const filteredBuckets = useMemo(() => {
     if (!clusterBuckets || clusterBuckets.length === 0) return [];
     if (selectedTheme === "all") return clusterBuckets;
@@ -347,52 +266,33 @@ export default function UnderstandView({
     return clusterBuckets.filter((b) => b.clusterIndex === selectedTheme);
   }, [clusterBuckets, selectedTheme]);
 
-  // Determine if we should use cluster buckets (new) vs groups (legacy)
-  const useClusterBuckets = filteredBuckets.length > 0;
-
   // Create set of grouped response IDs to avoid duplicate rendering
   const groupedResponseIds = useMemo(() => {
     const ids = new Set<string>();
 
-    // Add IDs from cluster buckets (new system)
-    if (useClusterBuckets) {
-      filteredBuckets.forEach((bucket) => {
-        bucket.responses.forEach((resp) => ids.add(resp.id));
-      });
-    } else {
-      // Fallback to legacy groups
-      filteredGroups.forEach((group) => {
-        ids.add(group.representative.id);
-        group.similarResponses.forEach((resp) => ids.add(resp.id));
-      });
-    }
-    return ids;
-  }, [filteredGroups, filteredBuckets, useClusterBuckets]);
+    // Add IDs from cluster buckets
+    filteredBuckets.forEach((bucket) => {
+      bucket.responses.forEach((resp) => ids.add(resp.id));
+    });
 
-  // Filter out responses that are already in groups/buckets
-  // When using cluster buckets, show unconsolidated responses as "ungrouped"
+    return ids;
+  }, [filteredBuckets]);
+
+  // Filter out responses that are already in buckets
+  // Show unconsolidated responses as "ungrouped"
   const ungroupedItems = useMemo(() => {
     const base = filteredItems.filter(
       (item) => !groupedResponseIds.has(item.id)
     );
 
-    // If using cluster buckets, also filter to only show unconsolidated items
-    if (
-      useClusterBuckets &&
-      unconsolidatedResponseIds &&
-      unconsolidatedResponseIds.length > 0
-    ) {
+    // Filter to only show unconsolidated items if we have that data
+    if (unconsolidatedResponseIds && unconsolidatedResponseIds.length > 0) {
       const unconsolidatedSet = new Set(unconsolidatedResponseIds);
       return base.filter((item) => unconsolidatedSet.has(item.id));
     }
 
     return base;
-  }, [
-    filteredItems,
-    groupedResponseIds,
-    useClusterBuckets,
-    unconsolidatedResponseIds,
-  ]);
+  }, [filteredItems, groupedResponseIds, unconsolidatedResponseIds]);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -939,30 +839,18 @@ export default function UnderstandView({
             ) : (
               /* Regular response list for filtered views */
               <>
-                {/* Render cluster buckets (new LLM-driven consolidation) */}
-                {useClusterBuckets &&
-                  filteredBuckets.map((bucket) => (
-                    <ClusterBucketCard
-                      key={bucket.bucketId}
-                      bucket={bucket}
-                      conversationId={conversationId}
-                      themeColor={getThemeColor(bucket.clusterIndex)}
-                      onVote={vote}
-                      conversationType={conversationType}
-                      feedbackById={feedbackById}
-                    />
-                  ))}
-
-                {/* Fallback: Render frequently mentioned groups (legacy) */}
-                {!useClusterBuckets &&
-                  filteredGroups.map((group) => (
-                    <FrequentlyMentionedGroupCard
-                      key={group.groupId}
-                      group={group}
-                      onVote={vote}
-                      conversationType={conversationType}
-                    />
-                  ))}
+                {/* Render cluster buckets (LLM-driven consolidation) */}
+                {filteredBuckets.map((bucket) => (
+                  <ClusterBucketCard
+                    key={bucket.bucketId}
+                    bucket={bucket}
+                    conversationId={conversationId}
+                    themeColor={getThemeColor(bucket.clusterIndex)}
+                    onVote={vote}
+                    conversationType={conversationType}
+                    feedbackById={feedbackById}
+                  />
+                ))}
 
                 {/* Render ungrouped/unconsolidated responses */}
                 {ungroupedItems.map((resp) => (

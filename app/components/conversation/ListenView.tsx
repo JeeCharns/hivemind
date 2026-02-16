@@ -13,8 +13,21 @@
  * - Like updates trigger debounced silent refresh
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ThumbsUp, PaperPlaneTilt, CaretDown, FileText, DownloadSimple } from "@phosphor-icons/react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import {
+  ThumbsUp,
+  PaperPlaneTilt,
+  CaretDown,
+  FileText,
+  DownloadSimple,
+} from "@phosphor-icons/react";
 import {
   getTagColors,
   getTagHoverClasses,
@@ -23,7 +36,10 @@ import {
   TAG_LABELS,
 } from "@/lib/conversations/domain/tags";
 import type { AnalysisStatus } from "@/types/conversations";
-import type { ListenTag, SubmitResponseInput } from "@/lib/conversations/domain/listen.types";
+import type {
+  ListenTag,
+  SubmitResponseInput,
+} from "@/lib/conversations/domain/listen.types";
 import { useConversationFeed } from "@/lib/conversations/react/useConversationFeed";
 import { useConversationFeedRealtime } from "@/lib/conversations/react/useConversationFeedRealtime";
 import { useConversationPresence } from "@/lib/conversations/react/useConversationPresence";
@@ -34,9 +50,9 @@ import MobileComposer from "@/app/components/conversation/MobileComposer";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-const MAX_LEN = 500;
+const MAX_LEN = 200;
 const THEMES_READY_ALERT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const HIGH_TRAFFIC_VIEWER_THRESHOLD = 30; // Pause realtime when more viewers than this
+const HIGH_TRAFFIC_VIEWER_THRESHOLD = 50; // Pause realtime when more viewers than this
 
 export interface ListenViewProps {
   conversationId: string;
@@ -298,15 +314,15 @@ export default function ListenView({
 
   // Shared feed component for both mobile and desktop
   const FeedContent = (
-    <div className={`bg-white border border-slate-200 rounded-2xl p-4 md:p-6 h-full overflow-y-auto ${isMobileOrTablet ? "max-h-none" : "max-h-[calc(100vh-220px)]"} space-y-4`}>
+    <div
+      className={`bg-white border border-slate-200 rounded-2xl p-4 md:p-6 h-full overflow-y-auto ${isMobileOrTablet ? "max-h-none" : "max-h-[calc(100vh-220px)]"} space-y-4`}
+    >
       {/* High traffic alert - shown when realtime is paused */}
       {realtimeStatus === "paused" && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-start gap-3">
           <span className="text-amber-600 text-lg leading-none">&#9889;</span>
           <div className="flex-1">
-            <p className="text-subtitle text-amber-800">
-              It&apos;s busy here!
-            </p>
+            <p className="text-subtitle text-amber-800">It&apos;s busy here!</p>
             <p className="text-body text-amber-700">
               Live updates paused — the feed refreshes every 30 seconds.
             </p>
@@ -319,7 +335,9 @@ export default function ListenView({
           <h3 className="text-h4 text-slate-900">Live Feed</h3>
           {viewerCount > 0 && (
             <span className="flex items-center gap-1 text-xs text-slate-500">
-              <span className={`w-1.5 h-1.5 rounded-full ${isHighTraffic ? "bg-amber-500" : "bg-emerald-500"}`} />
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${isHighTraffic ? "bg-amber-500" : "bg-emerald-500"}`}
+              />
               {viewerCount} viewing
             </span>
           )}
@@ -417,7 +435,10 @@ export default function ListenView({
   );
 
   return (
-    <div className={`pt-6 ${isMobileOrTablet ? "pb-20" : ""}`} suppressHydrationWarning>
+    <div
+      className={`pt-6 ${isMobileOrTablet ? "pb-20" : ""}`}
+      suppressHydrationWarning
+    >
       {!mounted ? (
         <div className="space-y-4">
           {[1, 2].map((i) => (
@@ -452,147 +473,152 @@ export default function ListenView({
         <>
           {getStatusPill()}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left column: Composer */}
-          <div className="space-y-4">
-            {/* Compact document preview for decision sessions */}
-            {isDecisionSession && sourceConversationId && (
-              <Link
-                href={`#`}
-                className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-3 hover:border-indigo-300 transition group"
-              >
-                <div className="shrink-0 w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-                  <FileText size={20} className="text-indigo-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-subtitle text-text-primary truncate">
-                    {sourceReportConversationTitle || "Problem Space Report"}
-                  </p>
-                  <p className="text-info text-text-muted">
-                    Reference document
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 text-indigo-600 hover:text-indigo-700"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // Download logic will be added
-                  }}
+            {/* Left column: Composer */}
+            <div className="space-y-4">
+              {/* Compact document preview for decision sessions */}
+              {isDecisionSession && sourceConversationId && (
+                <Link
+                  href={`#`}
+                  className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-3 hover:border-indigo-300 transition group"
                 >
-                  <DownloadSimple size={18} weight="bold" />
-                </Button>
-              </Link>
-            )}
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
-              <div className="relative">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value.slice(0, MAX_LEN))}
-                  maxLength={MAX_LEN}
-                  placeholder="Submit your thoughts, one at a time!"
-                  className="w-full h-32 border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
-                />
-                <span className="absolute bottom-2 left-3 text-info text-slate-500">
-                  {remaining} characters left
-                </span>
-              </div>
+                  <div className="shrink-0 w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
+                    <FileText size={20} className="text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-subtitle text-text-primary truncate">
+                      {sourceReportConversationTitle || "Problem Space Report"}
+                    </p>
+                    <p className="text-info text-text-muted">
+                      Reference document
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-indigo-600 hover:text-indigo-700"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Download logic will be added
+                    }}
+                  >
+                    <DownloadSimple size={18} weight="bold" />
+                  </Button>
+                </Link>
+              )}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="relative">
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value.slice(0, MAX_LEN))}
+                    maxLength={MAX_LEN}
+                    placeholder="Submit your thoughts, one at a time!"
+                    className="w-full h-32 border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                  />
+                  <span className="absolute bottom-2 left-3 text-info text-slate-500">
+                    {remaining} characters left
+                  </span>
+                </div>
 
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                {!isDecisionSession && (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-label text-text-primary">
-                      Tag your response (optional)
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {TagButtons}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  {!isDecisionSession && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-label text-text-primary">
+                        Tag your response (optional)
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {TagButtons}
+                      </div>
+                    </div>
+                  )}
+
+                  <div
+                    className={`flex items-center gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="text-label text-text-primary">
+                        Post as...
+                      </span>
+                      <div className="relative" ref={postAsRef}>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="w-36 px-3 justify-between gap-2"
+                          onClick={() => setPostAsOpen((o) => !o)}
+                        >
+                          <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
+                            {postAs === "self"
+                              ? (displayName[0] ?? "M").toUpperCase()
+                              : "A"}
+                          </span>
+                          <span className="text-label flex-1 truncate text-left">
+                            {postAs === "self" ? displayName : "Anonymous"}
+                          </span>
+                          <CaretDown
+                            size={14}
+                            className="shrink-0 text-slate-500"
+                          />
+                        </Button>
+                        {postAsOpen && (
+                          <div className="absolute mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
+                            {[
+                              {
+                                key: "self",
+                                label: displayName,
+                                badge:
+                                  (displayName[0] ?? "M").toUpperCase() || "M",
+                              },
+                              { key: "anon", label: "Anonymous", badge: "A" },
+                            ].map((opt) => (
+                              <Button
+                                key={opt.key}
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setPostAs(opt.key as "self" | "anon");
+                                  setPostAsOpen(false);
+                                }}
+                                className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-body hover:bg-slate-50 ${
+                                  postAs === opt.key
+                                    ? "text-brand-primary bg-indigo-50"
+                                    : "text-slate-700"
+                                }`}
+                              >
+                                <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
+                                  {opt.badge}
+                                </span>
+                                <span className="text-label">{opt.label}</span>
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
 
-                <div className={`flex items-center gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-label text-text-primary">
-                      Post as...
-                    </span>
-                    <div className="relative" ref={postAsRef}>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="w-36 px-3 justify-between gap-2"
-                        onClick={() => setPostAsOpen((o) => !o)}
-                      >
-                        <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
-                          {postAs === "self"
-                            ? (displayName[0] ?? "M").toUpperCase()
-                            : "A"}
-                        </span>
-                        <span className="text-label flex-1 truncate text-left">
-                          {postAs === "self" ? displayName : "Anonymous"}
-                        </span>
-                        <CaretDown size={14} className="shrink-0 text-slate-500" />
-                      </Button>
-                      {postAsOpen && (
-                        <div className="absolute mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
-                          {[
-                            {
-                              key: "self",
-                              label: displayName,
-                              badge:
-                                (displayName[0] ?? "M").toUpperCase() || "M",
-                            },
-                            { key: "anon", label: "Anonymous", badge: "A" },
-                          ].map((opt) => (
-                            <Button
-                              key={opt.key}
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setPostAs(opt.key as "self" | "anon");
-                                setPostAsOpen(false);
-                              }}
-                              className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-body hover:bg-slate-50 ${
-                                postAs === opt.key
-                                  ? "text-brand-primary bg-indigo-50"
-                                  : "text-slate-700"
-                              }`}
-                            >
-                              <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
-                                {opt.badge}
-                              </span>
-                              <span className="text-label">{opt.label}</span>
-                            </Button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                <div className="flex justify-end">
+                  <Button
+                    disabled={!canSubmit || isSubmitting}
+                    onClick={submitResponse}
+                    className="gap-2"
+                  >
+                    <PaperPlaneTilt size={16} />
+                    Submit
+                  </Button>
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button
-                  disabled={!canSubmit || isSubmitting}
-                  onClick={submitResponse}
-                  className="gap-2"
-                >
-                  <PaperPlaneTilt size={16} />
-                  Submit
-                </Button>
-              </div>
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-body text-red-700">
+                  {error}
+                </div>
+              )}
             </div>
 
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-body text-red-700">
-                {error}
-              </div>
-            )}
+            {/* Right column: Live feed */}
+            {FeedContent}
           </div>
-
-          {/* Right column: Live feed */}
-          {FeedContent}
-        </div>
         </>
       )}
     </div>

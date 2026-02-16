@@ -19,6 +19,7 @@ interface ConversationRecord {
   slug: string | null;
   hive_id: string;
   title: string | null;
+  description: string | null;
   type: string;
   phase: string;
   analysis_status: string | null;
@@ -71,7 +72,7 @@ export async function resolveHiveAndConversation(
 
   const { data: conversation, error: conversationError } = await supabase
     .from("conversations")
-    .select("id, slug, hive_id, title, type, phase, analysis_status, report_json, source_conversation_id, source_report_version")
+    .select("id, slug, hive_id, title, description, type, phase, analysis_status, report_json, source_conversation_id, source_report_version")
     .eq("id", conversationId)
     .eq("hive_id", hiveId)
     .maybeSingle();

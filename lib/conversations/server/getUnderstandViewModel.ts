@@ -13,12 +13,10 @@ import type {
   FeedbackItem,
   FeedbackCounts,
   Feedback,
-  FrequentlyMentionedGroup,
   ClusterBucket,
 } from "@/types/conversation-understand";
 import { requireHiveMember } from "./requireHiveMember";
 import { UNDERSTAND_MIN_RESPONSES } from "../domain/thresholds";
-import { DEFAULT_GROUPING_PARAMS } from "@/lib/conversations/domain/similarityGrouping";
 
 interface ResponseRow {
   id: string | number;
@@ -40,26 +38,6 @@ interface FeedbackRow {
   response_id: string | number;
   feedback: string;
   user_id: string;
-}
-
-interface ConversationResponseGroupMemberRow {
-  response_id: string | number;
-}
-
-interface ConversationResponseGroupRow {
-  id: string | number;
-  cluster_index: number;
-  representative_response_id: string | number;
-  group_size: number;
-  params: unknown;
-  conversation_response_group_members?: ConversationResponseGroupMemberRow[] | null;
-}
-
-interface ConsolidatedStatementRow {
-  group_id: string;
-  synthesized_statement: string;
-  combined_response_ids: number[];
-  combined_responses: string;
 }
 
 interface ClusterBucketRow {
@@ -88,41 +66,6 @@ function parseAnalysisStatus(value: unknown): UnderstandViewModel["analysisStatu
     default:
       return null;
   }
-}
-
-function normalizeGroupingParams(value: unknown): FrequentlyMentionedGroup["params"] {
-  if (!value || typeof value !== "object") {
-    return {
-      simThreshold: DEFAULT_GROUPING_PARAMS.simThreshold,
-      minGroupSize: DEFAULT_GROUPING_PARAMS.minGroupSize,
-      algorithmVersion: DEFAULT_GROUPING_PARAMS.algorithmVersion,
-    };
-  }
-
-  const record = value as Record<string, unknown>;
-
-  const simThreshold =
-    typeof record.simThreshold === "number"
-      ? record.simThreshold
-      : typeof record.sim_threshold === "number"
-        ? record.sim_threshold
-        : DEFAULT_GROUPING_PARAMS.simThreshold;
-
-  const minGroupSize =
-    typeof record.minGroupSize === "number"
-      ? record.minGroupSize
-      : typeof record.min_group_size === "number"
-        ? record.min_group_size
-        : DEFAULT_GROUPING_PARAMS.minGroupSize;
-
-  const algorithmVersion =
-    typeof record.algorithmVersion === "string"
-      ? record.algorithmVersion
-      : typeof record.algorithm_version === "string"
-        ? record.algorithm_version
-        : DEFAULT_GROUPING_PARAMS.algorithmVersion;
-
-  return { simThreshold, minGroupSize, algorithmVersion };
 }
 
 /**
@@ -155,7 +98,7 @@ export async function getUnderstandViewModel(
   await requireHiveMember(supabase, userId, conversation.hive_id);
 
   // 3. Fetch all data in parallel
-  const [responsesResult, themesResult, feedbackResult, countResult, groupsResult, statementsResult, bucketsResult, unconsolidatedResult] = await Promise.all([
+  const [responsesResult, themesResult, feedbackResult, countResult, bucketsResult, unconsolidatedResult] = await Promise.all([
     // Fetch responses with UMAP coordinates
     supabase
       .from("conversation_responses")
@@ -182,27 +125,7 @@ export async function getUnderstandViewModel(
       .select("id", { count: "exact", head: true })
       .eq("conversation_id", conversationId),
 
-    // Fetch frequently mentioned groups (legacy)
-    supabase
-      .from("conversation_response_groups")
-      .select(`
-        id,
-        cluster_index,
-        representative_response_id,
-        group_size,
-        params,
-        conversation_response_group_members(response_id)
-      `)
-      .eq("conversation_id", conversationId)
-      .order("cluster_index", { ascending: true }),
-
-    // Fetch consolidated statements for groups (legacy)
-    supabase
-      .from("conversation_consolidated_statements")
-      .select("group_id, synthesized_statement, combined_response_ids, combined_responses")
-      .eq("conversation_id", conversationId),
-
-    // Fetch cluster buckets (new LLM-driven consolidation)
+    // Fetch cluster buckets (LLM-driven consolidation)
     supabase
       .from("conversation_cluster_buckets")
       .select(`
@@ -241,16 +164,6 @@ export async function getUnderstandViewModel(
     throw new Error("Failed to count responses");
   }
 
-  if (groupsResult.error) {
-    console.error("[getUnderstandViewModel] Failed to fetch groups:", groupsResult.error);
-    // Don't throw - groups are optional feature
-  }
-
-  if (statementsResult.error) {
-    console.error("[getUnderstandViewModel] Failed to fetch consolidated statements:", statementsResult.error);
-    // Don't throw - statements are optional feature
-  }
-
   if (bucketsResult.error) {
     console.error("[getUnderstandViewModel] Failed to fetch cluster buckets:", bucketsResult.error);
     // Don't throw - buckets are optional feature
@@ -270,16 +183,8 @@ export async function getUnderstandViewModel(
   const themes = (themesResult.data || []) as ThemeDbRow[];
   const feedbackRows = (feedbackResult.data || []) as FeedbackRow[];
   const responseCount = countResult.count ?? 0;
-  const groupsData = (groupsResult.data || []) as ConversationResponseGroupRow[];
-  const statementsData = (statementsResult.data || []) as ConsolidatedStatementRow[];
   const bucketsData = (bucketsResult.data || []) as ClusterBucketRow[];
   const unconsolidatedData = (unconsolidatedResult.data || []) as UnconsolidatedResponseRow[];
-
-  // Build lookup map for consolidated statements by group_id
-  const statementsMap = new Map<string, ConsolidatedStatementRow>();
-  for (const statement of statementsData) {
-    statementsMap.set(String(statement.group_id), statement);
-  }
 
   // Normalize response IDs to strings (Supabase can return BIGINT ids as numbers)
   const normalizedResponses = responses.map((r) => ({
@@ -357,57 +262,7 @@ export async function getUnderstandViewModel(
     };
   });
 
-  // 9. Build frequently mentioned groups
-  const frequentlyMentionedGroups: FrequentlyMentionedGroup[] = groupsData.map((group) => {
-    const groupId = String(group.id);
-    const representativeId = String(group.representative_response_id);
-    const representative = normalizedResponses.find((r) => r.id === representativeId);
-    const representativeFeedback = feedbackByResponse.get(representativeId);
-
-    // Extract member IDs from join table results
-    const memberIds: string[] = (group.conversation_response_group_members || []).map((m) =>
-      String(m.response_id)
-    );
-
-    // Get similar responses (exclude representative from display)
-    const similarResponses = memberIds
-      .filter((id) => id !== representativeId)
-      .map((id) => {
-        const resp = normalizedResponses.find((r) => r.id === id);
-        return resp
-          ? {
-              id: resp.id,
-              responseText: resp.response_text,
-              tag: resp.tag,
-            }
-          : null;
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
-
-    // Look up consolidated statement for this group
-    const statement = statementsMap.get(groupId);
-
-    return {
-      groupId,
-      clusterIndex: group.cluster_index,
-      representative: {
-        id: representativeId,
-        responseText: representative?.response_text || "",
-        tag: representative?.tag || null,
-        counts: representativeFeedback?.counts || { agree: 0, pass: 0, disagree: 0 },
-        current: representativeFeedback?.current || null,
-      },
-      similarResponses,
-      size: group.group_size,
-      params: normalizeGroupingParams(group.params),
-      // Consolidated statement data (if available)
-      consolidatedStatement: statement?.synthesized_statement || null,
-      combinedResponseIds: statement?.combined_response_ids?.map(String) || [],
-      combinedResponses: statement?.combined_responses || "",
-    };
-  });
-
-  // 10. Build cluster buckets (new LLM-driven consolidation)
+  // 9. Build cluster buckets (LLM-driven consolidation)
   // Note: responses array is empty for incremental loading - fetch on demand via API
   const clusterBuckets: ClusterBucket[] = bucketsData.map((bucket) => {
     // Get member response IDs from join table
@@ -442,7 +297,6 @@ export async function getUnderstandViewModel(
     responses: responsePoints,
     themes: themeRows,
     feedbackItems,
-    frequentlyMentionedGroups,
     clusterBuckets,
     unconsolidatedResponseIds,
     analysisStatus: parseAnalysisStatus(conversation.analysis_status),

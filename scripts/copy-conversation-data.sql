@@ -35,20 +35,7 @@ WHERE conversation_id = 'a90f0609-4919-4393-acac-4ad7dd0c1279';
 SELECT * FROM conversation_response_embeddings
 WHERE conversation_id = 'a90f0609-4919-4393-acac-4ad7dd0c1279';
 
--- 1e. Export response groups
-SELECT * FROM conversation_response_groups
-WHERE conversation_id = 'a90f0609-4919-4393-acac-4ad7dd0c1279';
-
--- 1f. Export group members (join to get only members for this conversation)
-SELECT gm.* FROM conversation_response_group_members gm
-JOIN conversation_response_groups g ON gm.group_id = g.id
-WHERE g.conversation_id = 'a90f0609-4919-4393-acac-4ad7dd0c1279';
-
--- 1g. Export consolidated statements
-SELECT * FROM conversation_consolidated_statements
-WHERE conversation_id = 'a90f0609-4919-4393-acac-4ad7dd0c1279';
-
--- 1h. Export attachments
+-- 1e. Export attachments
 SELECT * FROM conversation_attachments
 WHERE conversation_id = 'a90f0609-4919-4393-acac-4ad7dd0c1279';
 
@@ -144,17 +131,14 @@ WHERE conversation_id = 'a90f0609-4919-4393-acac-4ad7dd0c1279';
 -- 3. conversation_responses
 -- 4. conversation_themes
 -- 5. conversation_response_embeddings
--- 6. conversation_response_groups
--- 7. conversation_response_group_members
--- 8. conversation_consolidated_statements
--- 9. conversation_attachments
--- 10. conversation_analysis_jobs
--- 11. conversation_cluster_models
--- 12. conversation_reports
--- 13. response_feedback
--- 14. response_likes
--- 15. quadratic_vote_allocations
--- 16. quadratic_vote_budgets
+-- 6. conversation_attachments
+-- 7. conversation_analysis_jobs
+-- 8. conversation_cluster_models
+-- 9. conversation_reports
+-- 10. response_feedback
+-- 11. response_likes
+-- 12. quadratic_vote_allocations
+-- 13. quadratic_vote_budgets
 
 -- =============================================================================
 -- CLEANUP: Re-enable RLS after import

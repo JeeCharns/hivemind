@@ -20,7 +20,7 @@ import {
 import type { ListenTag } from "@/lib/conversations/domain/listen.types";
 import Button from "@/app/components/button";
 
-const MAX_LEN = 500;
+const MAX_LEN = 200;
 
 interface MobileComposerProps {
   text: string;

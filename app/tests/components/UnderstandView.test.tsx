@@ -495,69 +495,6 @@ describe("UnderstandView theme filters", () => {
     expect(screen.getAllByText("Theme B").length).toBeGreaterThan(0);
   });
 
-  it("shows most frequently mentioned groups first when filtering to a specific theme", async () => {
-    const user = userEvent.setup();
-    const viewModel: UnderstandViewModel = {
-      ...baseViewModel(),
-      frequentlyMentionedGroups: [
-        {
-          groupId: "group-small",
-          clusterIndex: 0,
-          representative: {
-            id: "rep-small",
-            responseText: "Smaller group representative",
-            tag: null,
-            counts: { agree: 0, pass: 0, disagree: 0 },
-            current: null,
-          },
-          similarResponses: [{ id: "s1", responseText: "Similar 1", tag: null }],
-          size: 2,
-          params: { simThreshold: 0.8, minGroupSize: 2, algorithmVersion: "test" },
-        },
-        {
-          groupId: "group-large",
-          clusterIndex: 0,
-          representative: {
-            id: "rep-large",
-            responseText: "Larger group representative",
-            tag: null,
-            counts: { agree: 0, pass: 0, disagree: 0 },
-            current: null,
-          },
-          similarResponses: [
-            { id: "l1", responseText: "Similar 1", tag: null },
-            { id: "l2", responseText: "Similar 2", tag: null },
-            { id: "l3", responseText: "Similar 3", tag: null },
-          ],
-          size: 4,
-          params: { simThreshold: 0.8, minGroupSize: 2, algorithmVersion: "test" },
-        },
-      ],
-    };
-
-    useConversationFeedbackMock.mockReturnValue({
-      items: viewModel.feedbackItems,
-      vote: jest.fn(),
-      loadingId: null,
-    });
-
-    render(<UnderstandView viewModel={viewModel} />);
-
-    // Click on Theme A card to drill down
-    const themeACard = screen.getByRole("button", {
-      name: /Theme A Show 1 response/i,
-    });
-    await user.click(themeACard);
-
-    const larger = screen.getByText("Larger group representative");
-    const smaller = screen.getByText("Smaller group representative");
-
-    // Larger group should render above smaller group
-    expect(
-      larger.compareDocumentPosition(smaller) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-  });
-
   it("applies active styles to voted button and disables other buttons", async () => {
     const user = userEvent.setup();
     const feedbackItems = [

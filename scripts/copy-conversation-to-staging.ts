@@ -67,7 +67,7 @@ async function main() {
 
   try {
     // 0. Ensure system profile exists in staging (needed for response user_id FK)
-    console.log("\n[0/16] Ensuring system profile exists in staging...");
+    console.log("\n[0/13] Ensuring system profile exists in staging...");
     const profileResult = await ensureSystemProfile(stagingClient);
     results.push(profileResult);
 
@@ -78,89 +78,71 @@ async function main() {
 
     // 1. Copy hive if needed
     if (COPY_HIVE) {
-      console.log("\n[1/16] Copying hive...");
+      console.log("\n[1/13] Copying hive...");
       const hiveResult = await copyHive(prodClient, stagingClient);
       results.push(hiveResult);
     }
 
     // 2. Copy conversation
-    console.log("\n[2/16] Copying conversation...");
+    console.log("\n[2/13] Copying conversation...");
     const convResult = await copyConversation(prodClient, stagingClient);
     results.push(convResult);
 
     // 3. Copy responses
-    console.log("\n[3/16] Copying responses...");
+    console.log("\n[3/13] Copying responses...");
     const responsesResult = await copyResponses(prodClient, stagingClient);
     results.push(responsesResult);
 
     // 4. Copy themes
-    console.log("\n[4/16] Copying themes...");
+    console.log("\n[4/13] Copying themes...");
     const themesResult = await copyThemes(prodClient, stagingClient);
     results.push(themesResult);
 
     // 5. Copy response embeddings
-    console.log("\n[5/16] Copying response embeddings...");
+    console.log("\n[5/13] Copying response embeddings...");
     const embeddingsResult = await copyEmbeddings(prodClient, stagingClient);
     results.push(embeddingsResult);
 
-    // 6. Copy response groups
-    console.log("\n[6/16] Copying response groups...");
-    const groupsResult = await copyResponseGroups(prodClient, stagingClient);
-    results.push(groupsResult);
-
-    // 7. Copy group members
-    console.log("\n[7/16] Copying group members...");
-    const membersResult = await copyGroupMembers(prodClient, stagingClient);
-    results.push(membersResult);
-
-    // 8. Copy consolidated statements
-    console.log("\n[8/16] Copying consolidated statements...");
-    const statementsResult = await copyConsolidatedStatements(
-      prodClient,
-      stagingClient
-    );
-    results.push(statementsResult);
-
-    // 9. Copy attachments
-    console.log("\n[9/16] Copying attachments...");
+    // 6. Copy attachments
+    console.log("\n[6/13] Copying attachments...");
     const attachmentsResult = await copyAttachments(prodClient, stagingClient);
     results.push(attachmentsResult);
 
-    // 10. Copy analysis jobs
-    console.log("\n[10/16] Copying analysis jobs...");
+    // 7. Copy analysis jobs
+    console.log("\n[7/13] Copying analysis jobs...");
     const jobsResult = await copyAnalysisJobs(prodClient, stagingClient);
     results.push(jobsResult);
 
-    // 11. Copy cluster models
-    console.log("\n[11/16] Copying cluster models...");
+    // 8. Copy cluster models
+    console.log("\n[8/13] Copying cluster models...");
     const modelsResult = await copyClusterModels(prodClient, stagingClient);
     results.push(modelsResult);
 
-    // 12. Copy reports
-    console.log("\n[12/16] Copying reports...");
+    // 9. Copy reports
+    console.log("\n[9/13] Copying reports...");
     const reportsResult = await copyReports(prodClient, stagingClient);
     results.push(reportsResult);
 
-    // 13. Copy response feedback
-    console.log("\n[13/16] Copying response feedback...");
+    // 10. Copy response feedback
+    console.log("\n[10/13] Copying response feedback...");
     const feedbackResult = await copyResponseFeedback(
       prodClient,
       stagingClient
     );
     results.push(feedbackResult);
 
-    // 14. Copy response likes
-    console.log("\n[14/16] Copying response likes...");
+    // 11. Copy response likes
+    console.log("\n[11/13] Copying response likes...");
     const likesResult = await copyResponseLikes(prodClient, stagingClient);
     results.push(likesResult);
 
-    // 15. Copy quadratic vote allocations
-    console.log("\n[15/16] Copying quadratic vote allocations...");
+    // 12. Copy quadratic vote allocations
+    console.log("\n[12/13] Copying quadratic vote allocations...");
     const votesResult = await copyQuadraticVotes(prodClient, stagingClient);
     results.push(votesResult);
 
-    // 16. Copy quadratic vote budgets
-    console.log("\n[16/16] Copying quadratic vote budgets...");
+    // 13. Copy quadratic vote budgets
+    console.log("\n[13/13] Copying quadratic vote budgets...");
     const budgetsResult = await copyQuadraticBudgets(prodClient, stagingClient);
     results.push(budgetsResult);
 
@@ -475,136 +457,6 @@ async function copyEmbeddings(
   }
 
   console.log(`  Copied ${result.copied} embeddings`);
-  return result;
-}
-
-async function copyResponseGroups(
-  prod: SupabaseClient,
-  staging: SupabaseClient
-): Promise<CopyResult> {
-  const result: CopyResult = {
-    table: "conversation_response_groups",
-    copied: 0,
-    errors: [],
-  };
-
-  const { data, error } = await prod
-    .from("conversation_response_groups")
-    .select("*")
-    .eq("conversation_id", CONVERSATION_ID);
-
-  if (error) {
-    result.errors.push(`Failed to fetch from production: ${error.message}`);
-    return result;
-  }
-
-  if (!data || data.length === 0) {
-    console.log("  No response groups to copy");
-    return result;
-  }
-
-  const { error: insertError } = await staging
-    .from("conversation_response_groups")
-    .upsert(data, { onConflict: "id" });
-
-  if (insertError) {
-    result.errors.push(`Failed to insert into staging: ${insertError.message}`);
-    return result;
-  }
-
-  result.copied = data.length;
-  console.log(`  Copied ${result.copied} response groups`);
-  return result;
-}
-
-async function copyGroupMembers(
-  prod: SupabaseClient,
-  staging: SupabaseClient
-): Promise<CopyResult> {
-  const result: CopyResult = {
-    table: "conversation_response_group_members",
-    copied: 0,
-    errors: [],
-  };
-
-  // First get all group IDs for this conversation
-  const { data: groups, error: groupsError } = await prod
-    .from("conversation_response_groups")
-    .select("id")
-    .eq("conversation_id", CONVERSATION_ID);
-
-  if (groupsError || !groups || groups.length === 0) {
-    console.log("  No group members to copy (no groups found)");
-    return result;
-  }
-
-  const groupIds = groups.map((g) => g.id);
-
-  const { data, error } = await prod
-    .from("conversation_response_group_members")
-    .select("*")
-    .in("group_id", groupIds);
-
-  if (error) {
-    result.errors.push(`Failed to fetch from production: ${error.message}`);
-    return result;
-  }
-
-  if (!data || data.length === 0) {
-    console.log("  No group members to copy");
-    return result;
-  }
-
-  const { error: insertError } = await staging
-    .from("conversation_response_group_members")
-    .upsert(data, { onConflict: "group_id,response_id" });
-
-  if (insertError) {
-    result.errors.push(`Failed to insert into staging: ${insertError.message}`);
-    return result;
-  }
-
-  result.copied = data.length;
-  console.log(`  Copied ${result.copied} group members`);
-  return result;
-}
-
-async function copyConsolidatedStatements(
-  prod: SupabaseClient,
-  staging: SupabaseClient
-): Promise<CopyResult> {
-  const result: CopyResult = {
-    table: "conversation_consolidated_statements",
-    copied: 0,
-    errors: [],
-  };
-
-  const { data, error } = await prod
-    .from("conversation_consolidated_statements")
-    .select("*")
-    .eq("conversation_id", CONVERSATION_ID);
-
-  if (error) {
-    result.errors.push(`Failed to fetch from production: ${error.message}`);
-    return result;
-  }
-
-  if (!data || data.length === 0) {
-    console.log("  No consolidated statements to copy");
-    return result;
-  }
-
-  const { error: insertError } = await staging
-    .from("conversation_consolidated_statements")
-    .upsert(data, { onConflict: "id" });
-
-  if (insertError) {
-    result.errors.push(`Failed to insert into staging: ${insertError.message}`);
-    return result;
-  }
-
-  result.copied = data.length;
-  console.log(`  Copied ${result.copied} consolidated statements`);
   return result;
 }
 

@@ -11,9 +11,6 @@ import { createOpenAIClient, generateEmbeddings } from "@/lib/analysis/openai/em
 import { reduceToTwoD } from "@/lib/analysis/clustering/dimensionReduction";
 import { clusterEmbeddings } from "@/lib/analysis/clustering/kmeans";
 import { generateThemes, type Theme } from "@/lib/analysis/openai/themeGenerator";
-import { groupResponsesBySimilarity, DEFAULT_GROUPING_PARAMS } from "../domain/similarityGrouping";
-import { saveResponseEmbeddings } from "./saveResponseEmbeddings";
-import { saveResponseGroups } from "./saveResponseGroups";
 import { consolidateClusters, type ClusterResponse } from "@/lib/analysis/openai/clusterConsolidator";
 import { saveClusterConsolidation } from "./saveClusterConsolidation";
 import { computeMADZScores, detectOutliersPerCluster } from "../domain/outlierDetection";
@@ -274,27 +271,7 @@ export async function runConversationAnalysis(
       clusterIndices
     );
 
-    // 11. Persist embeddings for similarity grouping
-    await saveResponseEmbeddings(supabase, conversationId, responses, embeddings);
-
-    // 12. Compute and save "frequently mentioned" groups
-    const responsesWithEmbeddings = responses.map((r, i) => ({
-      id: r.id,
-      text: r.text,
-      embedding: embeddings[i],
-      clusterIndex: clusterIndices[i],
-    }));
-
-    const groups = groupResponsesBySimilarity(
-      responsesWithEmbeddings,
-      DEFAULT_GROUPING_PARAMS
-    );
-
-    await saveResponseGroups(supabase, conversationId, groups, DEFAULT_GROUPING_PARAMS);
-
-    console.log(`[runConversationAnalysis] Created ${groups.length} frequently mentioned groups`);
-
-    // 18. Broadcast subthemes/consolidation progress
+    // 11. Broadcast subthemes/consolidation progress
     await broadcastAnalysisProgress(conversationId, "subthemes");
 
     // 19. Consolidate clusters using LLM-driven semantic bucketing

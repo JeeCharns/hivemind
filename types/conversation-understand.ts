@@ -74,45 +74,6 @@ export interface FeedbackItem {
 }
 
 /**
- * Frequently mentioned group (near-duplicates within a theme)
- */
-export interface FrequentlyMentionedGroup {
-  groupId: string;
-  clusterIndex: number;
-  representative: {
-    id: string;
-    responseText: string;
-    tag: string | null;
-    counts: FeedbackCounts;
-    current: Feedback | null;
-  };
-  similarResponses: Array<{
-    id: string;
-    responseText: string;
-    tag: string | null;
-  }>;
-  size: number;
-  params: {
-    simThreshold: number;
-    minGroupSize: number;
-    algorithmVersion: string;
-  };
-  /**
-   * LLM-synthesized consolidated statement (if available)
-   * When present, this should be displayed instead of the representative's text
-   */
-  consolidatedStatement?: string | null;
-  /**
-   * IDs of responses that were combined into the consolidated statement
-   */
-  combinedResponseIds?: string[];
-  /**
-   * Original responses in "id: text | id: text" format for traceability
-   */
-  combinedResponses?: string;
-}
-
-/**
  * Response item within a cluster bucket
  */
 export interface BucketResponse {
@@ -150,7 +111,6 @@ export interface UnderstandViewModel {
   responses: ResponsePoint[];
   themes: ThemeRow[];
   feedbackItems: FeedbackItem[];
-  frequentlyMentionedGroups?: FrequentlyMentionedGroup[];
   /** LLM-generated semantic buckets per cluster */
   clusterBuckets?: ClusterBucket[];
   /** Response IDs that couldn't be consolidated */

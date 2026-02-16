@@ -73,6 +73,7 @@ export default async function ConversationLayout({
           hiveKey={hive.slug || hive.id}
           conversationKey={conversation.slug || conversation.id}
           title={conversation.title || "Conversation"}
+          description={conversation.description}
           conversationType={conversation.type as "understand" | "decide"}
           isAdmin={isAdmin}
         />

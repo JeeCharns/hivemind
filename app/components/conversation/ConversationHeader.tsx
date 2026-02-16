@@ -26,6 +26,7 @@ interface ConversationHeaderProps {
   hiveKey: string;
   conversationKey: string;
   title: string;
+  description?: string | null;
   conversationType?: "understand" | "decide";
   isAdmin?: boolean;
   showRegenerateButton?: boolean;
@@ -33,11 +34,52 @@ interface ConversationHeaderProps {
   onRegenerate?: () => void;
 }
 
+/**
+ * ExpandableDescription - Shows truncated text with Show more/less toggle
+ * Only renders if description is provided and non-empty
+ */
+function ExpandableDescription({ text }: { text: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) {
+      // Check if text overflows the 2-line clamp
+      setIsTruncated(el.scrollHeight > el.clientHeight);
+    }
+  }, [text]);
+
+  return (
+    <div className="mt-1">
+      <p
+        ref={textRef}
+        className={`text-body text-text-secondary ${
+          isExpanded ? "" : "line-clamp-2"
+        }`}
+      >
+        {text}
+      </p>
+      {isTruncated && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-body text-brand-primary hover:underline cursor-pointer mt-0.5"
+        >
+          {isExpanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ConversationHeader({
   conversationId,
   hiveKey,
   conversationKey,
   title,
+  description,
   conversationType = "understand",
   isAdmin = false,
   showRegenerateButton = false,
@@ -188,12 +230,17 @@ export default function ConversationHeader({
           All sessions
         </Link>
 
-        {/* Row 1: Title and menu */}
+        {/* Row 1: Title, description and menu */}
         <div className="flex flex-row items-start justify-between gap-4 md:gap-6">
           <div className="flex min-w-0 flex-1 items-start gap-3">
-            <h1 className="text-h3 md:text-h2 text-text-primary wrap-break-word">
-              {title}
-            </h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-h3 md:text-h2 text-text-primary wrap-break-word">
+                {title}
+              </h1>
+              {description?.trim() && (
+                <ExpandableDescription text={description.trim()} />
+              )}
+            </div>
             <div className="relative shrink-0" ref={menuRef}>
               <Button
                 type="button"
