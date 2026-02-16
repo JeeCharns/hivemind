@@ -24,28 +24,22 @@ export async function PATCH(
 ) {
   try {
     const { conversationId, responseId } = await params;
-    console.log("[PATCH response] START - conversationId:", conversationId, "responseId:", responseId);
 
     // 1. Verify authentication
     const session = await getServerSession();
     if (!session) {
-      console.log("[PATCH response] No session");
       return jsonError("Unauthorised: Not authenticated", 401);
     }
-    console.log("[PATCH response] User authenticated:", session.user.id);
 
     const supabase = await supabaseServerClient();
 
     // Parse numeric ID (conversation_responses.id is bigint)
     const numericId = parseInt(responseId, 10);
     if (isNaN(numericId)) {
-      console.log("[PATCH response] Invalid numeric ID:", responseId);
       return jsonError("Invalid response ID", 400);
     }
-    console.log("[PATCH response] Parsed numericId:", numericId);
 
     // 2. Verify response exists and belongs to user
-    console.log("[PATCH response] Fetching response...");
     const { data: response, error: fetchError } = await supabase
       .from("conversation_responses")
       .select("id, user_id, conversation_id")
@@ -53,35 +47,23 @@ export async function PATCH(
       .eq("conversation_id", conversationId)
       .maybeSingle();
 
-    if (fetchError) {
-      console.error("[PATCH response] Fetch error:", fetchError);
+    if (fetchError || !response) {
       return jsonError("Response not found", 404);
     }
-
-    if (!response) {
-      console.log("[PATCH response] Response not found for id:", numericId);
-      return jsonError("Response not found", 404);
-    }
-    console.log("[PATCH response] Found response, user_id:", response.user_id);
 
     if (response.user_id !== session.user.id) {
-      console.log("[PATCH response] User mismatch - response.user_id:", response.user_id, "session.user.id:", session.user.id);
       return jsonError("Unauthorised: You can only edit your own responses", 403);
     }
 
     // 3. Validate input
     const body = await req.json();
-    console.log("[PATCH response] Request body:", body);
     const validation = editResponseSchema.safeParse(body);
 
     if (!validation.success) {
-      console.error("[PATCH response] Validation error:", validation.error);
       return jsonError("Invalid request body", 400, "INVALID_INPUT");
     }
-    console.log("[PATCH response] Validation passed, text length:", validation.data.text.length);
 
-    // 4. Update response (separate update and select due to Supabase RLS quirks)
-    console.log("[PATCH response] Updating response...");
+    // 4. Update response
     const { error: updateError } = await supabase
       .from("conversation_responses")
       .update({
@@ -93,7 +75,6 @@ export async function PATCH(
       console.error("[PATCH response] Update error:", updateError);
       return jsonError("Failed to update response", 500);
     }
-    console.log("[PATCH response] Update executed, fetching updated row...");
 
     // 5. Fetch the updated response
     const { data: updated, error: fetchUpdatedError } = await supabase
@@ -106,7 +87,6 @@ export async function PATCH(
       console.error("[PATCH response] Fetch updated error:", fetchUpdatedError);
       return jsonError("Failed to update response", 500);
     }
-    console.log("[PATCH response] Fetched updated data:", updated);
 
     // 6. Format response
     const profile = updated.profiles as
