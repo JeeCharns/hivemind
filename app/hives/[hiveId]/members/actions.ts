@@ -174,3 +174,71 @@ export async function removeMemberAction(
     };
   }
 }
+
+/**
+ * Leave a hive (self-removal)
+ *
+ * Security:
+ * - User must be authenticated
+ * - User must be a member of the hive
+ * - Prevents last admin from leaving
+ *
+ * @param hiveId - Hive UUID
+ */
+export async function leaveHiveAction(hiveId: string): Promise<MemberActionResult> {
+  try {
+    // 1. Validate inputs
+    if (!hiveId) {
+      return { success: false, error: "Invalid input: missing hive ID" };
+    }
+
+    // 2. Verify authentication
+    const session = await getServerSession();
+    if (!session) {
+      return { success: false, error: "Unauthorized: Not authenticated" };
+    }
+
+    const supabase = await supabaseServerClient();
+    const userId = session.user.id;
+
+    // 3. Fetch current members to validate the removal
+    const members = await getMembersWithSignedUrls(supabase, hiveId, userId);
+
+    // Check if user is actually a member
+    const isMember = members.some((m) => m.userId === userId);
+    if (!isMember) {
+      return { success: false, error: "You are not a member of this hive" };
+    }
+
+    // 4. Validate removal (prevents last admin from leaving)
+    const validation = canRemoveMember(members, userId);
+
+    if (!validation.canRemove) {
+      return { success: false, error: validation.reason || "Cannot leave hive" };
+    }
+
+    // 5. Remove the member
+    const { error: deleteError } = await supabase
+      .from("hive_members")
+      .delete()
+      .eq("hive_id", hiveId)
+      .eq("user_id", userId);
+
+    if (deleteError) {
+      console.error("[leaveHiveAction] Delete failed:", deleteError);
+      return { success: false, error: "Failed to leave hive" };
+    }
+
+    // 6. Revalidate the page
+    revalidatePath(`/hives/${hiveId}/members`);
+    revalidatePath(`/hives`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("[leaveHiveAction] Error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to leave hive",
+    };
+  }
+}
