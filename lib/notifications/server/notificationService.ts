@@ -6,6 +6,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Notification, NotificationRow, EmailPreferences } from '../domain/notification.types';
+import { DEFAULT_EMAIL_PREFERENCES } from '../domain/notification.types';
 
 function mapRowToNotification(row: NotificationRow): Notification {
   return {
@@ -105,6 +106,9 @@ export async function getNotificationById(
     .single();
 
   if (error || !data) {
+    if (error) {
+      console.error('[notificationService] getNotificationById error:', error);
+    }
     return null;
   }
 
@@ -122,7 +126,7 @@ export async function getEmailPreferences(
     .single();
 
   if (error || !data?.email_preferences) {
-    return { new_conversation: true, conversation_progress: true };
+    return DEFAULT_EMAIL_PREFERENCES;
   }
 
   return data.email_preferences as EmailPreferences;
@@ -150,6 +154,12 @@ export async function updateEmailPreferences(
   return updated;
 }
 
+/**
+ * Get user's email address from Supabase Auth.
+ *
+ * Note: Requires a service-role Supabase client (supabaseAdmin) as it uses
+ * the auth.admin API. Will fail with a regular authenticated client.
+ */
 export async function getUserEmail(
   supabase: SupabaseClient,
   userId: string
