@@ -31,9 +31,10 @@ CREATE INDEX idx_user_notifications_user_unread
   WHERE read_at IS NULL;
 
 -- Index for 90-day cleanup job
-CREATE INDEX idx_user_notifications_cleanup
-  ON user_notifications(created_at)
-  WHERE created_at < now() - INTERVAL '90 days';
+CREATE INDEX idx_user_notifications_created_at ON user_notifications(created_at);
+
+-- Index for response_id FK lookups
+CREATE INDEX idx_user_notifications_response_id ON user_notifications(response_id) WHERE response_id IS NOT NULL;
 
 -- Enable RLS
 ALTER TABLE user_notifications ENABLE ROW LEVEL SECURITY;
@@ -42,26 +43,26 @@ ALTER TABLE user_notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own notifications"
   ON user_notifications
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- Policy: Users can update their own notifications (mark as read)
 CREATE POLICY "Users can update own notifications"
   ON user_notifications
   FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- Policy: Users can delete their own notifications
 CREATE POLICY "Users can delete own notifications"
   ON user_notifications
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- Policy: Service role has full access (for triggers)
 CREATE POLICY "Service role has full access to user_notifications"
   ON user_notifications
   FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');
+  USING ((select auth.jwt()) ->> 'role' = 'service_role');
 
 -- Enable realtime for notifications
 ALTER PUBLICATION supabase_realtime ADD TABLE user_notifications;
@@ -100,7 +101,8 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
 
 CREATE TRIGGER trg_notify_new_conversation
   AFTER INSERT ON conversations
@@ -129,7 +131,8 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
 
 CREATE TRIGGER trg_notify_analysis_complete
   AFTER UPDATE ON conversations
@@ -165,7 +168,8 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
 
 CREATE TRIGGER trg_notify_report_generated
   AFTER INSERT ON conversation_reports
@@ -210,7 +214,8 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
 
 CREATE TRIGGER trg_notify_opinion_liked
   AFTER INSERT ON response_likes
