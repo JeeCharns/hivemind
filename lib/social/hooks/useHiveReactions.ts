@@ -30,6 +30,8 @@ type ReactionStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
 interface UseHiveReactionsResult {
   reactions: Reaction[];
   status: ReactionStatus;
+  /** Refresh reactions from the server (silent, no loading state) */
+  refresh: () => Promise<void>;
 }
 
 /** Shape of the hive_reactions row from Postgres */
@@ -57,6 +59,57 @@ export function useHiveReactions({
   const [reactions, setReactions] = useState<Reaction[]>(initialReactions);
   const [status, setStatus] = useState<ReactionStatus>('disconnected');
   const channelRef = useRef<RealtimeChannel | null>(null);
+
+  // Silent refresh - fetches latest reactions from server
+  const refresh = useCallback(async () => {
+    if (!supabase || !hiveId) return;
+
+    try {
+      // Fetch reactions
+      const { data: reactionsData, error: reactionsError } = await supabase
+        .from('hive_reactions')
+        .select('id, hive_id, user_id, emoji, message, created_at')
+        .eq('hive_id', hiveId)
+        .order('created_at', { ascending: false })
+        .limit(maxReactions);
+
+      if (reactionsError || !reactionsData) {
+        console.error('[useHiveReactions] Refresh error:', reactionsError);
+        return;
+      }
+
+      // Fetch profiles for display names
+      const userIds = [...new Set(reactionsData.map((r) => r.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', userIds);
+
+      const displayNameMap = new Map<string, string>();
+      if (profiles) {
+        for (const profile of profiles) {
+          if (profile.display_name) {
+            displayNameMap.set(profile.id, profile.display_name);
+          }
+        }
+      }
+
+      // Update state
+      setReactions(
+        reactionsData.map((row) => ({
+          id: row.id,
+          hiveId: row.hive_id,
+          userId: row.user_id,
+          displayName: displayNameMap.get(row.user_id) ?? null,
+          emoji: row.emoji as ReactionEmoji,
+          message: row.message,
+          createdAt: row.created_at,
+        }))
+      );
+    } catch (err) {
+      console.error('[useHiveReactions] Refresh error:', err);
+    }
+  }, [hiveId, maxReactions]);
 
   const handleNewReaction = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
@@ -121,5 +174,5 @@ export function useHiveReactions({
     };
   }, [hiveId, handleNewReaction]);
 
-  return { reactions, status };
+  return { reactions, status, refresh };
 }

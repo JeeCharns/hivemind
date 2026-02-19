@@ -37,6 +37,7 @@ export function HiveHomeSidebar({
       <ActivitySidebar hiveId={hiveId} initialActivity={initialActivity} />
       <ReactionsSidebar
         hiveId={hiveId}
+        userId={userId}
         initialReactions={initialReactions}
         onAddReaction={onAddReaction}
       />

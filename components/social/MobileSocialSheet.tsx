@@ -83,7 +83,7 @@ export function MobileSocialSheet({
                 >
                   {tab === 'presence' && "Who's here"}
                   {tab === 'activity' && 'Activity'}
-                  {tab === 'reactions' && 'Reactions'}
+                  {tab === 'reactions' && 'Chat'}
                 </button>
               ))}
             </div>
@@ -107,6 +107,7 @@ export function MobileSocialSheet({
               {activeTab === 'reactions' && (
                 <ReactionsSidebar
                   hiveId={hiveId}
+                  userId={userId}
                   initialReactions={initialReactions}
                   onAddReaction={onAddReaction}
                 />
