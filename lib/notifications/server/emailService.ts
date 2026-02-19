@@ -6,6 +6,7 @@
 
 import nodemailer from 'nodemailer';
 import type { NotificationType } from '../domain/notification.types';
+import { escapeHtml } from '@/lib/conversations/domain/reportHtml';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST ?? 'smtp.zoho.com',
@@ -37,9 +38,9 @@ function getEmailContent(
         subject: `New conversation: ${body ?? 'Untitled'}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #1e293b;">${title}</h2>
+            <h2 style="color: #1e293b;">${escapeHtml(title)}</h2>
             <p style="color: #475569;">A new conversation has been started:</p>
-            <p style="color: #1e293b; font-size: 18px; font-weight: 500;">${body ?? 'Untitled'}</p>
+            <p style="color: #1e293b; font-size: 18px; font-weight: 500;">${escapeHtml(body ?? 'Untitled')}</p>
             <a href="${fullLink}" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px;">View Conversation</a>
           </div>
         `,
@@ -51,8 +52,8 @@ function getEmailContent(
         subject: `${type === 'analysis_complete' ? 'Analysis complete' : 'New report available'}: ${body ?? 'Untitled'}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #1e293b;">${title}</h2>
-            <p style="color: #475569;">The conversation "${body ?? 'Untitled'}" has new insights available.</p>
+            <h2 style="color: #1e293b;">${escapeHtml(title)}</h2>
+            <p style="color: #475569;">The conversation "${escapeHtml(body ?? 'Untitled')}" has new insights available.</p>
             <a href="${fullLink}" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px;">View Insights</a>
           </div>
         `,
