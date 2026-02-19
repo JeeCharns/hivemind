@@ -28,6 +28,7 @@
     "@upstash/redis": "^1.36.1",
     "bson": "^6.10.4",
     "csv-parse": "^6.1.0",
+    "date-fns": "^4.1.0",
     "ml-kmeans": "^4.2.1",
     "mongodb": "^7.0.0",
     "next": "16.0.10",

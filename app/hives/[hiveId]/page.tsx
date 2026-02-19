@@ -1,7 +1,7 @@
 /**
  * Hive Details Page (Server Component)
  *
- * Fetches hive and conversations data on the server
+ * Fetches hive, conversations, and social sidebar data on the server
  * Follows SOLID principles and security best practices
  */
 
@@ -10,9 +10,12 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
 import { getHiveById } from "@/lib/navbar/data/hiveRepository";
 import { listHiveConversations } from "@/lib/conversations/server/listHiveConversations";
+import { getRecentActivity } from "@/lib/social/server/activityService";
+import { getRecentReactions } from "@/lib/social/server/reactionsService";
 import HiveHome from "./HiveHome";
 import { redirect } from "next/navigation";
 import Button from "@/app/components/button";
+import { WELCOME_HIVE_ID } from "@/lib/hives/constants";
 
 export default async function HivePage({
   params,
@@ -42,10 +45,23 @@ export default async function HivePage({
     return <HiveNotFound />;
   }
 
-  // 4. Fetch conversations (includes membership check)
-  const conversations = await listHiveConversations(supabase, hiveId, session.user.id);
+  // 4. Fetch conversations, profile, and social sidebar data in parallel
+  const [conversations, profile, activity, reactions] = await Promise.all([
+    listHiveConversations(supabase, hiveId, session.user.id),
+    supabase
+      .from("profiles")
+      .select("display_name, avatar_url")
+      .eq("id", session.user.id)
+      .maybeSingle()
+      .then(({ data }) => data),
+    getRecentActivity(supabase, hiveId, 15),
+    getRecentReactions(supabase, hiveId, 20),
+  ]);
 
-  // 5. Render with data
+  // 5. Detect Welcome Hive
+  const isWelcomeHive = hiveId === WELCOME_HIVE_ID;
+
+  // 6. Render with data
   return (
     <HiveHome
       hiveId={hiveId}
@@ -53,6 +69,12 @@ export default async function HivePage({
       hiveName={hive.name}
       conversations={conversations}
       logoUrl={hive.logo_url}
+      userId={session.user.id}
+      displayName={profile?.display_name || "Anonymous"}
+      avatarUrl={profile?.avatar_url || null}
+      initialActivity={activity}
+      initialReactions={reactions}
+      isWelcomeHive={isWelcomeHive}
     />
   );
 }
