@@ -76,7 +76,9 @@ If none apply, explicitly state “No doc updates needed” and why.
 
 - **NEVER** push to any branch without explicit user approval
 - **NEVER** commit without explicit user approval
+- **NEVER** push directly to main - all changes go to staging first
 - Always show the diff and ask before committing
+- Workflow: feature branch or staging → test → merge to main only after user verification
 
 ## Completion Checklist (Required in Final Output)
 

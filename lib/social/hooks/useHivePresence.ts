@@ -60,6 +60,9 @@ export function useHivePresence({
       return;
     }
 
+    // Debug: log what displayName we received
+    console.log("[useHivePresence] Starting with displayName:", displayName);
+
     const channelName = `hive:${hiveId}:presence`;
 
     const channel = supabase.channel(channelName, {
@@ -69,6 +72,8 @@ export function useHivePresence({
     channel
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
+        // Debug: log raw presence state
+        console.log("[useHivePresence] Presence state:", JSON.stringify(state));
         const users: PresenceUser[] = [];
 
         for (const [key, presences] of Object.entries(state)) {
@@ -88,6 +93,8 @@ export function useHivePresence({
       .subscribe(async (subscriptionStatus) => {
         if (subscriptionStatus === "SUBSCRIBED") {
           setStatus("connected");
+          // Debug: log what we're tracking
+          console.log("[useHivePresence] Tracking presence:", { displayName, avatarUrl });
           // Track our own presence
           await channel.track({
             displayName,
