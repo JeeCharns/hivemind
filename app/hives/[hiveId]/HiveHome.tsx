@@ -1,19 +1,23 @@
 /**
  * Hive Home - Presentational Component
  *
- * Displays hive details and conversation cards
+ * Displays hive details and conversation cards with social sidebar
  * Follows SRP: only responsible for UI rendering
  * All data comes from props (server component)
  */
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ConversationCardData } from "@/types/conversations";
+import type { ActivityEvent, Reaction, ReactionEmoji } from "@/lib/social/types";
 import ConversationCard from "./components/ConversationCard";
 import NewSessionLauncher from "@/app/components/new-session-launcher";
 import HiveLogo from "@/app/components/hive-logo";
 import { getLogoSignedUrl } from "@/lib/supabase/storage";
+import { HiveHomeSidebar } from "./HiveHomeSidebar";
+import { CreateHiveCTA } from "@/components/hives/CreateHiveCTA";
+import { MobileSocialSheet } from "@/components/social";
 
 interface HiveHomeProps {
   hiveId: string;
@@ -21,6 +25,13 @@ interface HiveHomeProps {
   hiveName: string;
   conversations: ConversationCardData[];
   logoUrl?: string | null;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  initialActivity: ActivityEvent[];
+  initialReactions: Reaction[];
+  /** Whether this is the Welcome Hive (shows Create Hive CTA) */
+  isWelcomeHive?: boolean;
 }
 
 export default function HiveHome({
@@ -29,6 +40,12 @@ export default function HiveHome({
   hiveName,
   conversations,
   logoUrl = null,
+  userId,
+  displayName,
+  avatarUrl,
+  initialActivity,
+  initialReactions,
+  isWelcomeHive = false,
 }: HiveHomeProps) {
   const [logo, setLogo] = useState<{
     logoUrl: string;
@@ -53,6 +70,21 @@ export default function HiveHome({
     };
   }, [logoUrl]);
 
+  const handleAddReaction = useCallback(
+    async (emoji: ReactionEmoji, message?: string) => {
+      const response = await fetch(`/api/hives/${hiveId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji, message }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add reaction");
+      }
+    },
+    [hiveId]
+  );
+
   return (
     <div className="relative mx-auto w-full max-w-7xl min-h-[833px] flex flex-col gap-6 md:gap-10 rounded-3xl px-3 md:px-4 py-6 md:py-10">
       {/* Header */}
@@ -71,27 +103,64 @@ export default function HiveHome({
         </div>
       </header>
 
-      {/* Conversations Grid */}
-      {conversations.length === 0 ? (
-        <div className="mt-4 flex">
-          <div className="w-full md:w-1/2 lg:w-1/3">
-            <NewSessionLauncher asCard hiveId={hiveId} hiveSlug={hiveKey} />
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {conversations.map((conversation) => (
-            <ConversationCard
-              key={conversation.id}
-              hiveKey={hiveKey}
-              conversation={conversation}
-            />
-          ))}
+      {/* Two-column layout */}
+      <div className="flex gap-6">
+        {/* Main content */}
+        <main className="min-w-0 flex-1">
+          {/* Conversations Grid */}
+          {conversations.length === 0 ? (
+            <div className="flex">
+              <div className="w-full md:w-1/2 lg:w-1/2">
+                <NewSessionLauncher asCard hiveId={hiveId} hiveSlug={hiveKey} />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {conversations.map((conversation) => (
+                <ConversationCard
+                  key={conversation.id}
+                  hiveKey={hiveKey}
+                  conversation={conversation}
+                />
+              ))}
 
-          {/* New Session Card */}
-          <NewSessionLauncher asCard hiveId={hiveId} hiveSlug={hiveKey} />
+              {/* New Session Card */}
+              <NewSessionLauncher asCard hiveId={hiveId} hiveSlug={hiveKey} />
+            </div>
+          )}
+
+          {/* Create Hive CTA - shown on Welcome Hive */}
+          {isWelcomeHive && (
+            <div className="mt-6">
+              <CreateHiveCTA variant="prominent" />
+            </div>
+          )}
+        </main>
+
+        {/* Sidebar - hidden on mobile */}
+        <div className="hidden w-72 shrink-0 lg:block">
+          <HiveHomeSidebar
+            hiveId={hiveId}
+            userId={userId}
+            displayName={displayName}
+            avatarUrl={avatarUrl}
+            initialActivity={initialActivity}
+            initialReactions={initialReactions}
+            onAddReaction={handleAddReaction}
+          />
         </div>
-      )}
+      </div>
+
+      {/* Mobile social sheet - visible only on mobile */}
+      <MobileSocialSheet
+        hiveId={hiveId}
+        userId={userId}
+        displayName={displayName}
+        avatarUrl={avatarUrl}
+        initialActivity={initialActivity}
+        initialReactions={initialReactions}
+        onAddReaction={handleAddReaction}
+      />
     </div>
   );
 }
