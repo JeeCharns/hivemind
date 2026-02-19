@@ -123,6 +123,7 @@ export async function getNavbarViewModel(
 
   return {
     user,
+    userId: session.user.id,
     hives: hiveOptions,
     currentHive,
     currentPage,

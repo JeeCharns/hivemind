@@ -20,13 +20,14 @@ import HiveSelector from "./navbar/HiveSelector";
 import PageSelector from "./navbar/PageSelector";
 import UserMenu from "./navbar/UserMenu";
 import MobileDrawer from "./navbar/MobileDrawer";
+import NotificationBell from "./navbar/NotificationBell";
 
 interface NavbarProps {
   viewModel: NavbarViewModel;
 }
 
 export default function Navbar({ viewModel }: NavbarProps) {
-  const { user, hives, currentHive, currentPage } = viewModel;
+  const { user, userId, hives, currentHive, currentPage } = viewModel;
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -68,7 +69,7 @@ export default function Navbar({ viewModel }: NavbarProps) {
             </div>
           </div>
 
-          {/* Right: User Menu (desktop) or Hamburger (mobile) */}
+          {/* Right: Notifications + User Menu (desktop) or Hamburger (mobile) */}
           {isMobile ? (
             <button
               type="button"
@@ -91,7 +92,12 @@ export default function Navbar({ viewModel }: NavbarProps) {
               </svg>
             </button>
           ) : (
-            user && <UserMenu user={user} />
+            user && (
+              <div className="flex items-center gap-2">
+                {userId && <NotificationBell userId={userId} />}
+                <UserMenu user={user} />
+              </div>
+            )
           )}
         </div>
       </nav>

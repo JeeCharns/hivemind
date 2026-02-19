@@ -29,6 +29,8 @@ export type NavbarPage = "home" | "members" | "settings" | "invite";
 
 export interface NavbarViewModel {
   user: NavbarUser | null;
+  /** User ID for notifications hook - null when not logged in */
+  userId: string | null;
   hives: HiveOption[];
   currentHive: CurrentHive | null;
   currentPage: NavbarPage;
