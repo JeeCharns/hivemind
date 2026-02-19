@@ -54,7 +54,17 @@ export async function getRecentReactions(
 ): Promise<Reaction[]> {
   const { data, error } = await supabase
     .from("hive_reactions")
-    .select("id, hive_id, user_id, emoji, message, created_at")
+    .select(
+      `
+      id,
+      hive_id,
+      user_id,
+      emoji,
+      message,
+      created_at,
+      profiles!hive_reactions_user_id_fkey(display_name)
+    `
+    )
     .eq("hive_id", hiveId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -64,12 +74,17 @@ export async function getRecentReactions(
     return [];
   }
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    hiveId: row.hive_id,
-    userId: row.user_id,
-    emoji: row.emoji,
-    message: row.message,
-    createdAt: row.created_at,
-  }));
+  return (data ?? []).map((row) => {
+    // Supabase returns joined profile as object for to-one FK relationship
+    const profile = row.profiles as unknown as { display_name: string } | null;
+    return {
+      id: row.id,
+      hiveId: row.hive_id,
+      userId: row.user_id,
+      displayName: profile?.display_name ?? null,
+      emoji: row.emoji,
+      message: row.message,
+      createdAt: row.created_at,
+    };
+  });
 }

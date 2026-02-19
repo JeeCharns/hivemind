@@ -26,6 +26,7 @@ export interface Reaction {
   id: string;
   hiveId: string;
   userId: string;
+  displayName: string | null;
   emoji: ReactionEmoji;
   message: string | null;
   createdAt: string;

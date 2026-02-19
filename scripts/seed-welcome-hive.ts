@@ -34,7 +34,7 @@ async function seedWelcomeHive() {
       {
         id: WELCOME_HIVE_ID,
         slug: WELCOME_HIVE_SLUG,
-        name: 'Welcome to Hivemind',
+        name: 'Welcome to Hive',
         visibility: 'public', // Searchable and joinable by anyone
         is_system_hive: true,
       },

@@ -67,6 +67,7 @@ export function useHiveReactions({
           id: row.id,
           hiveId: row.hive_id,
           userId: row.user_id,
+          displayName: null, // Real-time events don't include joined profile data
           emoji: row.emoji as ReactionEmoji,
           message: row.message,
           createdAt: row.created_at,

@@ -70,7 +70,7 @@ export function PresenceSidebar({
       </div>
 
       {overflowCount > 0 && (
-        <p className="mt-2 text-sm text-gray-500">+ {overflowCount} others</p>
+        <p className="mt-2 text-sm text-gray-500">and {overflowCount} others</p>
       )}
     </div>
   );

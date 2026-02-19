@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useHiveReactions } from '@/lib/social/hooks';
+import { formatRelativeTimestamp } from '@/lib/formatters';
 import type { Reaction, ReactionEmoji } from '@/lib/social/types';
 
 interface ReactionsSidebarProps {
@@ -39,20 +40,30 @@ export function ReactionsSidebar({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">Reactions</h3>
+      <h3 className="mb-3 text-sm font-semibold text-gray-900">Chat</h3>
 
-      {/* Reaction list */}
-      <div className="mb-3 space-y-2">
+      {/* Chat messages list - newest first */}
+      <div className="mb-3 space-y-3">
         {reactions.slice(0, 5).map((reaction) => (
           <div key={reaction.id} className="flex items-start gap-2">
             <span className="text-lg">{reaction.emoji}</span>
-            {reaction.message && (
-              <span className="text-sm text-gray-700">{reaction.message}</span>
-            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-medium text-gray-900 truncate">
+                  {reaction.displayName || 'Anonymous'}
+                </span>
+                <span className="text-xs text-gray-400 flex-shrink-0">
+                  {formatRelativeTimestamp(reaction.createdAt)}
+                </span>
+              </div>
+              {reaction.message && (
+                <p className="text-sm text-gray-700 mt-0.5">{reaction.message}</p>
+              )}
+            </div>
           </div>
         ))}
         {reactions.length === 0 && (
-          <p className="text-sm text-gray-500">Be the first to react!</p>
+          <p className="text-sm text-gray-500">Be the first to say hello!</p>
         )}
       </div>
 
