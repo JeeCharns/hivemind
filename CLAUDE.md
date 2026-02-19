@@ -72,6 +72,12 @@ If none apply, explicitly state “No doc updates needed” and why.
 - Use **British English** spelling in all user-facing text and comments (e.g., "analysing" not "analyzing", "colour" not "color", "organised" not "organized").
 - Note: Database enum values (e.g., `analysis_status: 'analyzing'`) and existing API contracts should not be changed to avoid breaking changes.
 
+## Git Rules
+
+- **NEVER** push to any branch without explicit user approval
+- **NEVER** commit without explicit user approval
+- Always show the diff and ask before committing
+
 ## Completion Checklist (Required in Final Output)
 
 When you finish an implementation, your final response must include:
