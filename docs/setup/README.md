@@ -54,3 +54,29 @@ This creates (or updates) the Welcome Hive with sample conversations. Run once p
 ## Analysis Worker
 
 - Worker docs + commands: `scripts/README.md`
+
+## Email Notifications (Optional)
+
+To enable email notifications, configure SMTP settings in `.env.local`:
+
+```env
+# Zoho SMTP (or other provider)
+SMTP_HOST=smtp.zoho.com
+SMTP_PORT=465
+SMTP_USER=noreply@yourdomain.com
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM="Hivemind <noreply@yourdomain.com>"
+
+# Internal API key for trigger-to-API communication
+INTERNAL_API_KEY=generate-a-secure-random-key
+```
+
+If SMTP is not configured, in-app notifications still work but emails are skipped.
+
+**Database triggers:** Notification triggers are created by migration `039_create_notifications.sql`. These automatically create in-app notifications when:
+- New conversation starts in a hive
+- Conversation analysis completes
+- Report is generated
+- Someone likes a user's response
+
+**Email delivery:** Currently requires manual integration with pg_net or a background worker. See `docs/plans/2026-02-19-notifications-design.md` for architecture details.

@@ -91,9 +91,18 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 | Close voting round | Admin action | `app/api/decision-space/[conversationId]/rounds/[roundId]/close/route.ts` (POST) | Service: `lib/decision-space/server/closeDecisionRound.ts`; triggers: `lib/decision-space/server/generateDecisionResults.ts`; requires hive admin role | (add test coverage if changing) |
 | Decision session tabs (Listen/Vote/Results) | `app/hives/[hiveId]/conversations/[conversationId]/decide/page.tsx`, `app/components/conversation/DecisionView.tsx`, `app/components/conversation/DecisionViewContainer.tsx` | `app/api/decision-space/[conversationId]/vote/route.ts` (POST) | View model: `lib/decision-space/server/getDecisionViewModel.ts`; components: DecisionView (3-tab UI), DecisionViewContainer (API wrapper); types: `types/decision-space.ts` | (add test coverage if changing) |
 
+## Notifications
+
+| Flow | UI entry | API | Core logic | Tests |
+| --- | --- | --- | --- | --- |
+| In-app notifications (real-time) | `app/components/navbar/NotificationBell.tsx`, `app/components/navbar/NotificationDropdown.tsx` | `app/api/notifications/route.ts` (GET/DELETE), `app/api/notifications/read/route.ts` (PATCH) | Hook: `lib/notifications/hooks/useNotifications.ts` (Supabase Realtime, postgres_changes); service: `lib/notifications/server/notificationService.ts` | (add test coverage if changing) |
+| Email notification preferences | `app/settings/AccountSettingsForm.tsx` (NotificationPreferencesSection) | `app/api/profile/notifications/route.ts` (GET/PATCH) | Hook: `lib/notifications/hooks/useNotificationPreferences.ts`; service: `lib/notifications/server/notificationService.ts` | (add test coverage if changing) |
+| Send notification emails | (internal, called by triggers) | `app/api/notifications/email/route.ts` (POST, internal) | Email service: `lib/notifications/server/emailService.ts` (Nodemailer + Zoho SMTP) | (add test coverage if changing) |
+| Notification triggers | (automatic on events) | (n/a) | Database triggers: `supabase/migrations/039_create_notifications.sql` (new_conversation, analysis_complete, report_generated, opinion_liked) | (add test coverage if changing) |
+
 ## Database Schema
 
-- Migrations: `supabase/migrations/` (latest: `009_remove_public_invite_preview_policy.sql` restores safe invite preview behavior)
+- Migrations: `supabase/migrations/` (latest: `039_create_notifications.sql` adds user_notifications table and triggers)
 - Key additions for invite links:
   - `hive_invite_links` table (one token per hive, 'anyone' or 'invited_only' access modes)
 - Key additions for decision sessions (migration 006):
