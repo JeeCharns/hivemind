@@ -141,7 +141,7 @@ export default function NewSessionWizard({
                 {[
                   {
                     key: "understand",
-                    title: "Understand a Problem",
+                    title: "Discuss a Problem",
                     desc: "Collect signals to clarify a problem space.",
                     disabled: false,
                   },

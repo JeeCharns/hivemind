@@ -49,7 +49,7 @@ export default function ConversationCard({
   conversation,
 }: ConversationCardProps) {
   const cta = getConversationCta(hiveKey, conversation);
-  const typeLabel = conversation.type === "decide" ? "SOLUTION SPACE" : "PROBLEM SPACE";
+  const typeLabel = conversation.type === "decide" ? "DECIDE" : "DISCUSS";
   const title = conversation.title?.trim() || "Untitled Conversation";
   const description =
     conversation.description?.trim() || "No description has been added yet.";
