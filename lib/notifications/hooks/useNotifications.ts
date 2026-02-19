@@ -5,6 +5,12 @@
  *
  * Real-time notifications hook following the useHiveReactions pattern.
  * Subscribes to postgres_changes on user_notifications table.
+ *
+ * Features:
+ * - Listens for INSERT events on user_notifications filtered by user_id
+ * - Prepends new notifications to the list
+ * - Limits to configurable max notifications (default 20)
+ * - Reports connection status for UI indicator
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -13,6 +19,13 @@ import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/
 import type { Notification, NotificationRow } from '../domain/notification.types';
 
 type NotificationStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
+
+interface UseNotificationsOptions {
+  userId: string | undefined;
+  initialNotifications?: Notification[];
+  /** Maximum number of notifications to keep in the list. Defaults to 20. */
+  maxNotifications?: number;
+}
 
 interface UseNotificationsResult {
   notifications: Notification[];
@@ -32,20 +45,33 @@ function mapRowToNotification(row: NotificationRow): Notification {
     body: row.body,
     hiveId: row.hive_id,
     conversationId: row.conversation_id,
-    responseId: row.response_id ? String(row.response_id) : null,
+    responseId: row.response_id,
     linkPath: row.link_path,
     readAt: row.read_at,
     createdAt: row.created_at,
   };
 }
 
-export function useNotifications(userId: string | undefined): UseNotificationsResult {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+/**
+ * Hook for real-time user notifications.
+ * Subscribes to new notifications via Postgres changes.
+ *
+ * @param options - Hook configuration
+ * @returns Notifications list, unread count, and actions
+ */
+export function useNotifications({
+  userId,
+  initialNotifications = [],
+  maxNotifications = 20,
+}: UseNotificationsOptions): UseNotificationsResult {
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [unreadCount, setUnreadCount] = useState(
+    () => initialNotifications.filter((n) => n.readAt === null).length
+  );
   const [status, setStatus] = useState<NotificationStatus>('disconnected');
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // Fetch notifications from API
+  // Fetch notifications from API (silent refresh, no loading state)
   const refresh = useCallback(async () => {
     if (!userId) return;
 
@@ -57,12 +83,13 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
       }
 
       const data = await response.json();
-      setNotifications(data.notifications ?? []);
+      const fetched: Notification[] = data.notifications ?? [];
+      setNotifications(fetched.slice(0, maxNotifications));
       setUnreadCount(data.unreadCount ?? 0);
     } catch (err) {
       console.error('[useNotifications] Refresh error:', err);
     }
-  }, [userId]);
+  }, [userId, maxNotifications]);
 
   // Mark all as read
   const markAllRead = useCallback(async () => {
@@ -103,41 +130,40 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
         const row = payload.new as unknown as NotificationRow;
         const newNotification = mapRowToNotification(row);
 
-        setNotifications((prev) => [newNotification, ...prev].slice(0, 20));
+        setNotifications((prev) => [newNotification, ...prev].slice(0, maxNotifications));
         setUnreadCount((prev) => prev + 1);
       }
     },
-    []
+    [maxNotifications]
   );
 
-  // Initial fetch on mount
+  // Initial fetch on mount (only if no initial data provided)
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || initialNotifications.length > 0) return;
 
     let cancelled = false;
 
-    fetch('/api/notifications')
-      .then(async (res) => {
-        if (!res.ok) {
-          console.error('[useNotifications] Initial fetch failed:', res.status);
-          return null;
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (cancelled || !data) return;
-        setNotifications(data.notifications ?? []);
+    (async () => {
+      try {
+        const response = await fetch('/api/notifications');
+        if (!response.ok || cancelled) return;
+
+        const data = await response.json();
+        if (cancelled) return;
+
+        const fetched: Notification[] = data.notifications ?? [];
+        setNotifications(fetched.slice(0, maxNotifications));
         setUnreadCount(data.unreadCount ?? 0);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return;
         console.error('[useNotifications] Initial fetch error:', err);
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, initialNotifications.length, maxNotifications]);
 
   // Set up realtime subscription
   useEffect(() => {
