@@ -477,8 +477,26 @@ export default function ListenView({
         </div>
       ) : (
         <div className="space-y-8">
-          {sortedFeed.map((resp) => (
+          {sortedFeed.map((resp) => {
+            const userName = resp.user?.name ?? "Anonymous";
+            const firstInitial = userName.charAt(0).toUpperCase();
+
+            return (
             <div key={resp.id} className="rounded-lg flex gap-3">
+              {/* Avatar */}
+              <div className="shrink-0">
+                {resp.user?.avatarUrl ? (
+                  <img
+                    src={resp.user.avatarUrl}
+                    alt={userName}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-label font-medium">
+                    {firstInitial}
+                  </div>
+                )}
+              </div>
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   {resp.tag && (
@@ -491,7 +509,7 @@ export default function ListenView({
                     </span>
                   )}
                   <span className="text-subtitle text-slate-800">
-                    {resp.user?.name ?? "Anonymous"}
+                    {userName}
                   </span>
                   <span className="text-info text-slate-400">
                     {formatRelativeTimestamp(resp.createdAt)}
@@ -585,7 +603,8 @@ export default function ListenView({
                 </Button>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>

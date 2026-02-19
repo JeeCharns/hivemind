@@ -13,6 +13,7 @@ import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember"
 import { jsonError } from "@/lib/api/errors";
 import { createResponseSchema } from "@/lib/conversations/schemas";
 import { broadcastResponse } from "@/lib/conversations/server/broadcastResponse";
+import { getAvatarUrl } from "@/lib/storage/server/getAvatarUrl";
 
 export async function GET(
   _req: NextRequest,
@@ -80,6 +81,24 @@ export async function GET(
     });
 
     // 6. Normalize response format, masking identity for anonymous responses
+    // Collect unique avatar paths to convert to signed URLs
+    const avatarPaths = new Set<string>();
+    responses?.forEach((r: unknown) => {
+      const row = r as { is_anonymous?: boolean | null; profiles?: { avatar_path?: string | null } | null };
+      if (!row.is_anonymous && row.profiles?.avatar_path) {
+        avatarPaths.add(row.profiles.avatar_path);
+      }
+    });
+
+    // Generate signed URLs for all unique avatar paths
+    const avatarUrlMap = new Map<string, string>();
+    await Promise.all(
+      Array.from(avatarPaths).map(async (path) => {
+        const signedUrl = await getAvatarUrl(supabase, path);
+        avatarUrlMap.set(path, signedUrl);
+      })
+    );
+
     const normalized =
       responses?.map((r: unknown) => {
         const row = r as {
@@ -92,6 +111,7 @@ export async function GET(
           profiles?: { display_name?: string | null; avatar_path?: string | null } | null;
         };
         const isAnonymous = row.is_anonymous ?? false;
+        const avatarPath = row.profiles?.avatar_path;
         return {
           id: row.id,
           text: row.response_text,
@@ -101,7 +121,7 @@ export async function GET(
             name: isAnonymous
               ? "Anonymous"
               : (row.profiles?.display_name || "Member"),
-            avatarUrl: isAnonymous ? null : (row.profiles?.avatar_path || null),
+            avatarUrl: isAnonymous ? null : (avatarPath ? avatarUrlMap.get(avatarPath) ?? null : null),
           },
           likeCount: likeCounts.get(row.id) ?? 0,
           likedByMe: userLikes.has(row.id),
@@ -189,6 +209,13 @@ export async function POST(
       | null
       | undefined;
     const isAnonymous = data.is_anonymous ?? false;
+
+    // Get signed URL for avatar if available
+    let avatarUrl: string | null = null;
+    if (!isAnonymous && profile?.avatar_path) {
+      avatarUrl = await getAvatarUrl(supabase, profile.avatar_path);
+    }
+
     const response = {
       id: data.id,
       text: data.response_text,
@@ -196,7 +223,7 @@ export async function POST(
       createdAt: data.created_at,
       user: {
         name: isAnonymous ? "Anonymous" : (profile?.display_name || "Member"),
-        avatarUrl: isAnonymous ? null : (profile?.avatar_path || null),
+        avatarUrl,
       },
       likeCount: 0,
       likedByMe: false,
