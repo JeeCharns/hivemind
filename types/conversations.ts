@@ -49,6 +49,9 @@ export interface ConversationCardData {
   created_at: string;
   analysis_status: AnalysisStatus;
   report_json: unknown | null;
+  phase: ConversationPhase;
+  source_conversation_id: string | null;
+  response_count?: number;
 }
 
 /**

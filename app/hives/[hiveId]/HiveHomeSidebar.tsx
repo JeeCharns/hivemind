@@ -33,6 +33,7 @@ export function HiveHomeSidebar({
 
   return (
     <aside className="space-y-4">
+      <ActivitySidebar hiveId={hiveId} initialActivity={initialActivity} />
       <ReactionsSidebar
         hiveId={hiveId}
         userId={userId}
@@ -40,7 +41,6 @@ export function HiveHomeSidebar({
         initialReactions={initialReactions}
         onAddReaction={onAddReaction}
       />
-      <ActivitySidebar hiveId={hiveId} initialActivity={initialActivity} />
     </aside>
   );
 }

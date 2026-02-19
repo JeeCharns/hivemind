@@ -38,7 +38,7 @@ export async function listHiveConversations(
   // 2. Fetch conversations (minimal data for cards)
   const { data: conversations, error } = await supabase
     .from("conversations")
-    .select("id, slug, type, title, description, created_at, analysis_status, report_json")
+    .select("id, slug, type, title, description, created_at, analysis_status, report_json, phase, source_conversation_id")
     .eq("hive_id", hiveId)
     .order("created_at", { ascending: false });
 
@@ -46,6 +46,23 @@ export async function listHiveConversations(
     throw new Error(`Failed to fetch conversations: ${error.message}`);
   }
 
-  // 3. Type-safe return
-  return (conversations ?? []) as ConversationCardData[];
+  // 3. Fetch response counts for each conversation
+  const conversationIds = (conversations ?? []).map((c) => c.id);
+  const { data: responseCounts } = await supabase
+    .from("responses")
+    .select("conversation_id")
+    .in("conversation_id", conversationIds);
+
+  // Build a count map
+  const countMap = new Map<string, number>();
+  for (const row of responseCounts ?? []) {
+    const current = countMap.get(row.conversation_id) ?? 0;
+    countMap.set(row.conversation_id, current + 1);
+  }
+
+  // 4. Type-safe return with response counts
+  return (conversations ?? []).map((c) => ({
+    ...c,
+    response_count: countMap.get(c.id) ?? 0,
+  })) as ConversationCardData[];
 }

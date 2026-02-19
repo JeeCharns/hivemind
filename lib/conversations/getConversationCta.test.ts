@@ -19,6 +19,8 @@ describe("getConversationCta", () => {
     created_at: "2025-01-01T00:00:00Z",
     analysis_status: "not_started",
     report_json: null,
+    phase: "listen_open",
+    source_conversation_id: null,
   };
 
   describe("Report ready state", () => {

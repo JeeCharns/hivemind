@@ -8,16 +8,45 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ConversationCardData } from "@/types/conversations";
 import type { ActivityEvent, Reaction, ReactionEmoji } from "@/lib/social/types";
 import ConversationCard from "./components/ConversationCard";
+import { MultiStepCard } from "@/app/components/conversations/MultiStepCard";
 import NewSessionLauncher from "@/app/components/new-session-launcher";
 import HiveLogo from "@/app/components/hive-logo";
 import { getLogoSignedUrl } from "@/lib/supabase/storage";
 import { HiveHomeSidebar } from "./HiveHomeSidebar";
 import { CreateHiveCTA } from "@/components/hives/CreateHiveCTA";
 import { MobileSocialSheet } from "@/components/social";
+
+/**
+ * Groups linked Discuss/Decide conversation pairs
+ * Returns: { pairs: [discuss, decide][], standalone: conversation[] }
+ */
+function groupConversations(conversations: ConversationCardData[]) {
+  const pairs: [ConversationCardData, ConversationCardData][] = [];
+  const pairedIds = new Set<string>();
+
+  // Find Decide conversations that link to Discuss conversations
+  for (const conv of conversations) {
+    if (conv.type === "decide" && conv.source_conversation_id) {
+      const discuss = conversations.find(
+        (c) => c.id === conv.source_conversation_id && c.type === "understand"
+      );
+      if (discuss) {
+        pairs.push([discuss, conv]);
+        pairedIds.add(discuss.id);
+        pairedIds.add(conv.id);
+      }
+    }
+  }
+
+  // Standalone conversations are those not in any pair
+  const standalone = conversations.filter((c) => !pairedIds.has(c.id));
+
+  return { pairs, standalone };
+}
 
 interface HiveHomeProps {
   hiveId: string;
@@ -85,6 +114,12 @@ export default function HiveHome({
     [hiveId]
   );
 
+  // Group linked Discuss/Decide pairs for rendering
+  const { pairs, standalone } = useMemo(
+    () => groupConversations(conversations),
+    [conversations]
+  );
+
   return (
     <div className="relative mx-auto w-full max-w-7xl min-h-[833px] flex flex-col gap-6 md:gap-10 rounded-3xl px-3 md:px-4 py-6 md:py-10">
       {/* Header */}
@@ -116,7 +151,32 @@ export default function HiveHome({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              {conversations.map((conversation) => (
+              {/* Render paired Discuss/Decide conversations as MultiStepCards */}
+              {pairs.map(([discuss, decide]) => (
+                <MultiStepCard
+                  key={`pair-${discuss.id}`}
+                  hiveKey={hiveKey}
+                  discussConversation={{
+                    id: discuss.id,
+                    slug: discuss.slug ?? discuss.id,
+                    type: "understand",
+                    title: discuss.title ?? "Untitled",
+                    phase: discuss.phase,
+                    responseCount: discuss.response_count,
+                  }}
+                  decideConversation={{
+                    id: decide.id,
+                    slug: decide.slug ?? decide.id,
+                    type: "decide",
+                    title: decide.title ?? "Untitled",
+                    phase: decide.phase,
+                    responseCount: decide.response_count,
+                  }}
+                />
+              ))}
+
+              {/* Render standalone conversations as regular cards */}
+              {standalone.map((conversation) => (
                 <ConversationCard
                   key={conversation.id}
                   hiveKey={hiveKey}

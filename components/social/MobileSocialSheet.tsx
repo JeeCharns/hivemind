@@ -15,7 +15,7 @@ interface MobileSocialSheetProps {
   onAddReaction: (emoji: ReactionEmoji, message?: string) => Promise<void>;
 }
 
-type Tab = 'chat' | 'activity';
+type Tab = 'activity' | 'chat';
 
 export function MobileSocialSheet({
   hiveId,
@@ -27,7 +27,7 @@ export function MobileSocialSheet({
   onAddReaction,
 }: MobileSocialSheetProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('chat');
+  const [activeTab, setActiveTab] = useState<Tab>('activity');
 
   // Track presence to get viewer count
   const { activeUsers } = useHivePresence({
@@ -75,7 +75,7 @@ export function MobileSocialSheet({
 
             {/* Tabs */}
             <div className="flex border-b border-gray-200">
-              {(['chat', 'activity'] as Tab[]).map((tab) => (
+              {(['activity', 'chat'] as Tab[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -86,14 +86,20 @@ export function MobileSocialSheet({
                       : 'text-gray-500'
                   }`}
                 >
-                  {tab === 'chat' && 'Chat'}
                   {tab === 'activity' && 'Activity'}
+                  {tab === 'chat' && 'Chat'}
                 </button>
               ))}
             </div>
 
             {/* Content */}
             <div className="p-4">
+              {activeTab === 'activity' && (
+                <ActivitySidebar
+                  hiveId={hiveId}
+                  initialActivity={initialActivity}
+                />
+              )}
               {activeTab === 'chat' && (
                 <ReactionsSidebar
                   hiveId={hiveId}
@@ -101,12 +107,6 @@ export function MobileSocialSheet({
                   viewerCount={activeUsers.length}
                   initialReactions={initialReactions}
                   onAddReaction={onAddReaction}
-                />
-              )}
-              {activeTab === 'activity' && (
-                <ActivitySidebar
-                  hiveId={hiveId}
-                  initialActivity={initialActivity}
                 />
               )}
             </div>
