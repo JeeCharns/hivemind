@@ -53,7 +53,12 @@ export default async function HivePage({
       .select("display_name, avatar_url")
       .eq("id", session.user.id)
       .maybeSingle()
-      .then(({ data }) => data),
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("[HivePage] Error fetching profile:", error);
+        }
+        return data;
+      }),
     getRecentActivity(supabase, hiveId, 15),
     getRecentReactions(supabase, hiveId, 20),
   ]);

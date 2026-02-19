@@ -42,6 +42,9 @@ export async function addReaction(
  * Fetches recent reactions for a hive.
  * Returns reactions ordered by most recent first.
  *
+ * Note: hive_reactions.user_id references auth.users, not profiles,
+ * so we fetch profiles separately and merge them.
+ *
  * @param supabase - Supabase client
  * @param hiveId - Hive UUID
  * @param limit - Maximum number of reactions to fetch (default: 20)
@@ -52,39 +55,53 @@ export async function getRecentReactions(
   hiveId: string,
   limit: number = 20
 ): Promise<Reaction[]> {
-  const { data, error } = await supabase
+  // 1. Fetch reactions
+  const { data: reactions, error: reactionsError } = await supabase
     .from("hive_reactions")
-    .select(
-      `
-      id,
-      hive_id,
-      user_id,
-      emoji,
-      message,
-      created_at,
-      profiles!hive_reactions_user_id_fkey(display_name)
-    `
-    )
+    .select("id, hive_id, user_id, emoji, message, created_at")
     .eq("hive_id", hiveId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error) {
-    console.error("[getRecentReactions] Error:", error);
+  if (reactionsError) {
+    console.error("[getRecentReactions] Error fetching reactions:", reactionsError);
     return [];
   }
 
-  return (data ?? []).map((row) => {
-    // Supabase returns joined profile as object for to-one FK relationship
-    const profile = row.profiles as unknown as { display_name: string } | null;
-    return {
-      id: row.id,
-      hiveId: row.hive_id,
-      userId: row.user_id,
-      displayName: profile?.display_name ?? null,
-      emoji: row.emoji,
-      message: row.message,
-      createdAt: row.created_at,
-    };
-  });
+  if (!reactions || reactions.length === 0) {
+    return [];
+  }
+
+  // 2. Get unique user IDs and fetch their profiles
+  const userIds = [...new Set(reactions.map((r) => r.user_id))];
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", userIds);
+
+  if (profilesError) {
+    console.error("[getRecentReactions] Error fetching profiles:", profilesError);
+    // Continue without display names rather than failing
+  }
+
+  // 3. Create a lookup map for display names
+  const displayNameMap = new Map<string, string>();
+  if (profiles) {
+    for (const profile of profiles) {
+      if (profile.display_name) {
+        displayNameMap.set(profile.id, profile.display_name);
+      }
+    }
+  }
+
+  // 4. Merge reactions with display names
+  return reactions.map((row) => ({
+    id: row.id,
+    hiveId: row.hive_id,
+    userId: row.user_id,
+    displayName: displayNameMap.get(row.user_id) ?? null,
+    emoji: row.emoji,
+    message: row.message,
+    createdAt: row.created_at,
+  }));
 }
