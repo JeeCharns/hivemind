@@ -23,16 +23,21 @@ export function ReactionsSidebar({
   const [selectedEmoji, setSelectedEmoji] = useState<ReactionEmoji | null>(null);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!selectedEmoji) return;
 
     setIsSubmitting(true);
+    setError(null);
     try {
       await onAddReaction(selectedEmoji, message || undefined);
       setShowPicker(false);
       setSelectedEmoji(null);
       setMessage('');
+    } catch (err) {
+      console.error('[ReactionsSidebar] Failed to add reaction:', err);
+      setError('Failed to send. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -102,6 +107,10 @@ export function ReactionsSidebar({
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
           />
 
+          {error && (
+            <p className="text-sm text-red-500">{error}</p>
+          )}
+
           <div className="flex gap-2">
             <button
               type="button"
@@ -109,6 +118,7 @@ export function ReactionsSidebar({
                 setShowPicker(false);
                 setSelectedEmoji(null);
                 setMessage('');
+                setError(null);
               }}
               className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
             >
