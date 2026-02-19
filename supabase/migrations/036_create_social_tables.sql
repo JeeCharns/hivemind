@@ -12,11 +12,12 @@ CREATE TABLE hive_activity (
   event_type TEXT NOT NULL CHECK (event_type IN ('join', 'response', 'vote', 'phase_change')),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Index for efficient hive-scoped queries
 CREATE INDEX idx_hive_activity_hive_id_created ON hive_activity(hive_id, created_at DESC);
+CREATE INDEX idx_hive_activity_user_id ON hive_activity(user_id);
 
 -- Enable RLS
 ALTER TABLE hive_activity ENABLE ROW LEVEL SECURITY;
@@ -33,11 +34,23 @@ CREATE POLICY "Members can view hive activity"
     )
   );
 
--- Policy: Authenticated users can insert activity (server will validate)
-CREATE POLICY "Authenticated users can insert activity"
+-- Policy: Members can insert activity for their hives
+CREATE POLICY "Members can insert activity"
   ON hive_activity
   FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM hive_members
+      WHERE hive_members.hive_id = hive_activity.hive_id
+      AND hive_members.user_id = auth.uid()
+    )
+  );
+
+-- Policy: Service role has full access
+CREATE POLICY "Service role has full access to hive_activity"
+  ON hive_activity
+  FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
 
 
 -- ============================================
@@ -51,7 +64,7 @@ CREATE TABLE hive_reactions (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   emoji TEXT NOT NULL CHECK (emoji IN ('👋', '🎉', '💡', '❤️', '🐝')),
   message TEXT CHECK (message IS NULL OR char_length(message) <= 50),
-  created_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   -- One reaction per emoji type per user per hive
   UNIQUE(hive_id, user_id, emoji)
 );
@@ -100,6 +113,12 @@ CREATE POLICY "Users can delete own reactions"
   FOR DELETE
   USING (auth.uid() = user_id);
 
+-- Policy: Service role has full access
+CREATE POLICY "Service role has full access to hive_reactions"
+  ON hive_reactions
+  FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
+
 
 -- ============================================
 -- 3. USER PRESENCE TABLE
@@ -109,7 +128,7 @@ CREATE POLICY "Users can delete own reactions"
 CREATE TABLE user_presence (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   hive_id UUID NOT NULL REFERENCES hives(id) ON DELETE CASCADE,
-  last_active_at TIMESTAMPTZ DEFAULT now(),
+  last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (user_id, hive_id)
 );
 
@@ -142,6 +161,12 @@ CREATE POLICY "Users can update own presence"
   FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Service role has full access
+CREATE POLICY "Service role has full access to user_presence"
+  ON user_presence
+  FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
 
 
 -- ============================================
