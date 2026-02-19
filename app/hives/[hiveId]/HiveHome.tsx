@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ConversationCardData } from "@/types/conversations";
 import type { ActivityEvent, Reaction, ReactionEmoji } from "@/lib/social/types";
+import { useHiveConversations } from "@/lib/conversations/hooks";
 import ConversationCard from "./components/ConversationCard";
 import NewSessionLauncher from "@/app/components/new-session-launcher";
 import HiveLogo from "@/app/components/hive-logo";
@@ -23,7 +24,7 @@ interface HiveHomeProps {
   hiveId: string;
   hiveKey: string;
   hiveName: string;
-  conversations: ConversationCardData[];
+  initialConversations: ConversationCardData[];
   logoUrl?: string | null;
   userId: string;
   displayName: string;
@@ -38,7 +39,7 @@ export default function HiveHome({
   hiveId,
   hiveKey,
   hiveName,
-  conversations,
+  initialConversations,
   logoUrl = null,
   userId,
   displayName,
@@ -47,6 +48,11 @@ export default function HiveHome({
   initialReactions,
   isWelcomeHive = false,
 }: HiveHomeProps) {
+  // Real-time conversations subscription
+  const { conversations } = useHiveConversations({
+    hiveId,
+    initialConversations,
+  });
   const [logo, setLogo] = useState<{
     logoUrl: string;
     signedUrl: string | null;

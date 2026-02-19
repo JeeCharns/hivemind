@@ -75,7 +75,7 @@ export default async function HivePage({
       hiveId={hiveId}
       hiveKey={hive.slug || hiveId}
       hiveName={hive.name}
-      conversations={conversations}
+      initialConversations={conversations}
       logoUrl={hive.logo_url}
       userId={session.user.id}
       displayName={profile?.display_name || "Anonymous"}
