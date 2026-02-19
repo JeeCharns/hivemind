@@ -12,6 +12,7 @@ const MAX_MESSAGE_LENGTH = 50;
 interface ReactionsSidebarProps {
   hiveId: string;
   userId: string;
+  viewerCount?: number;
   initialReactions?: Reaction[];
   onAddReaction: (emoji: ReactionEmoji, message?: string) => Promise<void>;
 }
@@ -21,6 +22,7 @@ const EMOJI_OPTIONS: ReactionEmoji[] = ['👋', '🎉', '💡', '❤️', '🐝'
 export function ReactionsSidebar({
   hiveId,
   userId,
+  viewerCount = 0,
   initialReactions = [],
   onAddReaction,
 }: ReactionsSidebarProps) {
@@ -128,7 +130,14 @@ export function ReactionsSidebar({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">Chat</h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900">Chat</h3>
+        {viewerCount > 0 && (
+          <span className="text-xs text-gray-500">
+            {viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}
+          </span>
+        )}
+      </div>
 
       {/* Chat messages list - newest first */}
       <div className="mb-3 space-y-3">
@@ -182,16 +191,16 @@ export function ReactionsSidebar({
                 ) : (
                   // Display mode
                   <>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-900 truncate">
                         {reaction.displayName || 'Anonymous'}
                       </span>
                       <span className="text-xs text-gray-400 flex-shrink-0">
                         {formatRelativeTimestamp(reaction.createdAt)}
                       </span>
-                      {/* Edit/Delete buttons - only for own messages */}
+                      {/* Edit/Delete buttons - right-aligned, only for own messages */}
                       {isMine && (
-                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+                        <div className="ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
                           <button
                             type="button"
                             onClick={() => startEdit(reaction.id, reaction.message)}

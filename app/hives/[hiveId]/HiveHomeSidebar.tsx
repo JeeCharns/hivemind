@@ -1,10 +1,7 @@
 'use client';
 
-import {
-  PresenceSidebar,
-  ActivitySidebar,
-  ReactionsSidebar,
-} from '@/components/social';
+import { ActivitySidebar, ReactionsSidebar } from '@/components/social';
+import { useHivePresence } from '@/lib/social/hooks';
 import type { ActivityEvent, Reaction, ReactionEmoji } from '@/lib/social/types';
 
 interface HiveHomeSidebarProps {
@@ -26,21 +23,24 @@ export function HiveHomeSidebar({
   initialReactions,
   onAddReaction,
 }: HiveHomeSidebarProps) {
+  // Track presence to get viewer count
+  const { activeUsers } = useHivePresence({
+    hiveId,
+    userId,
+    displayName,
+    avatarUrl,
+  });
+
   return (
     <aside className="space-y-4">
-      <PresenceSidebar
-        hiveId={hiveId}
-        userId={userId}
-        displayName={displayName}
-        avatarUrl={avatarUrl}
-      />
-      <ActivitySidebar hiveId={hiveId} initialActivity={initialActivity} />
       <ReactionsSidebar
         hiveId={hiveId}
         userId={userId}
+        viewerCount={activeUsers.length}
         initialReactions={initialReactions}
         onAddReaction={onAddReaction}
       />
+      <ActivitySidebar hiveId={hiveId} initialActivity={initialActivity} />
     </aside>
   );
 }

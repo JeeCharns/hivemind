@@ -1,11 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  PresenceSidebar,
-  ActivitySidebar,
-  ReactionsSidebar,
-} from '@/components/social';
+import { ActivitySidebar, ReactionsSidebar } from '@/components/social';
+import { useHivePresence } from '@/lib/social/hooks';
 import type { ActivityEvent, Reaction, ReactionEmoji } from '@/lib/social/types';
 
 interface MobileSocialSheetProps {
@@ -18,7 +15,7 @@ interface MobileSocialSheetProps {
   onAddReaction: (emoji: ReactionEmoji, message?: string) => Promise<void>;
 }
 
-type Tab = 'presence' | 'activity' | 'reactions';
+type Tab = 'chat' | 'activity';
 
 export function MobileSocialSheet({
   hiveId,
@@ -30,7 +27,15 @@ export function MobileSocialSheet({
   onAddReaction,
 }: MobileSocialSheetProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('activity');
+  const [activeTab, setActiveTab] = useState<Tab>('chat');
+
+  // Track presence to get viewer count
+  const { activeUsers } = useHivePresence({
+    hiveId,
+    userId,
+    displayName,
+    avatarUrl,
+  });
 
   return (
     <>
@@ -70,7 +75,7 @@ export function MobileSocialSheet({
 
             {/* Tabs */}
             <div className="flex border-b border-gray-200">
-              {(['presence', 'activity', 'reactions'] as Tab[]).map((tab) => (
+              {(['chat', 'activity'] as Tab[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -81,35 +86,27 @@ export function MobileSocialSheet({
                       : 'text-gray-500'
                   }`}
                 >
-                  {tab === 'presence' && "Who's here"}
+                  {tab === 'chat' && 'Chat'}
                   {tab === 'activity' && 'Activity'}
-                  {tab === 'reactions' && 'Chat'}
                 </button>
               ))}
             </div>
 
             {/* Content */}
             <div className="p-4">
-              {activeTab === 'presence' && (
-                <PresenceSidebar
+              {activeTab === 'chat' && (
+                <ReactionsSidebar
                   hiveId={hiveId}
                   userId={userId}
-                  displayName={displayName}
-                  avatarUrl={avatarUrl}
+                  viewerCount={activeUsers.length}
+                  initialReactions={initialReactions}
+                  onAddReaction={onAddReaction}
                 />
               )}
               {activeTab === 'activity' && (
                 <ActivitySidebar
                   hiveId={hiveId}
                   initialActivity={initialActivity}
-                />
-              )}
-              {activeTab === 'reactions' && (
-                <ReactionsSidebar
-                  hiveId={hiveId}
-                  userId={userId}
-                  initialReactions={initialReactions}
-                  onAddReaction={onAddReaction}
                 />
               )}
             </div>
