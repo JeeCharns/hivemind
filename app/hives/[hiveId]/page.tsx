@@ -57,6 +57,9 @@ export default async function HivePage({
         if (error) {
           console.error("[HivePage] Error fetching profile:", error);
         }
+        if (!data?.display_name) {
+          console.warn("[HivePage] Profile missing display_name for user:", session.user.id);
+        }
         return data;
       }),
     getRecentActivity(supabase, hiveId, 15),
