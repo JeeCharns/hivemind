@@ -41,6 +41,16 @@ For 200+ concurrent users, **Pro plan or higher is required**.
 Check active connections in Supabase Dashboard → Database → Database Health.
 If you see connection errors in logs, verify pooling is enabled.
 
+## Welcome Hive Seed
+
+After applying migrations, seed the Welcome Hive (system hive that new users auto-join):
+
+```bash
+npx tsx scripts/seed-welcome-hive.ts
+```
+
+This creates (or updates) the Welcome Hive with sample conversations. Run once per environment.
+
 ## Analysis Worker
 
 - Worker docs + commands: `scripts/README.md`

@@ -37,6 +37,8 @@ Supabase Dashboard → SQL Editor, run these in order:
 21. `supabase/migrations/031_tighten_rls_batch_b.sql` (replace USING(true) policies on conversations, conversation_responses, hive_members, hives, response_feedback)
 22. `supabase/migrations/032_consolidate_permissive_policies.sql` (drop redundant service-role FOR ALL policies, old duplicates, and split hive_invite_links admin FOR ALL into targeted UPDATE/DELETE)
 23. `supabase/migrations/033_consolidate_decision_votes_select.sql` (merge two decision_votes SELECT policies into one combined policy)
+24. `supabase/migrations/036_create_social_tables.sql` (Welcome Hive social features: activity, reactions, presence)
+25. `supabase/migrations/037_add_system_hive_column.sql` (add is_system_hive column to hives table)
 
 ## What These Migrations Enable
 
@@ -47,6 +49,11 @@ Supabase Dashboard → SQL Editor, run these in order:
 - Hive invite links via `hive_invite_links` (token-based join links)
 - Profile avatars via `profiles.avatar_path`
 - Hive visibility via `hives.visibility` (public/private; private hives hidden from search and require invite link to join)
+- Welcome Hive social features:
+  - `hive_activity` table: activity events (join, response, vote, phase_change) with hive-scoped queries
+  - `hive_reactions` table: emoji reactions (wave, party, lightbulb, heart, bee) with optional short messages
+  - `user_presence` table: last active timestamp per user per hive for "who's online" display
+  - `hives.is_system_hive` column: marks protected system hives (e.g., Welcome Hive) that cannot be deleted
 
 ## Convention: Foreign Key Indexes
 

@@ -16,7 +16,7 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 | Flow | UI entry | API | Core logic | Tests |
 | --- | --- | --- | --- | --- |
 | Profile setup (onboarding) | `app/profile-setup/page.tsx`, `app/profile-setup/ProfileSetupForm.tsx` | `app/api/profile/route.ts` (POST multipart/form-data) | Server services: `lib/profile/server/upsertProfile.ts`, `lib/profile/server/uploadAvatar.ts`; validation: `lib/profile/schemas.ts` (displayName 1-60 chars, avatar <2MB); storage: avatars bucket (configurable via `lib/storage/avatarBucket.ts`) | `app/tests/api/profile.test.ts`, `lib/profile/server/__tests__/upsertProfile.test.ts` |
-| Check profile status | `app/(auth)/callback/page.tsx` (routes to /profile-setup if needed) | `app/api/profile/status/route.ts` (GET) | Server service: `lib/profile/server/getProfileStatus.ts`; returns `{ hasProfile, needsSetup }` | `app/tests/api/profile.test.ts` |
+| Check profile status | `app/(auth)/callback/page.tsx` (routes to /profile-setup if needed) | `app/api/profile/status/route.ts` (GET) | Server service: `lib/profile/server/getProfileStatus.ts`; returns `{ hasProfile, needsSetup }`; also triggers idempotent auto-join to Welcome Hive via `lib/hives/server/joinWelcomeHive.ts` | `app/tests/api/profile.test.ts`, `lib/hives/server/__tests__/joinWelcomeHive.test.ts` |
 | Avatar upload (reusable) | `app/components/ImageUpload.tsx` (used in profile setup and settings) | (handled by POST /api/profile) | Uploads to avatars bucket with path `userId/uuid.extension`; auto-deletes old avatars | (covered by upsertProfile tests) |
 
 ## Account Settings
@@ -70,6 +70,16 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 - Conversations: `types/conversations.ts`, `types/conversation-understand.ts`, `types/conversation-report.ts`, `types/conversation-vote.ts`
 - Hives/members/settings: `types/members.ts`, `types/hive-settings.ts`, plus domain-ish types in `lib/hives/domain/hive.types.ts`
 - API: `types/api.ts` (shared API contracts)
+
+## Welcome Hive
+
+| Flow | UI entry | API | Core logic | Tests |
+| --- | --- | --- | --- | --- |
+| Auto-join on signup | (automatic during profile status check) | `app/api/profile/status/route.ts` (GET triggers auto-join) | Service: `lib/hives/server/joinWelcomeHive.ts` (idempotent join to system hive) | `lib/hives/server/__tests__/joinWelcomeHive.test.ts` |
+| Welcome Hive homepage | `app/hives/[hiveId]/page.tsx` (system hive variant with sidebar) | `app/api/hives/[hiveId]/activity/route.ts`, `app/api/hives/[hiveId]/reactions/route.ts`, `app/api/hives/[hiveId]/presence/route.ts` | Activity service: `lib/activity/server/activityService.ts`; Reactions service: `lib/reactions/server/reactionsService.ts`; Hooks: `lib/activity/react/useActivityFeed.ts`, `lib/reactions/react/useReactions.ts`, `lib/presence/react/usePresence.ts` | (add test coverage if changing) |
+| Multi-step conversation cards | `app/components/conversation/ConversationCard.tsx` (shows phase progress indicator) | (n/a) | Phase display: `lib/conversations/domain/conversationPhase.ts` | (add test coverage if changing) |
+| Social sidebar | `app/hives/components/WelcomeHiveSidebar.tsx` (activity feed, reactions, presence) | (same APIs as homepage) | (same logic as homepage) | (add test coverage if changing) |
+| Create Hive CTA | `app/hives/components/CreateHiveCTA.tsx` (prominent call-to-action in sidebar) | (navigates to `/hives/new`) | (n/a) | (n/a) |
 
 ## Decision Space
 
