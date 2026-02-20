@@ -2,6 +2,11 @@
 
 This section tells Claude Code how to orient in this repo and how to keep documentation in sync with changes.
 
+## Project URLs
+
+- **Production**: https://app.hiveonline.io
+- **Staging**: https://hive-staging.vercel.app
+
 ## Read First (Repo Context)
 
 Before making changes, skim these in order:
