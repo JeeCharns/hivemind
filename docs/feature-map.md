@@ -98,11 +98,11 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 | In-app notifications (real-time) | `app/components/navbar/NotificationBell.tsx`, `app/components/navbar/NotificationDropdown.tsx` | `app/api/notifications/route.ts` (GET/DELETE), `app/api/notifications/read/route.ts` (PATCH) | Hook: `lib/notifications/hooks/useNotifications.ts` (Supabase Realtime, postgres_changes); service: `lib/notifications/server/notificationService.ts` | (add test coverage if changing) |
 | Email notification preferences | `app/settings/AccountSettingsForm.tsx` (NotificationPreferencesSection) | `app/api/profile/notifications/route.ts` (GET/PATCH) | Hook: `lib/notifications/hooks/useNotificationPreferences.ts`; service: `lib/notifications/server/notificationService.ts` | (add test coverage if changing) |
 | Send notification emails | (internal, called by triggers) | `app/api/notifications/email/route.ts` (POST, internal) | Email service: `lib/notifications/server/emailService.ts` (Nodemailer + Zoho SMTP) | (add test coverage if changing) |
-| Notification triggers | (automatic on events) | (n/a) | Database triggers: `supabase/migrations/039_create_notifications.sql` (new_conversation, analysis_complete, report_generated, opinion_liked) | (add test coverage if changing) |
+| Notification triggers | (automatic on events) | (n/a) | Database triggers: `supabase/migrations/039_create_notifications.sql` (in-app), `supabase/migrations/040_add_email_to_notification_triggers.sql` (email via pg_net) | (add test coverage if changing) |
 
 ## Database Schema
 
-- Migrations: `supabase/migrations/` (latest: `039_create_notifications.sql` adds user_notifications table and triggers)
+- Migrations: `supabase/migrations/` (latest: `040_add_email_to_notification_triggers.sql` adds pg_net email sending to notification triggers)
 - Key additions for invite links:
   - `hive_invite_links` table (one token per hive, 'anyone' or 'invited_only' access modes)
 - Key additions for decision sessions (migration 006):

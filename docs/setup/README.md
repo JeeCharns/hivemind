@@ -79,4 +79,9 @@ If SMTP is not configured, in-app notifications still work but emails are skippe
 - Report is generated
 - Someone likes a user's response
 
-**Email delivery:** Currently requires manual integration with pg_net or a background worker. See `docs/plans/2026-02-19-notifications-design.md` for architecture details.
+**Email delivery:** Migration `040_add_email_to_notification_triggers.sql` adds pg_net HTTP calls to send emails. Before applying this migration:
+
+1. Enable pg_net extension in Supabase Dashboard → Database → Extensions
+2. Add secrets to Supabase Vault (Dashboard → Settings → Vault):
+   - `app_url`: Your app URL (e.g., `https://app.hiveonline.io`)
+   - `internal_api_key`: Same key as your `INTERNAL_API_KEY` env var
