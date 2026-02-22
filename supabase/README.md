@@ -39,6 +39,8 @@ Supabase Dashboard → SQL Editor, run these in order:
 23. `supabase/migrations/033_consolidate_decision_votes_select.sql` (merge two decision_votes SELECT policies into one combined policy)
 24. `supabase/migrations/036_create_social_tables.sql` (Welcome Hive social features: activity, reactions, presence)
 25. `supabase/migrations/037_add_system_hive_column.sql` (add is_system_hive column to hives table)
+26. `supabase/migrations/041_create_conversation_share_links.sql` (conversation anonymous share links: token, expiry, RLS for hive members)
+27. `supabase/migrations/042_create_guest_sessions.sql` (guest sessions: guest_number, session_token_hash; adds guest_session_id FK to conversation_responses, response_likes, response_feedback)
 
 ## What These Migrations Enable
 
@@ -54,6 +56,10 @@ Supabase Dashboard → SQL Editor, run these in order:
   - `hive_reactions` table: emoji reactions (wave, party, lightbulb, heart, bee) with optional short messages
   - `user_presence` table: last active timestamp per user per hive for "who's online" display
   - `hives.is_system_hive` column: marks protected system hives (e.g., Welcome Hive) that cannot be deleted
+- Guest access (anonymous share links):
+  - `conversation_share_links` table: temporary token-based links for conversations (expiry: 1d/7d/28d); RLS allows hive member CRUD
+  - `guest_sessions` table: ephemeral sessions with auto-incremented "Guest N" numbers; SHA-256 hashed session tokens; server-only RLS
+  - Added nullable `guest_session_id` FK to `conversation_responses`, `response_likes`, `response_feedback` with partial unique indexes
 
 ## Convention: Foreign Key Indexes
 
