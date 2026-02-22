@@ -1191,12 +1191,10 @@ describe("Decision Space Integration Tests", () => {
           return {
             insert: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
-            single: jest
-              .fn()
-              .mockResolvedValue({
-                data: { id: "new-conv", slug: "test" },
-                error: null,
-              }),
+            single: jest.fn().mockResolvedValue({
+              data: { id: "new-conv", slug: "test" },
+              error: null,
+            }),
           };
         }
         if (table === "hive_members") {
