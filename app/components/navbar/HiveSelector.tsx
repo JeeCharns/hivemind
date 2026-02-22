@@ -10,10 +10,39 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { HiveOption } from "@/types/navbar";
+import HiveLogo from "@/app/components/hive-logo";
+import { getLogoSignedUrl } from "@/lib/supabase/storage";
 
 interface HiveSelectorProps {
   hives: HiveOption[];
   currentHiveId?: string;
+}
+
+/**
+ * Resolve signed URLs for hive logos (client-side).
+ * Maps hive ID to its signed logo URL.
+ */
+function useHiveLogoUrls(hives: HiveOption[]) {
+  const [logoUrls, setLogoUrls] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const resolve = async () => {
+      const entries = await Promise.all(
+        hives.map(async (h) => {
+          const url = await getLogoSignedUrl(h.logoUrl);
+          return [h.id, url] as const;
+        })
+      );
+      if (!cancelled) {
+        setLogoUrls(Object.fromEntries(entries));
+      }
+    };
+    resolve();
+    return () => { cancelled = true; };
+  }, [hives]);
+
+  return logoUrls;
 }
 
 export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps) {
@@ -21,6 +50,7 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const logoUrls = useHiveLogoUrls(hives);
 
   // Close menu on click outside
   useEffect(() => {
@@ -37,13 +67,6 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
 
   const currentHive = hives.find((h) => h.id === currentHiveId) || hives[0] || null;
   const displayName = currentHive?.name || "Select hive";
-  const initials = (currentHive?.name || "H")
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   const handleSelect = (hive: HiveOption) => {
     setMenuOpen(false);
@@ -71,9 +94,7 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
         onClick={() => setMenuOpen(!menuOpen)}
         className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-50 transition text-body"
       >
-        <div className="h-8 w-8 avatar-round bg-indigo-100 text-indigo-800 flex items-center justify-center text-label">
-          {initials}
-        </div>
+        <HiveLogo src={currentHive ? logoUrls[currentHive.id] ?? null : null} name={displayName} size={32} />
         <span className="text-subtitle text-slate-800">{displayName}</span>
         <svg
           className={`w-4 h-4 text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`}
@@ -93,13 +114,6 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
           <div className="max-h-64 overflow-y-auto">
             {hives.map((hive) => {
               const isSelected = hive.id === currentHiveId;
-              const hiveInitials = (hive.name || "H")
-                .split(" ")
-                .filter(Boolean)
-                .map((part) => part[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase();
 
               return (
                 <button
@@ -109,11 +123,7 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
                     isSelected ? "bg-indigo-50" : ""
                   }`}
                 >
-                  <div className={`h-8 w-8 avatar-round flex items-center justify-center text-label ${
-                    isSelected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"
-                  }`}>
-                    {hiveInitials}
-                  </div>
+                  <HiveLogo src={logoUrls[hive.id] ?? null} name={hive.name} size={32} />
                   <span className={`text-body ${isSelected ? "text-subtitle text-indigo-600" : "text-slate-700"}`}>
                     {hive.name}
                   </span>

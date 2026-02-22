@@ -7,10 +7,13 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { NavbarViewModel, NavbarPage } from "@/types/navbar";
+import HiveLogo from "@/app/components/hive-logo";
+import { getLogoSignedUrl } from "@/lib/supabase/storage";
+import type { HiveOption } from "@/types/navbar";
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -29,6 +32,25 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
   const { user, hives, currentHive, currentPage } = viewModel;
   const router = useRouter();
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [logoUrls, setLogoUrls] = useState<Record<string, string | null>>({});
+
+  // Resolve signed URLs for hive logos
+  useEffect(() => {
+    let cancelled = false;
+    const resolve = async () => {
+      const entries = await Promise.all(
+        hives.map(async (h: HiveOption) => {
+          const url = await getLogoSignedUrl(h.logoUrl);
+          return [h.id, url] as const;
+        })
+      );
+      if (!cancelled) {
+        setLogoUrls(Object.fromEntries(entries));
+      }
+    };
+    resolve();
+    return () => { cancelled = true; };
+  }, [hives]);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -156,9 +178,7 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
                         onClick={() => onClose()}
                         className="flex items-center gap-3 px-4 py-3 text-body text-slate-700 hover:bg-slate-50 transition"
                       >
-                        <span className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-label text-slate-600 shrink-0">
-                          {hive.name.charAt(0).toUpperCase()}
-                        </span>
+                        <HiveLogo src={logoUrls[hive.id] ?? null} name={hive.name} size={32} className="shrink-0" />
                         <span className="truncate">{hive.name}</span>
                       </Link>
                     ))}
@@ -179,9 +199,7 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
                     onClick={() => onClose()}
                     className="flex items-center gap-3 px-4 py-3 text-body text-slate-700 hover:bg-slate-50 transition"
                   >
-                    <span className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-label text-slate-600 shrink-0">
-                      {hive.name.charAt(0).toUpperCase()}
-                    </span>
+                    <HiveLogo src={logoUrls[hive.id] ?? null} name={hive.name} size={32} className="shrink-0" />
                     <span className="truncate">{hive.name}</span>
                   </Link>
                 ))

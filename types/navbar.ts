@@ -15,6 +15,7 @@ export interface HiveOption {
   id: string;
   slug: string | null;
   name: string;
+  logoUrl: string | null;
 }
 
 export interface CurrentHive {

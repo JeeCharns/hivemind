@@ -119,6 +119,7 @@ export async function getNavbarViewModel(
     id: hive.id,
     slug: hive.slug,
     name: hive.name,
+    logoUrl: hive.logo_url,
   }));
 
   return {
