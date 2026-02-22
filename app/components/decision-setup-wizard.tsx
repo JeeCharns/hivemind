@@ -69,7 +69,13 @@ function Step4Content({
                     : "border-slate-200 hover:border-[#cbd5f5]"
                 }`}
               >
-                <span className={visibility === option.value ? "text-brand-primary" : "text-text-secondary"}>
+                <span
+                  className={
+                    visibility === option.value
+                      ? "text-brand-primary"
+                      : "text-text-secondary"
+                  }
+                >
                   {option.icon}
                 </span>
                 <div className="flex-1">
@@ -81,8 +87,16 @@ function Step4Content({
                   </span>
                 </div>
                 {visibility === option.value && (
-                  <svg className="w-5 h-5 text-brand-primary" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 text-brand-primary"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 )}
               </button>
@@ -141,7 +155,13 @@ export default function DecisionSetupWizard({
     onNext,
     onBack,
     onFinish,
-  } = useDecisionSetupWizard({ hiveId, hiveSlug, open, initialTitle, initialDescription });
+  } = useDecisionSetupWizard({
+    hiveId,
+    hiveSlug,
+    open,
+    initialTitle,
+    initialDescription,
+  });
 
   if (!open) return null;
 
@@ -178,7 +198,9 @@ export default function DecisionSetupWizard({
     "Review & create",
   ];
 
-  const selectedVisibilityOption = visibilityOptions.find((opt) => opt.value === visibility);
+  const selectedVisibilityOption = visibilityOptions.find(
+    (opt) => opt.value === visibility
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
@@ -480,22 +502,32 @@ export default function DecisionSetupWizard({
               <div className="bg-slate-50 p-5 space-y-4">
                 {/* Title */}
                 <div>
-                  <span className="text-info text-text-secondary block mb-1">Session title</span>
-                  <span className="text-subtitle text-text-primary">{title}</span>
+                  <span className="text-info text-text-secondary block mb-1">
+                    Session title
+                  </span>
+                  <span className="text-subtitle text-text-primary">
+                    {title}
+                  </span>
                 </div>
 
                 {/* Description */}
                 {description && (
                   <div>
-                    <span className="text-info text-text-secondary block mb-1">Description</span>
-                    <span className="text-body text-text-primary">{description}</span>
+                    <span className="text-info text-text-secondary block mb-1">
+                      Description
+                    </span>
+                    <span className="text-body text-text-primary">
+                      {description}
+                    </span>
                   </div>
                 )}
 
                 <div className="border-t border-slate-200 pt-4 grid grid-cols-2 gap-4">
                   {/* Clusters */}
                   <div>
-                    <span className="text-info text-text-secondary block mb-1">Clusters</span>
+                    <span className="text-info text-text-secondary block mb-1">
+                      Clusters
+                    </span>
                     <span className="text-body text-text-primary">
                       {clusters.filter((c) => c.selected).length} selected
                     </span>
@@ -503,7 +535,9 @@ export default function DecisionSetupWizard({
 
                   {/* Statements */}
                   <div>
-                    <span className="text-info text-text-secondary block mb-1">Proposals</span>
+                    <span className="text-info text-text-secondary block mb-1">
+                      Proposals
+                    </span>
                     <span className="text-body text-text-primary">
                       {statements.filter((s) => s.selected).length} statements
                     </span>
@@ -511,22 +545,34 @@ export default function DecisionSetupWizard({
 
                   {/* Consensus threshold */}
                   <div>
-                    <span className="text-info text-text-secondary block mb-1">Consensus threshold</span>
-                    <span className="text-body text-text-primary">{consensusThreshold}%</span>
+                    <span className="text-info text-text-secondary block mb-1">
+                      Consensus threshold
+                    </span>
+                    <span className="text-body text-text-primary">
+                      {consensusThreshold}%
+                    </span>
                   </div>
 
                   {/* Vote visibility */}
                   <div>
-                    <span className="text-info text-text-secondary block mb-1">Vote visibility</span>
+                    <span className="text-info text-text-secondary block mb-1">
+                      Vote visibility
+                    </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-brand-primary">{selectedVisibilityOption?.icon}</span>
-                      <span className="text-body text-text-primary">{selectedVisibilityOption?.label}</span>
+                      <span className="text-brand-primary">
+                        {selectedVisibilityOption?.icon}
+                      </span>
+                      <span className="text-body text-text-primary">
+                        {selectedVisibilityOption?.label}
+                      </span>
                     </div>
                   </div>
 
                   {/* Deadline */}
                   <div className="col-span-2">
-                    <span className="text-info text-text-secondary block mb-1">Voting deadline</span>
+                    <span className="text-info text-text-secondary block mb-1">
+                      Voting deadline
+                    </span>
                     <span className="text-body text-text-primary">
                       {deadline
                         ? new Intl.DateTimeFormat("en-GB", {

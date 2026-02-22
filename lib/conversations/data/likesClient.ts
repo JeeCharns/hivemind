@@ -26,7 +26,9 @@ export class ResponseLikesClient implements IResponseLikesClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "Failed to like response" }));
+      const error = await response
+        .json()
+        .catch(() => ({ error: "Failed to like response" }));
       return {
         success: false,
         error: error.error || "Failed to like response",
@@ -47,7 +49,9 @@ export class ResponseLikesClient implements IResponseLikesClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "Failed to unlike response" }));
+      const error = await response
+        .json()
+        .catch(() => ({ error: "Failed to unlike response" }));
       return {
         success: false,
         error: error.error || "Failed to unlike response",

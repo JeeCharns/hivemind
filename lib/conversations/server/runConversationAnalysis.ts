@@ -7,13 +7,25 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createOpenAIClient, generateEmbeddings } from "@/lib/analysis/openai/embeddingsClient";
+import {
+  createOpenAIClient,
+  generateEmbeddings,
+} from "@/lib/analysis/openai/embeddingsClient";
 import { reduceToTwoD } from "@/lib/analysis/clustering/dimensionReduction";
 import { clusterEmbeddings } from "@/lib/analysis/clustering/kmeans";
-import { generateThemes, type Theme } from "@/lib/analysis/openai/themeGenerator";
-import { consolidateClusters, type ClusterResponse } from "@/lib/analysis/openai/clusterConsolidator";
+import {
+  generateThemes,
+  type Theme,
+} from "@/lib/analysis/openai/themeGenerator";
+import {
+  consolidateClusters,
+  type ClusterResponse,
+} from "@/lib/analysis/openai/clusterConsolidator";
 import { saveClusterConsolidation } from "./saveClusterConsolidation";
-import { computeMADZScores, detectOutliersPerCluster } from "../domain/outlierDetection";
+import {
+  computeMADZScores,
+  detectOutliersPerCluster,
+} from "../domain/outlierDetection";
 import {
   MISC_CLUSTER_INDEX,
   OUTLIER_Z_THRESHOLD,
@@ -43,7 +55,9 @@ export async function runConversationAnalysis(
   supabase: SupabaseClient,
   conversationId: string
 ): Promise<void> {
-  console.log(`[runConversationAnalysis] Starting analysis for ${conversationId}`);
+  console.log(
+    `[runConversationAnalysis] Starting analysis for ${conversationId}`
+  );
 
   try {
     // 1. Broadcast starting progress
@@ -72,7 +86,9 @@ export async function runConversationAnalysis(
       `Found ${responses.length} responses`
     );
 
-    console.log(`[runConversationAnalysis] Analyzing ${responses.length} responses`);
+    console.log(
+      `[runConversationAnalysis] Analyzing ${responses.length} responses`
+    );
 
     // 5. Broadcast embedding progress
     await broadcastAnalysisProgress(conversationId, "embedding");
@@ -85,7 +101,9 @@ export async function runConversationAnalysis(
     // Normalize embeddings to unit length for better clustering
     const embeddings = normalizeEmbeddings(rawEmbeddings);
 
-    console.log(`[runConversationAnalysis] Generated ${embeddings.length} embeddings`);
+    console.log(
+      `[runConversationAnalysis] Generated ${embeddings.length} embeddings`
+    );
 
     // Broadcast embedding complete
     await broadcastAnalysisProgress(conversationId, "embedding_done");
@@ -137,10 +155,10 @@ export async function runConversationAnalysis(
     if (enforcementResult.splitsPerformed > 0) {
       console.log(
         `[runConversationAnalysis] Enforced minimum cluster floor: ` +
-        `target=${enforcementResult.targetMinClusters}, ` +
-        `effective=${enforcementResult.effectiveMinClusters}, ` +
-        `splits=${enforcementResult.splitsPerformed}, ` +
-        `final=${enforcementResult.finalClusterCount}`
+          `target=${enforcementResult.targetMinClusters}, ` +
+          `effective=${enforcementResult.effectiveMinClusters}, ` +
+          `splits=${enforcementResult.splitsPerformed}, ` +
+          `final=${enforcementResult.finalClusterCount}`
       );
     } else if (enforcementResult.reason) {
       console.log(
@@ -159,7 +177,10 @@ export async function runConversationAnalysis(
       .slice(0, 10); // Top 10 clusters
 
     // 6b. Compute cluster centroids in embedding space
-    const clusterCentroids = computeClusterCentroids(embeddings, clusterIndices);
+    const clusterCentroids = computeClusterCentroids(
+      embeddings,
+      clusterIndices
+    );
 
     // 6c. Compute distances to centroids for outlier detection
     const distancesToCentroids = computeDistancesToCentroids(
@@ -169,7 +190,10 @@ export async function runConversationAnalysis(
     );
 
     // 6d. Compute outlier scores (MAD-based z-scores)
-    const outlierScores = computeOutlierScores(clusterIndices, distancesToCentroids);
+    const outlierScores = computeOutlierScores(
+      clusterIndices,
+      distancesToCentroids
+    );
 
     // 6e. Detect outliers per cluster
     const outlierMap = detectOutliersPerCluster(
@@ -197,19 +221,22 @@ export async function runConversationAnalysis(
 
     // Log if outlier reassignment reduced cluster count below target
     if (enforcementResult.splitsPerformed > 0) {
-      const finalNonMiscCount = clusterIndices.filter(
-        (idx) => idx !== MISC_CLUSTER_INDEX
-      ).reduce((set, idx) => set.add(idx), new Set()).size;
+      const finalNonMiscCount = clusterIndices
+        .filter((idx) => idx !== MISC_CLUSTER_INDEX)
+        .reduce((set, idx) => set.add(idx), new Set()).size;
       if (finalNonMiscCount < enforcementResult.effectiveMinClusters) {
         console.log(
           `[runConversationAnalysis] Warning: outlier reassignment reduced cluster count to ${finalNonMiscCount} ` +
-          `(below target ${enforcementResult.effectiveMinClusters})`
+            `(below target ${enforcementResult.effectiveMinClusters})`
         );
       }
     }
 
     // 7. Group responses by cluster with diverse sampling
-    const responsesByCluster = new Map<number, { texts: string[]; originalIndices: number[] }>();
+    const responsesByCluster = new Map<
+      number,
+      { texts: string[]; originalIndices: number[] }
+    >();
     for (let i = 0; i < responses.length; i++) {
       const clusterIdx = clusterIndices[i];
       if (!responsesByCluster.has(clusterIdx)) {
@@ -225,7 +252,10 @@ export async function runConversationAnalysis(
 
     // 12. Generate themes with diverse sampling
     const themesInput = new Map<number, string[]>();
-    for (const [clusterIdx, { texts, originalIndices }] of responsesByCluster.entries()) {
+    for (const [
+      clusterIdx,
+      { texts, originalIndices },
+    ] of responsesByCluster.entries()) {
       // Skip MISC_CLUSTER_INDEX for LLM theme generation
       if (clusterIdx === MISC_CLUSTER_INDEX) continue;
 
@@ -245,7 +275,9 @@ export async function runConversationAnalysis(
       });
     }
 
-    console.log(`[runConversationAnalysis] Generated ${themes.length} themes (including ${miscCount > 0 ? 1 : 0} misc theme)`);
+    console.log(
+      `[runConversationAnalysis] Generated ${themes.length} themes (including ${miscCount > 0 ? 1 : 0} misc theme)`
+    );
 
     // 13. Broadcast saving progress
     await broadcastAnalysisProgress(conversationId, "saving");
@@ -299,8 +331,15 @@ export async function runConversationAnalysis(
         `[runConversationAnalysis] Consolidating ${clusterResponses.size} clusters`
       );
 
-      const consolidationResults = await consolidateClusters(openai, clusterResponses);
-      await saveClusterConsolidation(supabase, conversationId, consolidationResults);
+      const consolidationResults = await consolidateClusters(
+        openai,
+        clusterResponses
+      );
+      await saveClusterConsolidation(
+        supabase,
+        conversationId,
+        consolidationResults
+      );
 
       console.log(
         `[runConversationAnalysis] Saved cluster consolidation for ${consolidationResults.length} clusters`
@@ -323,9 +362,14 @@ export async function runConversationAnalysis(
     // 22. Broadcast complete
     await broadcastAnalysisProgress(conversationId, "complete");
 
-    console.log(`[runConversationAnalysis] Analysis complete for ${conversationId}`);
+    console.log(
+      `[runConversationAnalysis] Analysis complete for ${conversationId}`
+    );
   } catch (error) {
-    console.error(`[runConversationAnalysis] Failed for ${conversationId}:`, error);
+    console.error(
+      `[runConversationAnalysis] Failed for ${conversationId}:`,
+      error
+    );
 
     // Update status to 'error'
     const errorMessage =
@@ -355,16 +399,16 @@ async function fetchResponses(
 
   return (
     (
-      data as
-        | Array<{ id: string; response_text: string; user_id: string }>
-        | null
-    )?.map(
-      (row) => ({
-        id: row.id,
-        text: row.response_text,
-        userId: row.user_id,
-      })
-    ) ?? []
+      data as Array<{
+        id: string;
+        response_text: string;
+        user_id: string;
+      }> | null
+    )?.map((row) => ({
+      id: row.id,
+      text: row.response_text,
+      userId: row.user_id,
+    })) ?? []
   );
 }
 
@@ -618,15 +662,16 @@ async function saveClusterModels(
 
   // Compute centroids and stats for each cluster
   const models = [];
-  for (const [clusterIdx, { embeddings: clusterEmbeddings, coords }] of clusterData.entries()) {
+  for (const [
+    clusterIdx,
+    { embeddings: clusterEmbeddings, coords },
+  ] of clusterData.entries()) {
     // Compute centroid in embedding space
     const centroidEmbedding = computeCentroid(clusterEmbeddings);
 
     // Compute centroid in 2D space
-    const centroidX =
-      coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
-    const centroidY =
-      coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+    const centroidX = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+    const centroidY = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
 
     // Compute spread radius (max distance from centroid)
     let maxRadius = 0;
@@ -769,23 +814,30 @@ function computeOutlierScores(
   distancesToCentroids: number[]
 ): (number | null)[] {
   // Group distances by cluster
-  const clusterDistances = new Map<number, Array<{ idx: number; distance: number }>>();
+  const clusterDistances = new Map<
+    number,
+    Array<{ idx: number; distance: number }>
+  >();
   for (let i = 0; i < clusterIndices.length; i++) {
     const clusterIdx = clusterIndices[i];
     if (!clusterDistances.has(clusterIdx)) {
       clusterDistances.set(clusterIdx, []);
     }
-    clusterDistances.get(clusterIdx)!.push({ idx: i, distance: distancesToCentroids[i] });
+    clusterDistances
+      .get(clusterIdx)!
+      .push({ idx: i, distance: distancesToCentroids[i] });
   }
 
   // Compute z-scores per cluster
-  const outlierScores = new Array<number | null>(clusterIndices.length).fill(null);
+  const outlierScores = new Array<number | null>(clusterIndices.length).fill(
+    null
+  );
 
   for (const [, entries] of clusterDistances.entries()) {
     // Skip small clusters
     if (entries.length < OUTLIER_MIN_CLUSTER_SIZE) continue;
 
-    const distances = entries.map(e => e.distance);
+    const distances = entries.map((e) => e.distance);
     const zScores = computeMADZScores(distances);
 
     for (let j = 0; j < entries.length; j++) {

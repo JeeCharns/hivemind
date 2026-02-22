@@ -7,8 +7,14 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { TriggerAnalysisRequest, TriggerAnalysisResponse } from "../schemas";
-import { UNDERSTAND_MIN_RESPONSES, INCREMENTAL_THRESHOLD } from "../domain/thresholds";
+import type {
+  TriggerAnalysisRequest,
+  TriggerAnalysisResponse,
+} from "../schemas";
+import {
+  UNDERSTAND_MIN_RESPONSES,
+  INCREMENTAL_THRESHOLD,
+} from "../domain/thresholds";
 
 interface TriggerConversationAnalysisOptions {
   requireAdmin?: boolean;
@@ -45,7 +51,9 @@ export async function triggerConversationAnalysis(
   // 1. Fetch conversation with metadata
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
-    .select("id, hive_id, type, analysis_status, analysis_response_count, analysis_updated_at")
+    .select(
+      "id, hive_id, type, analysis_status, analysis_response_count, analysis_updated_at"
+    )
     .eq("id", conversationId)
     .single();
 
@@ -132,7 +140,10 @@ export async function triggerConversationAnalysis(
     .limit(1);
 
   if (jobsError) {
-    console.error("[triggerConversationAnalysis] Failed to check existing jobs:", jobsError);
+    console.error(
+      "[triggerConversationAnalysis] Failed to check existing jobs:",
+      jobsError
+    );
     // Continue anyway - we'll try to create the job
   }
 
@@ -256,7 +267,9 @@ export async function triggerConversationAnalysis(
 
   // 10. Enqueue job
   // Note: Active jobs are already retired in step 8 above (for stale jobs or regenerate mode)
-  console.log("[triggerConversationAnalysis] Creating analysis job with status=queued");
+  console.log(
+    "[triggerConversationAnalysis] Creating analysis job with status=queued"
+  );
 
   const { data: insertedJob, error: insertError } = await supabase
     .from("conversation_analysis_jobs")
@@ -295,13 +308,16 @@ export async function triggerConversationAnalysis(
     .eq("id", insertedJob.id)
     .single();
 
-  console.log("[triggerConversationAnalysis] Job verification (SELECT after INSERT):", {
-    hasData: !!verifyJob,
-    hasError: !!verifyError,
-    errorCode: verifyError?.code,
-    errorMessage: verifyError?.message,
-    jobData: verifyJob,
-  });
+  console.log(
+    "[triggerConversationAnalysis] Job verification (SELECT after INSERT):",
+    {
+      hasData: !!verifyJob,
+      hasError: !!verifyError,
+      errorCode: verifyError?.code,
+      errorMessage: verifyError?.message,
+      jobData: verifyJob,
+    }
+  );
 
   // 12. Update conversation status
   await supabase

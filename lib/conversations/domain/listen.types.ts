@@ -5,7 +5,13 @@
  * Follows SRP: types separate from logic
  */
 
-export type ListenTag = "need" | "data" | "want" | "problem" | "risk" | "proposal";
+export type ListenTag =
+  | "need"
+  | "data"
+  | "want"
+  | "problem"
+  | "risk"
+  | "proposal";
 
 /**
  * Live response in the feed
@@ -64,4 +70,9 @@ export interface FeedBroadcastPayload {
  * Realtime connection status
  * - "paused": Intentionally disconnected due to high traffic (graceful degradation)
  */
-export type RealtimeStatus = "connecting" | "connected" | "error" | "disconnected" | "paused";
+export type RealtimeStatus =
+  | "connecting"
+  | "connected"
+  | "error"
+  | "disconnected"
+  | "paused";

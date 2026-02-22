@@ -53,7 +53,10 @@ export async function generateEmbeddings(
       const batchEmbeddings = response.data.map((item) => item.embedding);
       embeddings.push(...batchEmbeddings);
     } catch (error) {
-      console.error(`[generateEmbeddings] Batch ${i / BATCH_SIZE + 1} failed:`, error);
+      console.error(
+        `[generateEmbeddings] Batch ${i / BATCH_SIZE + 1} failed:`,
+        error
+      );
       throw new Error(
         `Failed to generate embeddings for batch ${i / BATCH_SIZE + 1}: ${
           error instanceof Error ? error.message : "Unknown error"

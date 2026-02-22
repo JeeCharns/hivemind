@@ -7,6 +7,7 @@
    - `009_remove_public_invite_preview_policy.sql` - Ensures invite preview is served server-side (no public table access)
 
    Apply via Supabase Dashboard → SQL Editor, or if using local Supabase CLI:
+
    ```bash
    supabase db push
    ```
@@ -23,6 +24,7 @@
 **Setup**: Create/join a hive as a member (not admin)
 
 **Steps**:
+
 1. Navigate to any conversation in the hive
 2. Click the "Share" button in the conversation header
 3. Verify modal opens with title "Share to [Conversation Title]"
@@ -43,6 +45,7 @@
 **Setup**: Be an admin of a hive
 
 **Steps**:
+
 1. Open share modal from any conversation
 2. Verify access mode radio buttons are enabled
 3. Select "Invited only"
@@ -62,6 +65,7 @@
 **Setup**: Set access mode to "Invited only" as admin
 
 **Steps**:
+
 1. Enter email addresses (comma-separated): `test1@example.com, test2@example.com`
 2. Verify helper text shows: "(2 entered)"
 3. Click "Invite 2 people"
@@ -69,6 +73,7 @@
 5. Verify email input clears
 
 **Error Cases**:
+
 - Enter 0 emails → "Invite 0 people" button is disabled
 - Enter 11 emails → Button disabled, shows validation error
 - Invalid email format → (future: show validation)
@@ -80,6 +85,7 @@
 ### 4. Accept Invite - Anyone Mode (Unauthenticated)
 
 **Steps**:
+
 1. Copy invite link from share modal
 2. Open link in incognito browser: `/invite/[token]`
 3. Verify redirect to `/login?intent=join&invite=[token]`
@@ -98,6 +104,7 @@
 ### 5. Accept Invite - Anyone Mode (Already Authenticated)
 
 **Steps**:
+
 1. Login to application
 2. Open invite link: `/invite/[token]`
 3. Verify immediate redirect to hive (no login required)
@@ -110,10 +117,12 @@
 ### 6. Accept Invite - Invited-Only Mode (Email on Whitelist)
 
 **Setup**:
+
 - Set access mode to "Invited only"
 - Add `testuser@example.com` to whitelist
 
 **Steps**:
+
 1. Logout
 2. Open invite link in incognito
 3. Login with `testuser@example.com` (the whitelisted email)
@@ -127,10 +136,12 @@
 ### 7. Accept Invite - Invited-Only Mode (Email NOT on Whitelist)
 
 **Setup**:
+
 - Set access mode to "Invited only"
 - Do NOT add `unauthorized@example.com` to whitelist
 
 **Steps**:
+
 1. Logout
 2. Open invite link
 3. Login with `unauthorized@example.com`
@@ -146,6 +157,7 @@
 **Setup**: Already be a member of the hive
 
 **Steps**:
+
 1. Open invite link for hive you're already in
 2. Verify redirect to hive homepage (no error)
 3. Verify membership unchanged
@@ -157,6 +169,7 @@
 ### 9. Invalid Token
 
 **Steps**:
+
 1. Navigate to `/invite/invalid-token-12345`
 2. Verify error: "Invalid invite link" or "Invite not found"
 
@@ -167,6 +180,7 @@
 ### 10. Share Link Persistence
 
 **Steps**:
+
 1. Open share modal and copy link
 2. Close modal
 3. Reopen share modal
@@ -180,11 +194,13 @@
 ## Database Verification
 
 ### Check invite link creation:
+
 ```sql
 SELECT * FROM hive_invite_links WHERE hive_id = '[your-hive-id]';
 ```
 
 ### Check invite email rows:
+
 ```sql
 SELECT * FROM hive_invites
 WHERE hive_id = '[your-hive-id]'
@@ -192,6 +208,7 @@ AND status = 'pending';
 ```
 
 ### Check membership:
+
 ```sql
 SELECT * FROM hive_members
 WHERE hive_id = '[your-hive-id]'
@@ -205,6 +222,7 @@ AND user_id = '[new-user-id]';
 Test placeholders created in `app/tests/api/hives-share-link.test.ts`.
 
 To implement full tests:
+
 1. Set up auth mocking (see existing tests in `app/tests/api/`)
 2. Use Supabase test client
 3. Implement each test case

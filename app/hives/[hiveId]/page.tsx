@@ -58,7 +58,10 @@ export default async function HivePage({
           console.error("[HivePage] Error fetching profile:", error);
         }
         if (!data?.display_name) {
-          console.warn("[HivePage] Profile missing display_name for user:", session.user.id);
+          console.warn(
+            "[HivePage] Profile missing display_name for user:",
+            session.user.id
+          );
         }
         return data;
       }),
@@ -92,9 +95,12 @@ function HiveNotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
       <div className="text-center max-w-md">
-        <h1 className="text-2xl font-semibold text-[#172847] mb-4">Hive Not Found</h1>
+        <h1 className="text-2xl font-semibold text-[#172847] mb-4">
+          Hive Not Found
+        </h1>
         <p className="text-sm text-[#566175] mb-6">
-          The hive you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
+          The hive you&apos;re looking for doesn&apos;t exist or you don&apos;t
+          have access to it.
         </p>
         <Button
           onClick={() => (window.location.href = "/hives")}

@@ -88,11 +88,12 @@ describe("POST /api/hives", () => {
 
     expect(response.status).toBe(200);
     expect(data.slug).toBe("test-hive");
-    expect(mockCreateHive).toHaveBeenCalledWith(
-      expect.anything(),
-      "user-123",
-      { name: "Test Hive", logoUrl: null, logoFile: null, visibility: "public" }
-    );
+    expect(mockCreateHive).toHaveBeenCalledWith(expect.anything(), "user-123", {
+      name: "Test Hive",
+      logoUrl: null,
+      logoFile: null,
+      visibility: "public",
+    });
   });
 
   it("should reject invalid logo file type", async () => {
@@ -249,4 +250,3 @@ describe("POST /api/hives", () => {
     );
   });
 });
-

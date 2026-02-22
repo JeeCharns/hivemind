@@ -69,10 +69,10 @@ export async function runAnalysisInBackground(
           : " (running without job tracking due to table visibility issue)")
     );
 
-    const { runConversationAnalysis } = await import("./runConversationAnalysis");
-    const { runConversationAnalysisIncremental } = await import(
-      "./runConversationAnalysisIncremental"
-    );
+    const { runConversationAnalysis } =
+      await import("./runConversationAnalysis");
+    const { runConversationAnalysisIncremental } =
+      await import("./runConversationAnalysisIncremental");
 
     if (strategy === "incremental") {
       await runConversationAnalysisIncremental(admin, conversationId);

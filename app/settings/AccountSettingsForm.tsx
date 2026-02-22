@@ -18,7 +18,8 @@ interface AccountSettingsFormProps {
 }
 
 function NotificationPreferencesSection() {
-  const { preferences, loading, updatePreferences } = useNotificationPreferences();
+  const { preferences, loading, updatePreferences } =
+    useNotificationPreferences();
 
   if (loading || !preferences) {
     return <div className="animate-pulse h-24 bg-slate-100 rounded" />;
@@ -30,11 +31,15 @@ function NotificationPreferencesSection() {
         <input
           type="checkbox"
           checked={preferences.new_conversation}
-          onChange={(e) => updatePreferences({ new_conversation: e.target.checked })}
+          onChange={(e) =>
+            updatePreferences({ new_conversation: e.target.checked })
+          }
           className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
         />
         <div>
-          <span className="text-sm font-medium text-slate-700">New conversations</span>
+          <span className="text-sm font-medium text-slate-700">
+            New conversations
+          </span>
           <p className="text-xs text-slate-500">
             Receive an email when a new conversation starts in your Hives
           </p>
@@ -45,13 +50,18 @@ function NotificationPreferencesSection() {
         <input
           type="checkbox"
           checked={preferences.conversation_progress}
-          onChange={(e) => updatePreferences({ conversation_progress: e.target.checked })}
+          onChange={(e) =>
+            updatePreferences({ conversation_progress: e.target.checked })
+          }
           className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
         />
         <div>
-          <span className="text-sm font-medium text-slate-700">Conversation progress</span>
+          <span className="text-sm font-medium text-slate-700">
+            Conversation progress
+          </span>
           <p className="text-xs text-slate-500">
-            Receive an email when a conversation you contributed to has new analysis or reports
+            Receive an email when a conversation you contributed to has new
+            analysis or reports
           </p>
         </div>
       </label>

@@ -47,18 +47,16 @@ export async function POST(
     }
 
     // 4. Insert like (upsert to handle duplicate likes gracefully)
-    const { error: insertError } = await supabase
-      .from("response_likes")
-      .upsert(
-        {
-          response_id: responseId,
-          user_id: session.user.id,
-        },
-        {
-          onConflict: "response_id,user_id",
-          ignoreDuplicates: true,
-        }
-      );
+    const { error: insertError } = await supabase.from("response_likes").upsert(
+      {
+        response_id: responseId,
+        user_id: session.user.id,
+      },
+      {
+        onConflict: "response_id,user_id",
+        ignoreDuplicates: true,
+      }
+    );
 
     if (insertError) {
       console.error("[POST like] Insert error:", insertError);

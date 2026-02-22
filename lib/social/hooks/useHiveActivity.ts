@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Use Hive Activity Hook
@@ -13,10 +13,13 @@
  * - Reports connection status for UI indicator
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import type { ActivityEvent, ActivityEventType } from '../types';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import type { ActivityEvent, ActivityEventType } from "../types";
 
 interface UseHiveActivityOptions {
   hiveId: string;
@@ -25,7 +28,7 @@ interface UseHiveActivityOptions {
   maxEvents?: number;
 }
 
-type ActivityStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
+type ActivityStatus = "connecting" | "connected" | "error" | "disconnected";
 
 interface UseHiveActivityResult {
   activity: ActivityEvent[];
@@ -55,12 +58,12 @@ export function useHiveActivity({
   maxEvents = 15,
 }: UseHiveActivityOptions): UseHiveActivityResult {
   const [activity, setActivity] = useState<ActivityEvent[]>(initialActivity);
-  const [status, setStatus] = useState<ActivityStatus>('disconnected');
+  const [status, setStatus] = useState<ActivityStatus>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const handleNewActivity = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
+      if (payload.eventType === "INSERT" && payload.new) {
         const row = payload.new as unknown as HiveActivityRow;
 
         const newEvent: ActivityEvent = {
@@ -84,29 +87,29 @@ export function useHiveActivity({
     }
 
     // Use queueMicrotask to avoid synchronous setState in effect body
-    queueMicrotask(() => setStatus('connecting'));
+    queueMicrotask(() => setStatus("connecting"));
 
     const channelName = `hive:${hiveId}:activity`;
 
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'hive_activity',
+          event: "INSERT",
+          schema: "public",
+          table: "hive_activity",
           filter: `hive_id=eq.${hiveId}`,
         },
         handleNewActivity
       )
       .subscribe((subscriptionStatus, err) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-        } else if (subscriptionStatus === 'CHANNEL_ERROR' || err) {
-          setStatus('error');
-        } else if (subscriptionStatus === 'CLOSED') {
-          setStatus('disconnected');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (subscriptionStatus === "CHANNEL_ERROR" || err) {
+          setStatus("error");
+        } else if (subscriptionStatus === "CLOSED") {
+          setStatus("disconnected");
         }
       });
 

@@ -32,7 +32,9 @@ export async function GET(
     .maybeSingle();
 
   if (convError || !conversation) {
-    console.log("[GET /api/conversations/:id/report-preview] Conversation not found");
+    console.log(
+      "[GET /api/conversations/:id/report-preview] Conversation not found"
+    );
     return jsonError("Conversation not found", 404);
   }
 
@@ -45,7 +47,9 @@ export async function GET(
     .maybeSingle();
 
   if (!member) {
-    console.log("[GET /api/conversations/:id/report-preview] User not a member");
+    console.log(
+      "[GET /api/conversations/:id/report-preview] User not a member"
+    );
     return jsonError("Forbidden", 403);
   }
 
@@ -71,7 +75,10 @@ export async function GET(
   const { data: report, error: reportError } = await query.maybeSingle();
 
   if (reportError) {
-    console.error("[GET /api/conversations/:id/report-preview] Query error:", reportError);
+    console.error(
+      "[GET /api/conversations/:id/report-preview] Query error:",
+      reportError
+    );
     return jsonError("Failed to fetch report", 500);
   }
 
@@ -86,7 +93,9 @@ export async function GET(
     createdAt: report.created_at,
   };
 
-  console.log(`[GET /api/conversations/:id/report-preview] Returning version ${report.version}`);
+  console.log(
+    `[GET /api/conversations/:id/report-preview] Returning version ${report.version}`
+  );
 
   return NextResponse.json(response);
 }

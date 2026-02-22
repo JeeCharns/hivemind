@@ -99,7 +99,8 @@ export function computeAgreementSummaries(
   const agreement = rows
     .filter((r) => r.agreePercent >= mergedOptions.agreementAgreePercentMin)
     .sort((a, b) => {
-      if (b.agreePercent !== a.agreePercent) return b.agreePercent - a.agreePercent;
+      if (b.agreePercent !== a.agreePercent)
+        return b.agreePercent - a.agreePercent;
       if (b.totalVotes !== a.totalVotes) return b.totalVotes - a.totalVotes;
       return a.id.localeCompare(b.id);
     })

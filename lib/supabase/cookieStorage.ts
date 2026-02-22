@@ -24,7 +24,10 @@ function getCookie(name: string): string | null {
   // Debug logging when code verifier is NOT found
   if (name.includes("code-verifier")) {
     console.log("[CookieStorage] Code verifier NOT found:", name);
-    console.log("[CookieStorage] Available cookies:", document.cookie || "none");
+    console.log(
+      "[CookieStorage] Available cookies:",
+      document.cookie || "none"
+    );
     console.log("[CookieStorage] Looking for exact name:", name);
   }
 
@@ -58,9 +61,15 @@ function setCookie(name: string, value: string) {
     // Verify it was set
     setTimeout(() => {
       const retrieved = getCookie(name);
-      console.log("[CookieStorage] Verified code verifier:", retrieved ? "✓ Found" : "✗ Not found");
+      console.log(
+        "[CookieStorage] Verified code verifier:",
+        retrieved ? "✓ Found" : "✗ Not found"
+      );
       if (retrieved) {
-        console.log("[CookieStorage] Retrieved value matches:", retrieved === value);
+        console.log(
+          "[CookieStorage] Retrieved value matches:",
+          retrieved === value
+        );
       }
     }, 100);
   }
@@ -76,4 +85,3 @@ export const cookieStorage: CookieStorage = {
   setItem: (key, value) => setCookie(key, value),
   removeItem: (key) => deleteCookie(key),
 };
-

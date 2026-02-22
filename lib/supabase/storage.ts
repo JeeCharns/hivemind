@@ -4,7 +4,10 @@ import { supabase } from "./client";
 const signedUrlCache = new Map<string, { url: string; expires: number }>();
 
 // Expected storage errors that don't need to be logged (stale references, missing files)
-const SILENT_ERROR_MESSAGES = ["Object not found", "The resource was not found"];
+const SILENT_ERROR_MESSAGES = [
+  "Object not found",
+  "The resource was not found",
+];
 
 function isExpectedStorageError(error: unknown): boolean {
   if (error && typeof error === "object" && "message" in error) {

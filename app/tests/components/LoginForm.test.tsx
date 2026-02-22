@@ -8,7 +8,9 @@ describe("LoginForm", () => {
     render(<LoginForm onSubmit={mockOnSubmit} />);
 
     await userEvent.type(screen.getByLabelText(/email/i), "user@example.com");
-    await userEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /send verification code/i })
+    );
 
     expect(mockOnSubmit).toHaveBeenCalledWith("user@example.com");
   });

@@ -11,7 +11,11 @@
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import type { NavbarViewModel, NavbarPage } from "@/types/navbar";
-import { getUserHives, getHiveById, getHiveMemberRole } from "./data/hiveRepository";
+import {
+  getUserHives,
+  getHiveById,
+  getHiveMemberRole,
+} from "./data/hiveRepository";
 import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
 import { redirect } from "next/navigation";
 import { getAvatarUrl } from "@/lib/storage/server/getAvatarUrl";
@@ -59,7 +63,9 @@ export async function getNavbarViewModel(
     "User";
 
   const avatarPath = profile?.avatar_path ?? null;
-  const avatarUrl = avatarPath ? await getAvatarUrl(supabase, avatarPath) : null;
+  const avatarUrl = avatarPath
+    ? await getAvatarUrl(supabase, avatarPath)
+    : null;
 
   const user = {
     displayName,
@@ -88,9 +94,15 @@ export async function getNavbarViewModel(
       }
 
       // Check membership and role (security)
-      const membership = await getHiveMemberRole(supabase, session.user.id, hiveId);
+      const membership = await getHiveMemberRole(
+        supabase,
+        session.user.id,
+        hiveId
+      );
       if (!membership.isMember) {
-        console.warn(`[getNavbarViewModel] User ${session.user.id} not member of hive ${hiveId}`);
+        console.warn(
+          `[getNavbarViewModel] User ${session.user.id} not member of hive ${hiveId}`
+        );
         redirect("/hives");
       }
 
@@ -119,6 +131,7 @@ export async function getNavbarViewModel(
     id: hive.id,
     slug: hive.slug,
     name: hive.name,
+    logoUrl: hive.logo_url,
   }));
 
   return {

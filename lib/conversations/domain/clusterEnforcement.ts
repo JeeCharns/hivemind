@@ -209,7 +209,9 @@ function relabelClustersBySize(clusterIndices: number[]): number[] {
 
   // Apply relabeling (preserve MISC_CLUSTER_INDEX)
   return clusterIndices.map((idx) =>
-    idx === MISC_CLUSTER_INDEX ? MISC_CLUSTER_INDEX : relabelMap.get(idx) ?? idx
+    idx === MISC_CLUSTER_INDEX
+      ? MISC_CLUSTER_INDEX
+      : (relabelMap.get(idx) ?? idx)
   );
 }
 
@@ -269,7 +271,8 @@ export function enforceMinClusters(
         targetMinClusters,
         effectiveMinClusters,
         finalClusterCount: currentClusterCount,
-        reason: "No eligible clusters to split (all below minimum size threshold)",
+        reason:
+          "No eligible clusters to split (all below minimum size threshold)",
       };
     }
 

@@ -16,7 +16,11 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 
-type QueryResult<T = unknown> = { data: T; error: unknown; count?: number | null };
+type QueryResult<T = unknown> = {
+  data: T;
+  error: unknown;
+  count?: number | null;
+};
 type QueryResultPromiseThen = Promise<QueryResult>["then"];
 type QueryResultPromiseCatch = Promise<QueryResult>["catch"];
 
@@ -32,12 +36,16 @@ type SupabaseBuilder = {
 
 type SupabaseMock = {
   from: jest.MockedFunction<(table: string) => SupabaseBuilder>;
-  rpc: jest.MockedFunction<(fn: string, params: unknown) => Promise<{ data: unknown; error: unknown }>>;
+  rpc: jest.MockedFunction<
+    (fn: string, params: unknown) => Promise<{ data: unknown; error: unknown }>
+  >;
 };
 
 function createSupabaseMock() {
-  const queues: Record<string, { maybeSingle: QueryResult[]; then: QueryResult[] }> =
-    {};
+  const queues: Record<
+    string,
+    { maybeSingle: QueryResult[]; then: QueryResult[] }
+  > = {};
   const rpcQueue: Array<{ data: unknown; error: unknown }> = [];
 
   const ensure = (table: string) => {
@@ -63,7 +71,10 @@ function createSupabaseMock() {
       then: (onFulfilled, onRejected) => {
         // For delete queries, return { error: null }
         if (isDeleteQuery) {
-          return Promise.resolve({ error: null } as QueryResult).then(onFulfilled, onRejected);
+          return Promise.resolve({ error: null } as QueryResult).then(
+            onFulfilled,
+            onRejected
+          );
         }
         // For other queries, use the queue
         const next = ensure(table).then.shift() ?? { data: null, error: null };
@@ -87,8 +98,10 @@ function createSupabaseMock() {
     supabase,
     queueMaybeSingle: (table: string, result: QueryResult) =>
       ensure(table).maybeSingle.push(result),
-    queueThen: (table: string, result: QueryResult) => ensure(table).then.push(result),
-    queueRpc: (result: { data: unknown; error: unknown }) => rpcQueue.push(result),
+    queueThen: (table: string, result: QueryResult) =>
+      ensure(table).then.push(result),
+    queueRpc: (result: { data: unknown; error: unknown }) =>
+      rpcQueue.push(result),
   };
 }
 

@@ -6,29 +6,29 @@ This document provides specific find-and-replace patterns for each remaining fil
 
 ### Common Replacements
 
-| Find | Replace | Notes |
-|------|---------|-------|
-| `text-[24px] leading-[31px] font-medium text-[#172847]` | `text-h2 text-text-primary` | Page titles |
-| `text-3xl font-semibold text-[#172847]` | `text-h1 text-text-primary` | Large headings |
-| `text-2xl font-semibold text-[#172847]` | `text-h2 text-text-primary` | Section headings |
-| `text-lg font-semibold text-[#172847]` | `text-h4 text-text-primary` | Card headings |
-| `text-lg font-medium text-slate-900` | `text-h4 text-slate-900` | Subsection headings |
-| `text-sm font-medium text-[#172847]` | `text-subtitle text-text-primary` | Emphasized text |
-| `text-sm font-medium text-slate-800` | `text-subtitle text-slate-800` | Menu items, card text |
-| `text-sm text-[#566175]` | `text-body text-text-secondary` | Secondary body text |
-| `text-sm text-[#566888]` | `text-body text-text-muted` | Muted descriptions |
-| `text-xs font-semibold` | `text-label` | Tags, badges, form labels |
-| `text-xs text-slate-500` | `text-info text-slate-500` | Helper text |
-| `text-[12px] font-medium` | `text-label` | Small UI labels |
-| `text-[14px] leading-5 font-normal` | `text-body` | Standard body text |
-| `text-[16px] font-medium` | `text-subtitle` | Emphasized body |
-| `text-xs text-slate-500 uppercase tracking-wide font-medium` | `text-allcaps text-slate-500` | Section headers |
-| `style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}` | *(remove, use `font-display` class)* | Inline font styles |
-| `text-[#172847]` | `text-text-primary` | Primary text color |
-| `text-[#566175]` or `text-[#566888]` | `text-text-secondary` or `text-text-muted` | Secondary text colors |
-| `text-[#9498B0]` | `text-text-tertiary` | Tertiary text color |
-| `text-[#A0AEC0]` | `text-text-disabled` | Disabled/placeholder |
-| `text-[#3A1DC8]` | `text-brand-primary` | Brand color |
+| Find                                                          | Replace                                    | Notes                     |
+| ------------------------------------------------------------- | ------------------------------------------ | ------------------------- |
+| `text-[24px] leading-[31px] font-medium text-[#172847]`       | `text-h2 text-text-primary`                | Page titles               |
+| `text-3xl font-semibold text-[#172847]`                       | `text-h1 text-text-primary`                | Large headings            |
+| `text-2xl font-semibold text-[#172847]`                       | `text-h2 text-text-primary`                | Section headings          |
+| `text-lg font-semibold text-[#172847]`                        | `text-h4 text-text-primary`                | Card headings             |
+| `text-lg font-medium text-slate-900`                          | `text-h4 text-slate-900`                   | Subsection headings       |
+| `text-sm font-medium text-[#172847]`                          | `text-subtitle text-text-primary`          | Emphasized text           |
+| `text-sm font-medium text-slate-800`                          | `text-subtitle text-slate-800`             | Menu items, card text     |
+| `text-sm text-[#566175]`                                      | `text-body text-text-secondary`            | Secondary body text       |
+| `text-sm text-[#566888]`                                      | `text-body text-text-muted`                | Muted descriptions        |
+| `text-xs font-semibold`                                       | `text-label`                               | Tags, badges, form labels |
+| `text-xs text-slate-500`                                      | `text-info text-slate-500`                 | Helper text               |
+| `text-[12px] font-medium`                                     | `text-label`                               | Small UI labels           |
+| `text-[14px] leading-5 font-normal`                           | `text-body`                                | Standard body text        |
+| `text-[16px] font-medium`                                     | `text-subtitle`                            | Emphasized body           |
+| `text-xs text-slate-500 uppercase tracking-wide font-medium`  | `text-allcaps text-slate-500`              | Section headers           |
+| `style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}` | _(remove, use `font-display` class)_       | Inline font styles        |
+| `text-[#172847]`                                              | `text-text-primary`                        | Primary text color        |
+| `text-[#566175]` or `text-[#566888]`                          | `text-text-secondary` or `text-text-muted` | Secondary text colors     |
+| `text-[#9498B0]`                                              | `text-text-tertiary`                       | Tertiary text color       |
+| `text-[#A0AEC0]`                                              | `text-text-disabled`                       | Disabled/placeholder      |
+| `text-[#3A1DC8]`                                              | `text-brand-primary`                       | Brand color               |
 
 ## File-by-File Migration Instructions
 
@@ -133,6 +133,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 **Complexity:** Medium
 
 #### Search for these patterns and update:
+
 - `text-base leading-[22px] text-[#566888]` → `text-body-lg text-text-muted`
 - `text-slate-800 font-medium` → `text-subtitle text-slate-800`
 - Any hardcoded colors: `#172847`, `#566888`, `#3A1DC8`
@@ -143,6 +144,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 **Complexity:** High (uses Canvas with fontSize prop)
 
 #### Note:
+
 - Canvas text uses `fontSize` and `fontWeight` props, not className
 - Update surrounding UI text, keep canvas as-is for now
 - Focus on labels, headers, and description text
@@ -153,6 +155,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 **Complexity:** Medium
 
 #### Specific Replacements:
+
 ```tsx
 // Large numbers
 - text-3xl md:text-4xl font-medium font-display text-slate-900
@@ -177,6 +180,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 **Complexity:** Low
 
 #### Specific Replacements:
+
 ```tsx
 // Group label
 - text-xs font-semibold
@@ -193,6 +197,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 **Complexity:** High
 
 #### Specific Replacements:
+
 ```tsx
 // Step indicator
 - text-sm text-[#566888]
@@ -225,6 +230,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 **Complexity:** Low
 
 #### Specific Replacements:
+
 ```tsx
 // Page title
 - text-2xl font-semibold text-[#172847]
@@ -245,6 +251,7 @@ This document provides specific find-and-replace patterns for each remaining fil
 **Complexity:** Low
 
 #### Look for:
+
 - Card titles: Use `text-h4` or `text-subtitle`
 - Card descriptions: Use `text-body` or `text-body-sm`
 - Labels/tags: Use `text-label`
@@ -269,20 +276,24 @@ find app -name "*.tsx" -type f -exec sed -i.bak 's/text-\[#172847\]/text-text-pr
 For each file you update:
 
 1. **Visual Check**
+
    ```bash
    npm run dev
    ```
+
    - Navigate to the component
    - Verify font sizes look correct
    - Check that Space Grotesk loads for headings/labels
    - Check that Inter loads for body text
 
 2. **Type Check**
+
    ```bash
    npm run typecheck
    ```
 
 3. **Lint Check**
+
    ```bash
    npm run lint
    ```
@@ -299,6 +310,7 @@ For each file you update:
 Mark off as you complete each file:
 
 **High Priority (All Complete!):**
+
 - [x] app/components/conversation/ListenView.tsx ✅ Complete (~15 changes)
 - [x] app/components/conversation/ReportView.tsx ✅ Complete (~8 changes)
 - [x] app/components/conversation/UnderstandView.tsx ✅ Complete (~11 changes)
@@ -309,9 +321,10 @@ Mark off as you complete each file:
 - [x] app/hives/components/HiveCard.tsx ✅ Complete (1 change)
 
 **Medium Priority (Remaining):**
+
 - [ ] app/hives/components/SettingsForm.tsx
 - [ ] app/hives/components/InviteForm.tsx
-- [ ] app/settings/**/*.tsx (multiple files)
+- [ ] app/settings/\*_/_.tsx (multiple files)
 
 ## Getting Help
 
@@ -332,8 +345,9 @@ After completing all files:
 2. Visual regression test (compare screenshots before/after)
 3. Accessibility audit (check color contrast, heading hierarchy)
 4. Update [TYPOGRAPHY_MIGRATION_SUMMARY.md](../TYPOGRAPHY_MIGRATION_SUMMARY.md) with completion status
-5. Remove any backup files (*.bak)
+5. Remove any backup files (\*.bak)
 6. Commit with descriptive message:
+
    ```bash
    git add .
    git commit -m "Complete typography system migration

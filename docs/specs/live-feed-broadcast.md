@@ -54,16 +54,18 @@ Replace the `postgres_changes` subscription with a **Supabase Broadcast channel*
 **Purpose:** Broadcast a `LiveResponse` to all subscribers of a conversation's feed channel.
 
 **Interface:**
+
 ```typescript
 interface BroadcastResponseInput {
   conversationId: string;
   response: LiveResponse;
 }
 
-function broadcastResponse(input: BroadcastResponseInput): Promise<void>
+function broadcastResponse(input: BroadcastResponseInput): Promise<void>;
 ```
 
 **Behavior:**
+
 - Uses Supabase server client to broadcast to channel `feed:{conversationId}`
 - Event type: `new_response`
 - Payload: Complete `LiveResponse` object
@@ -71,6 +73,7 @@ function broadcastResponse(input: BroadcastResponseInput): Promise<void>
 - No RLS filtering needed (broadcast channels don't use RLS; membership is validated on subscription)
 
 **Why server-side broadcast:**
+
 - Ensures broadcast only happens after successful DB write
 - Server has access to service role key for reliable broadcasting
 - Avoids exposing broadcast capability to clients
@@ -80,11 +83,13 @@ function broadcastResponse(input: BroadcastResponseInput): Promise<void>
 **File:** `app/api/conversations/[conversationId]/responses/route.ts`
 
 **Changes to POST handler:**
+
 1. After successful insert and response formatting (existing logic)
 2. Call `broadcastResponse({ conversationId, response })`
 3. Return response to submitter (unchanged)
 
 **Error handling:**
+
 - Broadcast failure should NOT fail the API response
 - Log broadcast errors for monitoring
 - The submitter's optimistic update ensures they see their response
@@ -97,6 +102,7 @@ function broadcastResponse(input: BroadcastResponseInput): Promise<void>
 **Purpose:** Subscribe to the broadcast channel and append new responses to the feed.
 
 **Interface:**
+
 ```typescript
 interface UseConversationFeedRealtimeOptions {
   conversationId: string;
@@ -125,6 +131,7 @@ interface UseConversationFeedRealtimeResult {
    - Filter: Only responses in this conversation (via JOIN or post-filter)
 
 **Connection management:**
+
 - Subscribe on mount when `enabled = true`
 - Unsubscribe on unmount or when `conversationId` changes
 - Report connection status for UI indicator
@@ -148,6 +155,7 @@ interface UseConversationFeedRealtimeResult {
    - Prevents showing skeletons on background refreshes
 
 **Updated interface:**
+
 ```typescript
 interface UseConversationFeedReturn {
   feed: LiveResponse[];
@@ -194,6 +202,7 @@ interface UseConversationFeedReturn {
 **No schema changes required.**
 
 **Realtime configuration:**
+
 - Broadcast channels don't require replication setup (they're not tied to postgres_changes)
 - Existing RLS policies remain unchanged
 - Channel authorization happens at subscription time via Supabase auth
@@ -203,6 +212,7 @@ interface UseConversationFeedReturn {
 **File:** `lib/conversations/domain/listen.types.ts`
 
 **New types:**
+
 ```typescript
 /**
  * Broadcast event payload for new responses
@@ -221,31 +231,37 @@ type FeedChannelName = `feed:${string}`; // feed:{conversationId}
 ## Edge Cases and Error Handling
 
 ### 1. Submitter receives their own broadcast
+
 - `appendResponse` deduplicates by `id`
 - Optimistic update wins (already in feed)
 - Broadcast is silently ignored for that response
 
 ### 2. Broadcast fails but DB write succeeds
+
 - Submitter sees their response (optimistic update)
 - Other users get it via 30-second background sync
 - Log error for monitoring, but don't alert user
 
 ### 3. User joins mid-session
+
 - Initial `loadFeed()` fetches all existing responses
 - Then subscribes to broadcast for new ones
 - No gap in data
 
 ### 4. Network disconnect/reconnect
+
 - Supabase client handles reconnection automatically
 - `silentRefresh` on reconnect ensures no missed responses
 - Connection status shown to user
 
 ### 5. Out-of-order delivery
+
 - Responses have `createdAt` timestamp
 - Feed is sorted by `createdAt` descending
 - `appendResponse` can re-sort if needed (or just prepend, accepting minor ordering variance)
 
 ### 6. Like count drift
+
 - Broadcast doesn't include like data (likes are user-specific)
 - postgres_changes on `response_likes` triggers `silentRefresh`
 - 30-second background sync catches any drift
@@ -295,17 +311,20 @@ type FeedChannelName = `feed:${string}`; // feed:{conversationId}
 ## Migration Plan
 
 ### Phase 1: Deploy broadcast infrastructure (non-breaking)
+
 1. Add `broadcastResponse` service
 2. Update API route to broadcast after insert
 3. No client changes yet - existing behavior continues
 
 ### Phase 2: Deploy client changes
+
 1. Add `useConversationFeedRealtime` hook
 2. Update `useConversationFeed` with new methods
 3. Update `ListenView` to use new subscription pattern
 4. Remove old `postgres_changes` subscription for responses
 
 ### Phase 3: Monitor and tune
+
 1. Monitor broadcast success rate
 2. Adjust background sync interval if needed (30s → 15s or 60s)
 3. Consider removing `response_likes` postgres_changes if too chatty
@@ -314,14 +333,15 @@ type FeedChannelName = `feed:${string}`; // feed:{conversationId}
 
 ### At 200 concurrent users:
 
-| Metric | Before (refresh on each event) | After (broadcast append) |
-|--------|--------------------------------|--------------------------|
-| API calls per submission | 200 (all users refetch) | 1 (submitter only) |
-| Database queries per submission | 200 (with JOINs) | 1 (insert + select) |
-| Network payload per user | Full feed (~50KB) | Single response (~500B) |
-| UI re-renders | Full list re-render | Single item append |
+| Metric                          | Before (refresh on each event) | After (broadcast append) |
+| ------------------------------- | ------------------------------ | ------------------------ |
+| API calls per submission        | 200 (all users refetch)        | 1 (submitter only)       |
+| Database queries per submission | 200 (with JOINs)               | 1 (insert + select)      |
+| Network payload per user        | Full feed (~50KB)              | Single response (~500B)  |
+| UI re-renders                   | Full list re-render            | Single item append       |
 
 ### Broadcast channel limits:
+
 - Supabase broadcast has no message size limit (practical limit ~1MB)
 - `LiveResponse` is ~500 bytes - well within limits
 - Channel subscriptions scale with Supabase plan
@@ -329,47 +349,54 @@ type FeedChannelName = `feed:${string}`; // feed:{conversationId}
 ## Files to Create/Modify
 
 ### New Files
-| File | Purpose |
-|------|---------|
-| `lib/conversations/server/broadcastResponse.ts` | Server-side broadcast service |
-| `lib/conversations/react/useConversationFeedRealtime.ts` | Client subscription hook |
+
+| File                                                     | Purpose                       |
+| -------------------------------------------------------- | ----------------------------- |
+| `lib/conversations/server/broadcastResponse.ts`          | Server-side broadcast service |
+| `lib/conversations/react/useConversationFeedRealtime.ts` | Client subscription hook      |
 
 ### Modified Files
-| File | Changes |
-|------|---------|
-| `app/api/conversations/[conversationId]/responses/route.ts` | Add broadcast after insert |
-| `lib/conversations/react/useConversationFeed.ts` | Add `appendResponse`, `silentRefresh`, `hasLoadedOnce` |
-| `lib/conversations/domain/listen.types.ts` | Add broadcast payload types |
-| `app/components/conversation/ListenView.tsx` | Use new realtime hook, update loading logic |
-| `docs/feature-map.md` | Document new broadcast pattern |
-| `docs/realtime-setup.md` | Add broadcast channel documentation |
+
+| File                                                        | Changes                                                |
+| ----------------------------------------------------------- | ------------------------------------------------------ |
+| `app/api/conversations/[conversationId]/responses/route.ts` | Add broadcast after insert                             |
+| `lib/conversations/react/useConversationFeed.ts`            | Add `appendResponse`, `silentRefresh`, `hasLoadedOnce` |
+| `lib/conversations/domain/listen.types.ts`                  | Add broadcast payload types                            |
+| `app/components/conversation/ListenView.tsx`                | Use new realtime hook, update loading logic            |
+| `docs/feature-map.md`                                       | Document new broadcast pattern                         |
+| `docs/realtime-setup.md`                                    | Add broadcast channel documentation                    |
 
 ### Test Files
-| File | Purpose |
-|------|---------|
-| `lib/conversations/server/__tests__/broadcastResponse.test.ts` | Broadcast service tests |
+
+| File                                                                     | Purpose                 |
+| ------------------------------------------------------------------------ | ----------------------- |
+| `lib/conversations/server/__tests__/broadcastResponse.test.ts`           | Broadcast service tests |
 | `lib/conversations/react/__tests__/useConversationFeedRealtime.test.tsx` | Subscription hook tests |
-| `lib/conversations/react/__tests__/useConversationFeed.test.tsx` | Update existing tests |
+| `lib/conversations/react/__tests__/useConversationFeed.test.tsx`         | Update existing tests   |
 
 ## Task List
 
 ### Backend
+
 - [ ] Create `lib/conversations/server/broadcastResponse.ts` service
 - [ ] Write unit tests for broadcast service
 - [ ] Update POST route to call broadcast after insert
 - [ ] Test broadcast manually via Supabase dashboard
 
 ### Types
+
 - [ ] Add `FeedBroadcastPayload` type to `listen.types.ts`
 - [ ] Add channel naming type
 
 ### Client Hooks
+
 - [ ] Create `useConversationFeedRealtime.ts` hook
 - [ ] Write unit tests for realtime hook
 - [ ] Update `useConversationFeed.ts` with `appendResponse`, `silentRefresh`, `hasLoadedOnce`
 - [ ] Update existing `useConversationFeed` tests
 
 ### UI Component
+
 - [ ] Update `ListenView.tsx` to use new realtime hook
 - [ ] Add background sync interval (30s)
 - [ ] Update loading state logic (`isLoadingFeed && !hasLoadedOnce`)
@@ -377,11 +404,13 @@ type FeedChannelName = `feed:${string}`; // feed:{conversationId}
 - [ ] Optional: Add connection status indicator
 
 ### Documentation
+
 - [ ] Update `docs/feature-map.md` with broadcast pattern
 - [ ] Update `docs/realtime-setup.md` with broadcast channel info
 - [ ] Update `lib/conversations/README.md` with new flow
 
 ### Testing
+
 - [ ] Manual test: single user submission flow
 - [ ] Manual test: multi-user concurrent submissions
 - [ ] Manual test: network disconnect/reconnect

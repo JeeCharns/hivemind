@@ -37,11 +37,7 @@ export async function POST(
       const body = await request.json().catch(() => ({}));
       requestBody = triggerAnalysisRequestSchema.parse(body);
     } catch {
-      return jsonError(
-        "Invalid request body",
-        400,
-        "VALIDATION_ERROR"
-      );
+      return jsonError("Invalid request body", 400, "VALIDATION_ERROR");
     }
 
     // Get Supabase client
@@ -84,7 +80,8 @@ export async function POST(
       err
     );
 
-    const message = err instanceof Error ? err.message : "Internal server error";
+    const message =
+      err instanceof Error ? err.message : "Internal server error";
 
     let errorMessage = "Failed to start analysis";
     let statusCode = 500;

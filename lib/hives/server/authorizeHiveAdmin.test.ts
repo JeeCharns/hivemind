@@ -81,7 +81,9 @@ describe("requireHiveAdmin", () => {
   it("should not throw when user is an admin", async () => {
     const supabase = createMockSupabase({ role: "admin" });
 
-    await expect(requireHiveAdmin(supabase, userId, hiveId)).resolves.not.toThrow();
+    await expect(
+      requireHiveAdmin(supabase, userId, hiveId)
+    ).resolves.not.toThrow();
   });
 
   it("should throw when user is not an admin", async () => {

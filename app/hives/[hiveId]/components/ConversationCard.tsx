@@ -84,7 +84,9 @@ export default function ConversationCard({
       </p>
 
       <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
-        <span className="text-xs font-medium text-slate-500">{statusLabel}</span>
+        <span className="text-xs font-medium text-slate-500">
+          {statusLabel}
+        </span>
         <span className="text-xs font-medium font-display text-indigo-600 bg-indigo-50 px-2.5 py-1.5">
           {cta.label}
           <span className="text-indigo-300">→</span>

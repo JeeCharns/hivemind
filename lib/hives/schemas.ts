@@ -53,4 +53,3 @@ export const inviteTokenSchema = z.object({
     .max(128, "Invalid token")
     .regex(/^[a-zA-Z0-9_-]+$/, "Invalid token format"),
 });
-

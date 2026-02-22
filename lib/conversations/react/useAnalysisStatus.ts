@@ -55,7 +55,11 @@ export function useAnalysisStatus({
           result.analysisStatus === "embedding" ||
           result.analysisStatus === "analyzing"
         ) {
-          console.log("[Analysis] → Still in progress, polling again in", interval / 1000, "seconds...");
+          console.log(
+            "[Analysis] → Still in progress, polling again in",
+            interval / 1000,
+            "seconds..."
+          );
           timeoutId = setTimeout(fetchStatus, interval);
         } else if (result.analysisStatus === "ready") {
           console.log("[Analysis] → Analysis complete, stopping poll");

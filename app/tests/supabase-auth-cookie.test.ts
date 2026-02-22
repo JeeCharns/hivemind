@@ -54,4 +54,3 @@ describe("findSupabaseAuthSessionCookie", () => {
     expect(session).toBeNull();
   });
 });
-

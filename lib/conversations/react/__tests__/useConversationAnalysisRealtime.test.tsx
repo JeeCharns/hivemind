@@ -31,11 +31,13 @@ describe("useConversationAnalysisRealtime", () => {
     jest.useFakeTimers();
 
     mockOn = jest.fn().mockReturnThis();
-    mockSubscribe = jest.fn().mockImplementation((callback: (status: string) => void) => {
-      // Simulate successful subscription
-      setTimeout(() => callback("SUBSCRIBED"), 0);
-      return mockChannel;
-    });
+    mockSubscribe = jest
+      .fn()
+      .mockImplementation((callback: (status: string) => void) => {
+        // Simulate successful subscription
+        setTimeout(() => callback("SUBSCRIBED"), 0);
+        return mockChannel;
+      });
 
     mockChannel = {
       on: mockOn,
@@ -117,11 +119,15 @@ describe("useConversationAnalysisRealtime", () => {
     let conversationsHandler: ((payload: unknown) => void) | undefined;
 
     mockOn.mockImplementation(
-      (_type: string, config: { table?: string }, handler: (payload: unknown) => void) => {
-      if (config.table === "conversations") {
-        conversationsHandler = handler;
-      }
-      return mockChannel;
+      (
+        _type: string,
+        config: { table?: string },
+        handler: (payload: unknown) => void
+      ) => {
+        if (config.table === "conversations") {
+          conversationsHandler = handler;
+        }
+        return mockChannel;
       }
     );
 
@@ -151,13 +157,17 @@ describe("useConversationAnalysisRealtime", () => {
     let themesHandler: ((payload: unknown) => void) | undefined;
 
     mockOn.mockImplementation(
-      (_type: string, config: { table?: string }, handler: (payload: unknown) => void) => {
-      if (config.table === "conversations") {
-        conversationsHandler = handler;
-      } else if (config.table === "conversation_themes") {
-        themesHandler = handler;
-      }
-      return mockChannel;
+      (
+        _type: string,
+        config: { table?: string },
+        handler: (payload: unknown) => void
+      ) => {
+        if (config.table === "conversations") {
+          conversationsHandler = handler;
+        } else if (config.table === "conversation_themes") {
+          themesHandler = handler;
+        }
+        return mockChannel;
       }
     );
 

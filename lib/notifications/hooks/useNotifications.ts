@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * useNotifications Hook
@@ -13,12 +13,18 @@
  * - Reports connection status for UI indicator
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import type { Notification, NotificationRow } from '../domain/notification.types';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import type {
+  Notification,
+  NotificationRow,
+} from "../domain/notification.types";
 
-type NotificationStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
+type NotificationStatus = "connecting" | "connected" | "error" | "disconnected";
 
 interface UseNotificationsOptions {
   userId: string | undefined;
@@ -40,7 +46,7 @@ function mapRowToNotification(row: NotificationRow): Notification {
   return {
     id: row.id,
     userId: row.user_id,
-    type: row.type as Notification['type'],
+    type: row.type as Notification["type"],
     title: row.title,
     body: row.body,
     hiveId: row.hive_id,
@@ -64,11 +70,12 @@ export function useNotifications({
   initialNotifications = [],
   maxNotifications = 20,
 }: UseNotificationsOptions): UseNotificationsResult {
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [notifications, setNotifications] =
+    useState<Notification[]>(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(
     () => initialNotifications.filter((n) => n.readAt === null).length
   );
-  const [status, setStatus] = useState<NotificationStatus>('disconnected');
+  const [status, setStatus] = useState<NotificationStatus>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Fetch notifications from API (silent refresh, no loading state)
@@ -76,9 +83,9 @@ export function useNotifications({
     if (!userId) return;
 
     try {
-      const response = await fetch('/api/notifications');
+      const response = await fetch("/api/notifications");
       if (!response.ok) {
-        console.error('[useNotifications] Refresh failed:', response.status);
+        console.error("[useNotifications] Refresh failed:", response.status);
         return;
       }
 
@@ -87,7 +94,7 @@ export function useNotifications({
       setNotifications(fetched.slice(0, maxNotifications));
       setUnreadCount(data.unreadCount ?? 0);
     } catch (err) {
-      console.error('[useNotifications] Refresh error:', err);
+      console.error("[useNotifications] Refresh error:", err);
     }
   }, [userId, maxNotifications]);
 
@@ -96,15 +103,20 @@ export function useNotifications({
     if (!userId) return;
 
     try {
-      const response = await fetch('/api/notifications/read', { method: 'PATCH' });
+      const response = await fetch("/api/notifications/read", {
+        method: "PATCH",
+      });
       if (response.ok) {
         setNotifications((prev) =>
-          prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() }))
+          prev.map((n) => ({
+            ...n,
+            readAt: n.readAt ?? new Date().toISOString(),
+          }))
         );
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('[useNotifications] markAllRead error:', err);
+      console.error("[useNotifications] markAllRead error:", err);
     }
   }, [userId]);
 
@@ -113,24 +125,26 @@ export function useNotifications({
     if (!userId) return;
 
     try {
-      const response = await fetch('/api/notifications', { method: 'DELETE' });
+      const response = await fetch("/api/notifications", { method: "DELETE" });
       if (response.ok) {
         setNotifications([]);
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('[useNotifications] clearAll error:', err);
+      console.error("[useNotifications] clearAll error:", err);
     }
   }, [userId]);
 
   // Handle new notification from realtime
   const handleNewNotification = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
+      if (payload.eventType === "INSERT" && payload.new) {
         const row = payload.new as unknown as NotificationRow;
         const newNotification = mapRowToNotification(row);
 
-        setNotifications((prev) => [newNotification, ...prev].slice(0, maxNotifications));
+        setNotifications((prev) =>
+          [newNotification, ...prev].slice(0, maxNotifications)
+        );
         setUnreadCount((prev) => prev + 1);
       }
     },
@@ -145,7 +159,7 @@ export function useNotifications({
 
     (async () => {
       try {
-        const response = await fetch('/api/notifications');
+        const response = await fetch("/api/notifications");
         if (!response.ok || cancelled) return;
 
         const data = await response.json();
@@ -156,7 +170,7 @@ export function useNotifications({
         setUnreadCount(data.unreadCount ?? 0);
       } catch (err) {
         if (cancelled) return;
-        console.error('[useNotifications] Initial fetch error:', err);
+        console.error("[useNotifications] Initial fetch error:", err);
       }
     })();
 
@@ -171,29 +185,29 @@ export function useNotifications({
       return;
     }
 
-    queueMicrotask(() => setStatus('connecting'));
+    queueMicrotask(() => setStatus("connecting"));
 
     const channelName = `user:${userId}:notifications`;
 
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'user_notifications',
+          event: "INSERT",
+          schema: "public",
+          table: "user_notifications",
           filter: `user_id=eq.${userId}`,
         },
         handleNewNotification
       )
       .subscribe((subscriptionStatus, err) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-        } else if (subscriptionStatus === 'CHANNEL_ERROR' || err) {
-          setStatus('error');
-        } else if (subscriptionStatus === 'CLOSED') {
-          setStatus('disconnected');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (subscriptionStatus === "CHANNEL_ERROR" || err) {
+          setStatus("error");
+        } else if (subscriptionStatus === "CLOSED") {
+          setStatus("disconnected");
         }
       });
 

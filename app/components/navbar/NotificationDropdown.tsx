@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Notification Dropdown
@@ -7,17 +7,20 @@
  * Memoized to prevent unnecessary re-renders.
  */
 
-import { memo } from 'react';
-import { useRouter } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
+import { memo } from "react";
+import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
 import {
   ChatCircle,
   ChartBar,
   FileText,
   Heart,
   Trash,
-} from '@phosphor-icons/react';
-import type { Notification, NotificationType } from '@/lib/notifications/domain/notification.types';
+} from "@phosphor-icons/react";
+import type {
+  Notification,
+  NotificationType,
+} from "@/lib/notifications/domain/notification.types";
 
 interface NotificationDropdownProps {
   notifications: Notification[];
@@ -27,13 +30,13 @@ interface NotificationDropdownProps {
 
 function getNotificationIcon(type: NotificationType) {
   switch (type) {
-    case 'new_conversation':
+    case "new_conversation":
       return <ChatCircle className="w-4 h-4 text-blue-500" weight="fill" />;
-    case 'analysis_complete':
+    case "analysis_complete":
       return <ChartBar className="w-4 h-4 text-green-500" weight="fill" />;
-    case 'report_generated':
+    case "report_generated":
       return <FileText className="w-4 h-4 text-purple-500" weight="fill" />;
-    case 'opinion_liked':
+    case "opinion_liked":
       return <Heart className="w-4 h-4 text-red-500" weight="fill" />;
     default:
       return <ChatCircle className="w-4 h-4 text-slate-500" />;
@@ -87,7 +90,7 @@ export default memo(function NotificationDropdown({
               role="listitem"
               onClick={() => handleNotificationClick(notification)}
               className={`w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-50 last:border-b-0 flex gap-3 ${
-                !notification.readAt ? 'bg-blue-50/50' : ''
+                !notification.readAt ? "bg-blue-50/50" : ""
               }`}
             >
               <div className="flex-shrink-0 mt-0.5">
@@ -103,11 +106,16 @@ export default memo(function NotificationDropdown({
                   </p>
                 )}
                 <p className="text-xs text-slate-400 mt-1">
-                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(notification.createdAt), {
+                    addSuffix: true,
+                  })}
                 </p>
               </div>
               {!notification.readAt && (
-                <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1.5" aria-hidden="true" />
+                <div
+                  className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1.5"
+                  aria-hidden="true"
+                />
               )}
             </button>
           ))

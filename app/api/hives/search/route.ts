@@ -14,7 +14,11 @@ import { jsonError } from "@/lib/api/errors";
 
 // Validation schema for query params
 const searchQuerySchema = z.object({
-  term: z.string().trim().min(1, "Search term required").max(80, "Search term too long"),
+  term: z
+    .string()
+    .trim()
+    .min(1, "Search term required")
+    .max(80, "Search term too long"),
   limit: z
     .string()
     .optional()

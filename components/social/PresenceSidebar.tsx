@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useHivePresence } from '@/lib/social/hooks';
-import type { PresenceUser } from '@/lib/social/types';
+import Image from "next/image";
+import { useHivePresence } from "@/lib/social/hooks";
+import type { PresenceUser } from "@/lib/social/types";
 
 interface PresenceSidebarProps {
   hiveId: string;
@@ -53,13 +53,15 @@ export function PresenceSidebar({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">Who&apos;s here</h3>
+      <h3 className="mb-3 text-sm font-semibold text-gray-900">
+        Who&apos;s here
+      </h3>
 
-      {status === 'connecting' && (
+      {status === "connecting" && (
         <p className="text-sm text-gray-500">Connecting...</p>
       )}
 
-      {status === 'connected' && activeUsers.length === 0 && (
+      {status === "connected" && activeUsers.length === 0 && (
         <p className="text-sm text-gray-500">Just you for now</p>
       )}
 

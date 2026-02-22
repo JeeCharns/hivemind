@@ -50,11 +50,14 @@ export async function GET(
       session.user.id
     );
 
-    console.log("[GET /api/hives/[hiveId]/share-link] Created/Retrieved share link:", {
-      token: shareLink.token,
-      hiveId: shareLink.hive_id,
-      accessMode: shareLink.access_mode,
-    });
+    console.log(
+      "[GET /api/hives/[hiveId]/share-link] Created/Retrieved share link:",
+      {
+        token: shareLink.token,
+        hiveId: shareLink.hive_id,
+        accessMode: shareLink.access_mode,
+      }
+    );
 
     // Get hive name for convenience
     const { data: hive } = await supabase
@@ -67,7 +70,10 @@ export async function GET(
     const baseUrl = request.nextUrl.origin;
     const inviteUrl = `${baseUrl}/invite/${shareLink.token}`;
 
-    console.log("[GET /api/hives/[hiveId]/share-link] Returning URL:", inviteUrl);
+    console.log(
+      "[GET /api/hives/[hiveId]/share-link] Returning URL:",
+      inviteUrl
+    );
 
     return NextResponse.json({
       url: inviteUrl,

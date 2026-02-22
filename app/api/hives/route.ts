@@ -67,8 +67,11 @@ export async function POST(req: NextRequest) {
 
     let name: string | null = null;
     let logoUrl: string | null = null;
-    let logoFile: { buffer: Buffer; fileName: string; contentType: string } | null =
-      null;
+    let logoFile: {
+      buffer: Buffer;
+      fileName: string;
+      contentType: string;
+    } | null = null;
     let visibility: "public" | "private" = "public";
 
     if (contentType.includes("application/json")) {
@@ -153,7 +156,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(hive);
   } catch (error) {
     console.error("[POST /api/hives] Error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
 
     if (message.toLowerCase().includes("upload")) {
       return jsonError("Failed to upload logo", 500, "UPLOAD_FAILED");

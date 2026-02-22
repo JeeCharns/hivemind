@@ -28,11 +28,7 @@ const createMockChannel = (): MockChannel => {
 
   const channel: MockChannel = {
     on: jest.fn(
-      (
-        type: string,
-        filter: unknown,
-        handler: (payload: unknown) => void
-      ) => {
+      (type: string, filter: unknown, handler: (payload: unknown) => void) => {
         if (
           type === "presence" &&
           typeof filter === "object" &&

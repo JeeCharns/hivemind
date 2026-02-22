@@ -60,7 +60,9 @@ describe("DELETE /api/conversations/[conversationId]", () => {
     };
 
     mockSupabaseServerClient.mockResolvedValue(
-      mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+      mockSupabase as unknown as Awaited<
+        ReturnType<typeof supabaseServerClient>
+      >
     );
   });
 

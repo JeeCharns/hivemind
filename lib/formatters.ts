@@ -50,8 +50,18 @@ export function formatRelativeTimestamp(
 
   // Full month names
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
   const month = months[date.getMonth()];
   const day = date.getDate();

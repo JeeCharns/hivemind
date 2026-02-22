@@ -18,4 +18,3 @@ export function AvatarSkeleton({ className = "h-8 w-8" }: SkeletonProps) {
 export function TextSkeleton({ className = "h-4 w-24" }: SkeletonProps) {
   return <Skeleton className={className} />;
 }
-

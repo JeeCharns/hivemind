@@ -62,7 +62,11 @@ export async function saveClusterConsolidation(
   }> = [];
 
   for (const result of results) {
-    for (let bucketIndex = 0; bucketIndex < result.buckets.length; bucketIndex++) {
+    for (
+      let bucketIndex = 0;
+      bucketIndex < result.buckets.length;
+      bucketIndex++
+    ) {
       const bucket = result.buckets[bucketIndex];
       bucketRows.push({
         conversation_id: conversationId,
@@ -137,7 +141,9 @@ export async function saveClusterConsolidation(
             `[saveClusterConsolidation] Failed to save member batch:`,
             memberError
           );
-          throw new Error(`Failed to save bucket members: ${memberError.message}`);
+          throw new Error(
+            `Failed to save bucket members: ${memberError.message}`
+          );
         }
       }
       console.log(

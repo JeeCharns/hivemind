@@ -129,7 +129,11 @@ export function createMockSupabaseQuery(overrides?: {
   defaultResults?: Partial<Record<SupabaseOp, SupabaseQueryResult>>;
 }): {
   supabase: MockSupabaseQueryClient;
-  queueResult: (table: string, op: SupabaseOp, result: SupabaseQueryResult) => void;
+  queueResult: (
+    table: string,
+    op: SupabaseOp,
+    result: SupabaseQueryResult
+  ) => void;
   queueSingle: (table: string, result: SupabaseQueryResult) => void;
   queueMaybeSingle: (table: string, result: SupabaseQueryResult) => void;
   getCallLog: () => SupabaseCallLogEntry[];
@@ -152,7 +156,10 @@ export function createMockSupabaseQuery(overrides?: {
     select: { data: null, error: null, count: null },
     update: { error: null },
     // Default insert returns mock IDs to support .insert().select("id") patterns
-    insert: { data: Array.from({ length: 100 }, (_, i) => ({ id: `mock-id-${i}` })), error: null },
+    insert: {
+      data: Array.from({ length: 100 }, (_, i) => ({ id: `mock-id-${i}` })),
+      error: null,
+    },
     upsert: { error: null },
     delete: { error: null },
     ...(overrides?.defaultResults ?? {}),
@@ -221,7 +228,10 @@ export function createMockSupabaseQuery(overrides?: {
       head: (...args: unknown[]) => MockSupabaseBuilder;
       single: (...args: unknown[]) => Promise<SupabaseQueryResult>;
       maybeSingle: (...args: unknown[]) => Promise<SupabaseQueryResult>;
-      then: (onFulfilled: OnFulfilled, onRejected?: OnRejected) => Promise<unknown>;
+      then: (
+        onFulfilled: OnFulfilled,
+        onRejected?: OnRejected
+      ) => Promise<unknown>;
       catch: (onRejected: OnRejected) => Promise<unknown>;
     };
 
@@ -331,7 +341,11 @@ export function createMockSupabaseQuery(overrides?: {
     return createBuilder(table);
   });
 
-  function queueResult(table: string, op: SupabaseOp, result: SupabaseQueryResult) {
+  function queueResult(
+    table: string,
+    op: SupabaseOp,
+    result: SupabaseQueryResult
+  ) {
     ensureTable(table)[op].push(result);
   }
 
@@ -366,7 +380,10 @@ export function createMockSupabaseQuery(overrides?: {
  * const supabase = createMockSupabase();
  * mockCountQuery(supabase, 25);
  */
-export function mockCountQuery(supabase: { from: jest.Mock }, count: number): void {
+export function mockCountQuery(
+  supabase: { from: jest.Mock },
+  count: number
+): void {
   // Create a chain that resolves to { count, error }
   const countChain = {
     from: supabase.from, // Preserve from() for next query
@@ -406,7 +423,8 @@ export function mockDataQuery(
     single: terminal,
     maybeSingle: terminal,
     // Make the chain thenable so it can be awaited directly
-    then: (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve),
+    then: (resolve: (value: unknown) => unknown) =>
+      Promise.resolve(result).then(resolve),
   };
 
   // Keep `useSingle` for callers/documentation without changing behavior.
@@ -441,7 +459,10 @@ export function mockDataQuery(
  * mockInsert(supabase); // success
  * mockInsert(supabase, { code: "23505" }); // unique constraint violation
  */
-export function mockInsert(supabase: { from: jest.Mock }, error: unknown = null): void {
+export function mockInsert(
+  supabase: { from: jest.Mock },
+  error: unknown = null
+): void {
   const insertResult = {
     data: error ? null : { id: "job-123" },
     error,
@@ -510,7 +531,10 @@ export function mockNoExistingJobs(supabase: { from: jest.Mock }): void {
  * const supabase = createMockSupabase();
  * mockUpdate(supabase); // success
  */
-export function mockUpdate(supabase: { from: jest.Mock }, error: unknown = null): void {
+export function mockUpdate(
+  supabase: { from: jest.Mock },
+  error: unknown = null
+): void {
   const result = { error };
   const updateChain: Record<string, unknown> = {
     from: supabase.from,
@@ -521,7 +545,8 @@ export function mockUpdate(supabase: { from: jest.Mock }, error: unknown = null)
   updateChain.eq = jest.fn().mockReturnValue(updateChain);
   updateChain.in = jest.fn().mockReturnValue(updateChain);
   // Make the chain thenable so it can be awaited directly
-  updateChain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve);
+  updateChain.then = (resolve: (value: unknown) => unknown) =>
+    Promise.resolve(result).then(resolve);
 
   supabase.from.mockReturnValueOnce(updateChain);
 }
@@ -565,7 +590,10 @@ export function generateConversation(
 /**
  * Generate mock conversation responses
  */
-export function generateResponses(count: number, conversationId: string = "conv-123") {
+export function generateResponses(
+  count: number,
+  conversationId: string = "conv-123"
+) {
   return Array.from({ length: count }, (_, i) => ({
     id: `resp-${i + 1}`,
     conversation_id: conversationId,
@@ -582,7 +610,10 @@ export function generateResponses(count: number, conversationId: string = "conv-
 /**
  * Generate mock embeddings (normalized to unit length)
  */
-export function generateEmbeddings(count: number, dim: number = 1536): number[][] {
+export function generateEmbeddings(
+  count: number,
+  dim: number = 1536
+): number[][] {
   return Array.from({ length: count }, () => {
     const raw = Array.from({ length: dim }, () => Math.random() - 0.5);
     const magnitude = Math.sqrt(raw.reduce((sum, val) => sum + val * val, 0));
@@ -636,7 +667,10 @@ export function generateThemes(
 /**
  * Generate a mock hive membership record
  */
-export function generateMembership(userId: string, hiveId: string = "hive-456") {
+export function generateMembership(
+  userId: string,
+  hiveId: string = "hive-456"
+) {
   return {
     user_id: userId,
     hive_id: hiveId,
@@ -653,18 +687,20 @@ export function createMockOpenAI(embeddingResponses?: number[][][]) {
 
   return {
     embeddings: {
-      create: jest.fn().mockImplementation(async ({ input }: { input: string | string[] }) => {
-        const count = Array.isArray(input) ? input.length : 1;
-        const embeddings =
-          callIndex < defaultEmbeddings.length
-            ? defaultEmbeddings[callIndex]
-            : generateEmbeddings(count);
-        callIndex++;
+      create: jest
+        .fn()
+        .mockImplementation(async ({ input }: { input: string | string[] }) => {
+          const count = Array.isArray(input) ? input.length : 1;
+          const embeddings =
+            callIndex < defaultEmbeddings.length
+              ? defaultEmbeddings[callIndex]
+              : generateEmbeddings(count);
+          callIndex++;
 
-        return {
-          data: embeddings.map((embedding) => ({ embedding })),
-        };
-      }),
+          return {
+            data: embeddings.map((embedding) => ({ embedding })),
+          };
+        }),
     },
   };
 }

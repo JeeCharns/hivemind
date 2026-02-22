@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Use Hive Conversations Hook
@@ -12,10 +12,18 @@
  * - Orders by created_at descending (newest first)
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import type { ConversationCardData, ConversationType, ConversationPhase, AnalysisStatus } from '@/types/conversations';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import type {
+  ConversationCardData,
+  ConversationType,
+  ConversationPhase,
+  AnalysisStatus,
+} from "@/types/conversations";
 
 interface UseHiveConversationsOptions {
   hiveId: string;
@@ -24,7 +32,7 @@ interface UseHiveConversationsOptions {
 
 interface UseHiveConversationsResult {
   conversations: ConversationCardData[];
-  status: 'connecting' | 'connected' | 'error' | 'disconnected';
+  status: "connecting" | "connected" | "error" | "disconnected";
 }
 
 /** Shape of the conversations row from Postgres */
@@ -53,13 +61,15 @@ export function useHiveConversations({
   hiveId,
   initialConversations = [],
 }: UseHiveConversationsOptions): UseHiveConversationsResult {
-  const [conversations, setConversations] = useState<ConversationCardData[]>(initialConversations);
-  const [status, setStatus] = useState<UseHiveConversationsResult['status']>('disconnected');
+  const [conversations, setConversations] =
+    useState<ConversationCardData[]>(initialConversations);
+  const [status, setStatus] =
+    useState<UseHiveConversationsResult["status"]>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const handleConversationChange = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
+      if (payload.eventType === "INSERT" && payload.new) {
         const row = payload.new as unknown as ConversationRow;
 
         // Only add if it's for this hive
@@ -87,7 +97,7 @@ export function useHiveConversations({
           }
           return [newConversation, ...prev];
         });
-      } else if (payload.eventType === 'UPDATE' && payload.new) {
+      } else if (payload.eventType === "UPDATE" && payload.new) {
         const row = payload.new as unknown as ConversationRow;
 
         // Update existing conversation
@@ -106,7 +116,7 @@ export function useHiveConversations({
               : c
           )
         );
-      } else if (payload.eventType === 'DELETE' && payload.old) {
+      } else if (payload.eventType === "DELETE" && payload.old) {
         const oldRow = payload.old as unknown as { id: string };
         setConversations((prev) => prev.filter((c) => c.id !== oldRow.id));
       }
@@ -120,29 +130,29 @@ export function useHiveConversations({
     }
 
     // Use queueMicrotask to avoid synchronous setState in effect body
-    queueMicrotask(() => setStatus('connecting'));
+    queueMicrotask(() => setStatus("connecting"));
 
     const channelName = `hive:${hiveId}:conversations`;
 
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*', // Listen to INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'conversations',
+          event: "*", // Listen to INSERT, UPDATE, DELETE
+          schema: "public",
+          table: "conversations",
           filter: `hive_id=eq.${hiveId}`,
         },
         handleConversationChange
       )
       .subscribe((subscriptionStatus, err) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-        } else if (subscriptionStatus === 'CHANNEL_ERROR' || err) {
-          setStatus('error');
-        } else if (subscriptionStatus === 'CLOSED') {
-          setStatus('disconnected');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (subscriptionStatus === "CHANNEL_ERROR" || err) {
+          setStatus("error");
+        } else if (subscriptionStatus === "CLOSED") {
+          setStatus("disconnected");
         }
       });
 

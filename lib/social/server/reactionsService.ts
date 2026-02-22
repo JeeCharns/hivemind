@@ -64,7 +64,10 @@ export async function getRecentReactions(
     .limit(limit);
 
   if (reactionsError) {
-    console.error("[getRecentReactions] Error fetching reactions:", reactionsError);
+    console.error(
+      "[getRecentReactions] Error fetching reactions:",
+      reactionsError
+    );
     return [];
   }
 
@@ -80,7 +83,10 @@ export async function getRecentReactions(
     .in("id", userIds);
 
   if (profilesError) {
-    console.error("[getRecentReactions] Error fetching profiles:", profilesError);
+    console.error(
+      "[getRecentReactions] Error fetching profiles:",
+      profilesError
+    );
     // Continue without display names rather than failing
   }
 

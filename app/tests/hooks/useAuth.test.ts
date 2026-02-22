@@ -25,7 +25,8 @@ jest.mock("@/lib/supabase/client", () => ({
   supabase: {
     auth: {
       signInWithOtp: (...args: unknown[]) => signInWithOtpMock(...args),
-      signInWithPassword: (...args: unknown[]) => signInWithPasswordMock(...args),
+      signInWithPassword: (...args: unknown[]) =>
+        signInWithPasswordMock(...args),
       signOut: (...args: unknown[]) => signOutMock(...args),
       verifyOtp: (...args: unknown[]) => verifyOtpMock(...args),
     },

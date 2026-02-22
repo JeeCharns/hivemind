@@ -50,7 +50,11 @@ export async function GET(
 
     if (conversation.type !== "decide") {
       console.log("[GET /api/conversations/:id/votes] Not a decision session");
-      return jsonError("Voting is only available for decision sessions", 409, "NOT_DECISION_SESSION");
+      return jsonError(
+        "Voting is only available for decision sessions",
+        409,
+        "NOT_DECISION_SESSION"
+      );
     }
 
     // 3. Verify membership
@@ -62,9 +66,15 @@ export async function GET(
     }
 
     // 4. Fetch user votes
-    const result = await getUserVotes(supabase, conversationId, session.user.id);
+    const result = await getUserVotes(
+      supabase,
+      conversationId,
+      session.user.id
+    );
 
-    console.log(`[GET /api/conversations/:id/votes] Returning ${Object.keys(result.votes).length} votes`);
+    console.log(
+      `[GET /api/conversations/:id/votes] Returning ${Object.keys(result.votes).length} votes`
+    );
 
     return NextResponse.json(result);
   } catch (error) {
@@ -109,7 +119,11 @@ export async function POST(
 
     if (conversation.type !== "decide") {
       console.log("[POST /api/conversations/:id/votes] Not a decision session");
-      return jsonError("Voting is only available for decision sessions", 409, "NOT_DECISION_SESSION");
+      return jsonError(
+        "Voting is only available for decision sessions",
+        409,
+        "NOT_DECISION_SESSION"
+      );
     }
 
     // 3. Verify membership
@@ -141,15 +155,26 @@ export async function POST(
 
     // 6. If vote failed, return error with code
     if (!result.success) {
-      console.log(`[POST /api/conversations/:id/votes] Vote failed: ${result.errorCode}`);
+      console.log(
+        `[POST /api/conversations/:id/votes] Vote failed: ${result.errorCode}`
+      );
 
       // Map error codes to HTTP status and messages
       const errorMap: Record<string, { status: number; message: string }> = {
-        CONVERSATION_NOT_FOUND: { status: 404, message: "Conversation not found" },
-        NOT_DECISION_SESSION: { status: 409, message: "Not a decision session" },
+        CONVERSATION_NOT_FOUND: {
+          status: 404,
+          message: "Conversation not found",
+        },
+        NOT_DECISION_SESSION: {
+          status: 409,
+          message: "Not a decision session",
+        },
         RESPONSE_NOT_FOUND: { status: 404, message: "Response not found" },
         NOT_A_PROPOSAL: { status: 409, message: "Response is not a proposal" },
-        NEGATIVE_VOTES: { status: 409, message: "Cannot reduce votes below zero" },
+        NEGATIVE_VOTES: {
+          status: 409,
+          message: "Cannot reduce votes below zero",
+        },
         BUDGET_EXCEEDED: { status: 409, message: "Insufficient credits" },
       };
 
@@ -161,7 +186,9 @@ export async function POST(
       return jsonError(errorInfo.message, errorInfo.status, result.errorCode);
     }
 
-    console.log(`[POST /api/conversations/:id/votes] Vote successful: ${result.newVotes} votes, ${result.remainingCredits} credits left`);
+    console.log(
+      `[POST /api/conversations/:id/votes] Vote successful: ${result.newVotes} votes, ${result.remainingCredits} credits left`
+    );
 
     return NextResponse.json(result);
   } catch (error) {

@@ -7,11 +7,11 @@
  * Follows SRP: only responsible for rendering the CTA UI
  */
 
-import Link from 'next/link';
+import Link from "next/link";
 
 interface CreateHiveCTAProps {
   /** Visual style variant */
-  variant?: 'subtle' | 'prominent';
+  variant?: "subtle" | "prominent";
 }
 
 /**
@@ -19,8 +19,8 @@ interface CreateHiveCTAProps {
  *
  * @param variant - 'subtle' for inline/footer placement, 'prominent' for main content area
  */
-export function CreateHiveCTA({ variant = 'subtle' }: CreateHiveCTAProps) {
-  if (variant === 'prominent') {
+export function CreateHiveCTA({ variant = "subtle" }: CreateHiveCTAProps) {
+  if (variant === "prominent") {
     return (
       <div className="rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-6 text-center">
         <h3 className="mb-2 text-lg font-semibold text-gray-900">

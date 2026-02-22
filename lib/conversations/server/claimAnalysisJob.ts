@@ -89,7 +89,9 @@ export async function claimAnalysisJob(
 
       // Fallback: if PostgREST schema cache is out-of-date (or a legacy table is missing `status`),
       // try even more minimal approach - just SELECT to verify row exists
-      console.log("[claimAnalysisJob] Trying SELECT-only approach to verify row exists...");
+      console.log(
+        "[claimAnalysisJob] Trying SELECT-only approach to verify row exists..."
+      );
 
       const selectTest = await supabase
         .from("conversation_analysis_jobs")
@@ -115,9 +117,15 @@ export async function claimAnalysisJob(
       }
 
       // If SELECT works, try UPDATE without any column references in the payload
-      console.log("[claimAnalysisJob] SELECT works, but UPDATE with columns fails.");
-      console.log("[claimAnalysisJob] This indicates PostgREST can READ the table but has stale write schema.");
-      console.log("[claimAnalysisJob] Attempting RPC fallback using claim_analysis_job function...");
+      console.log(
+        "[claimAnalysisJob] SELECT works, but UPDATE with columns fails."
+      );
+      console.log(
+        "[claimAnalysisJob] This indicates PostgREST can READ the table but has stale write schema."
+      );
+      console.log(
+        "[claimAnalysisJob] Attempting RPC fallback using claim_analysis_job function..."
+      );
 
       // Fallback: Use database function to bypass PostgREST entirely
       const { data: rpcData, error: rpcError } = await supabase.rpc(
@@ -130,7 +138,10 @@ export async function claimAnalysisJob(
       );
 
       if (rpcError) {
-        console.error("[claimAnalysisJob] ❌ RPC fallback also failed:", rpcError);
+        console.error(
+          "[claimAnalysisJob] ❌ RPC fallback also failed:",
+          rpcError
+        );
 
         throw new Error(
           "Failed to claim analysis job: PostgREST schema cache doesn't include 'status' column. " +

@@ -100,9 +100,7 @@ describe("GET /api/hives/search", () => {
   });
 
   it("should reject empty search term", async () => {
-    const request = new NextRequest(
-      "http://localhost/api/hives/search?term="
-    );
+    const request = new NextRequest("http://localhost/api/hives/search?term=");
 
     const response = await GET(request);
     const data = await response.json();

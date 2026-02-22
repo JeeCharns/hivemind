@@ -51,8 +51,12 @@ async function main() {
   if (jobError) {
     console.error("❌ Error fetching jobs:", jobError);
     console.log("\n💡 This is likely the PostgREST schema cache issue.");
-    console.log("The jobs exist in the database but PostgREST can't see the columns.");
-    console.log("\nWorkaround: Wait for automatic schema cache refresh (a few minutes)");
+    console.log(
+      "The jobs exist in the database but PostgREST can't see the columns."
+    );
+    console.log(
+      "\nWorkaround: Wait for automatic schema cache refresh (a few minutes)"
+    );
     console.log("or restart your Supabase project.");
     process.exit(1);
   }

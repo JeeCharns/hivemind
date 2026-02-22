@@ -42,7 +42,9 @@ function isUniqueViolation(error: unknown): boolean {
   if (code === "23505") return true;
   const message =
     "message" in error ? (error as { message?: unknown }).message : undefined;
-  return typeof message === "string" && message.toLowerCase().includes("duplicate");
+  return (
+    typeof message === "string" && message.toLowerCase().includes("duplicate")
+  );
 }
 
 async function insertHiveWithUniqueSlug(
@@ -112,7 +114,10 @@ async function deleteHiveBestEffort(supabase: SupabaseClient, hiveId: string) {
   }
 }
 
-async function deleteLogoBestEffort(supabase: SupabaseClient, logoPath: string) {
+async function deleteLogoBestEffort(
+  supabase: SupabaseClient,
+  logoPath: string
+) {
   try {
     await supabase.storage.from(HIVE_LOGO_BUCKET).remove([logoPath]);
   } catch {
@@ -126,7 +131,7 @@ export async function createHive(
   input: CreateHiveInput
 ) {
   const name = input.name.trim();
-  const initialLogoUrl = input.logoFile ? null : input.logoUrl ?? null;
+  const initialLogoUrl = input.logoFile ? null : (input.logoUrl ?? null);
   const visibility = input.visibility ?? "public";
 
   const hive = await insertHiveWithUniqueSlug(supabase, {

@@ -13,7 +13,7 @@ describe("escapeHtml", () => {
   });
 
   it("should escape quotes", () => {
-    const result = escapeHtml('He said "hello" and \'goodbye\'');
+    const result = escapeHtml("He said \"hello\" and 'goodbye'");
     expect(result).toBe("He said &quot;hello&quot; and &#39;goodbye&#39;");
   });
 
@@ -39,20 +39,21 @@ describe("sanitizeHtml", () => {
   });
 
   it("should remove script tags with attributes", () => {
-    const html = '<script type="text/javascript" src="evil.js">var x = 1;</script>';
+    const html =
+      '<script type="text/javascript" src="evil.js">var x = 1;</script>';
     const result = sanitizeHtml(html);
     expect(result).not.toContain("<script");
     expect(result).not.toContain("var x");
   });
 
   it("should handle multiple script tags", () => {
-    const html = '<script>one</script><p>safe</p><script>two</script>';
+    const html = "<script>one</script><p>safe</p><script>two</script>";
     const result = sanitizeHtml(html);
     expect(result).toBe("<p>safe</p>");
   });
 
   it("should be case insensitive", () => {
-    const html = '<SCRIPT>alert(1)</SCRIPT><p>safe</p>';
+    const html = "<SCRIPT>alert(1)</SCRIPT><p>safe</p>";
     const result = sanitizeHtml(html);
     expect(result).not.toContain("SCRIPT");
     expect(result).toContain("<p>safe</p>");
@@ -77,7 +78,7 @@ describe("reportContentToHtml", () => {
   });
 
   it("should sanitize HTML strings", () => {
-    const html = '<div>Safe</div><script>alert(1)</script>';
+    const html = "<div>Safe</div><script>alert(1)</script>";
     const result = reportContentToHtml(html);
     expect(result).not.toContain("<script>");
     expect(result).toContain("<div>Safe</div>");

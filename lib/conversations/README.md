@@ -191,18 +191,21 @@ The system automatically chooses between incremental and full re-analysis:
 The system handles stuck/stale jobs and explicit regeneration requests:
 
 **Stale Job Detection**:
+
 - **Queued jobs**: Considered stale after 1 hour (likely stuck, no worker available)
 - **Running jobs**: Considered stale after 30 minutes (likely crashed worker)
 - **Behavior**: Stale jobs are automatically retired when a new analysis is triggered, allowing the new job to proceed
 - **Logging**: Retired stale jobs include age in the `last_error` field for diagnostics
 
 **Regenerate Mode**:
+
 - When triggering with `mode: "regenerate"`, non-stale active jobs are also retired (user explicitly wants to restart)
 - **Retirement behavior**: Updates job to `status='failed'` with `last_error="superseded by regenerate request"`
 - **Worker safety**: Workers check job status before persisting results; if superseded, results are discarded
 - **Purpose**: Ensures only the latest regenerate request produces visible results
 
 **Thresholds** (Implementation: [lib/conversations/server/triggerConversationAnalysis.ts](server/triggerConversationAnalysis.ts:139)):
+
 - `STALE_QUEUED_MS = 60 * 60 * 1000` (1 hour)
 - `STALE_RUNNING_MS = 30 * 60 * 1000` (30 minutes)
 
@@ -323,11 +326,13 @@ Report generation (Result tab) requires:
 4. **Correct type**: Only `"understand"` conversations support reports
 
 Thresholds are centralized in `lib/conversations/domain/thresholds.ts` to prevent drift:
+
 - `UNDERSTAND_MIN_RESPONSES = 20` (Understand tab gating and analysis triggering)
 - `REPORT_MIN_RESPONSES = 20` (Report tab gating and generation)
 - `INCREMENTAL_THRESHOLD = 10` (Incremental vs full analysis strategy)
 
 Report generation API:
+
 - Endpoint: `POST /api/conversations/[conversationId]/report`
 - Service: `lib/conversations/server/getReportViewModel.ts`
 - Gating logic: `lib/conversations/domain/reportRules.ts` (`canOpenReport`, `canGenerateReport`)

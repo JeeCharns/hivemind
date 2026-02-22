@@ -20,6 +20,7 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
 ### Step 1: Create Hive Details
 
 **UI Components:**
+
 - Step indicator: "Step 1 of 2"
 - Title: "Create a new Hive"
 - Description: "Add your hive name and logo to get started."
@@ -34,11 +35,13 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
   - **Cancel** (ghost) → returns to `/hives`
 
 **Validation:**
+
 - Name must be non-empty after trimming
 - Logo file must be under 2MB and in supported format (JPEG, PNG, WebP, GIF)
 - Visibility must be "public" or "private" (defaults to "public")
 
 **Behavior:**
+
 - On Continue: `POST /api/hives` with `{ name, logo?, visibility }`
 - If create fails: stay on Step 1 and show error in Alert
 - If create succeeds: extract `hiveKey = slug ?? id` and proceed to Step 2
@@ -46,6 +49,7 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
 ### Step 2: Invite Friends (Link Sharing)
 
 **UI Components:**
+
 - Step indicator: "Step 2 of 2"
 - Title: "Invite friends"
 - Description: "Share this link to invite people to your hive."
@@ -56,6 +60,7 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
   - **Go to hive** (primary) → navigates to `/hives/:hiveKey`
 
 **Behavior:**
+
 - Uses existing share-link system to fetch/create a tokenized join URL
 - No email-entry field in this step (link-only mode)
 - Reuses `HiveShareInvitePanel` component with `linkOnly={true}` prop
@@ -78,6 +83,7 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
 **Auth:** Requires authenticated session (`getServerSession()`)
 
 **Request:**
+
 - Preferred: `multipart/form-data`
   - `name`: string (required)
   - `logo`: file (optional, max 2MB, JPEG/PNG/WebP/GIF)
@@ -86,19 +92,23 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
   - `{ name: string, logo_url?: string | null, visibility?: "public" | "private" }`
 
 **Validation:**
+
 - `createHiveNameSchema` (name: trim, min 1, max 100)
 - `hiveLogoFileSchema` (size, type)
 - `hiveVisibilitySchema` (enum: "public" | "private")
 
 **Behavior:**
+
 - Creates hive row with unique slug and visibility
 - Inserts creator as admin in `hive_members`
 - Uploads logo to Supabase Storage (`logos/<hiveId>/<uuid>.<ext>`) if provided
 
 **Response:**
+
 - `200 OK` with `{ id, slug?, name, logo_url?, visibility }`
 
 **Errors:**
+
 - `401` Unauthorized
 - `400` VALIDATION_ERROR / UPLOAD_FAILED
 - `500` INTERNAL_ERROR
@@ -112,6 +122,7 @@ Entry point remains `/hives` → **Create a New Hive** → `/hives/new`.
 **Auth:** Requires authenticated session + hive membership
 
 **Response:**
+
 - `200 OK` with `{ url, accessMode, hiveName }`
 
 ## Data Model
@@ -126,6 +137,7 @@ CHECK (visibility IN ('public', 'private'))
 ```
 
 **Security expectations:**
+
 - Private hives do not appear in join search results (`GET /api/hives/search`)
 - Private hives cannot be joined via `POST /api/hives/[hiveId]/join` (returns 403 `HIVE_PRIVATE`)
 - Private hives can still be joined via invite link flow (`/invite/[token]`)
@@ -133,11 +145,13 @@ CHECK (visibility IN ('public', 'private'))
 ## Error Handling
 
 ### Step 1 Errors
+
 - Invalid name: Caught by client validation (Continue button disabled)
 - Invalid logo: Caught by client validation (file selection rejected with alert)
 - Create API error: Show error in Alert, stay on Step 1
 
 ### Step 2 Errors
+
 - Share link fetch error: Shown in HiveShareInvitePanel Alert
 
 ## State Management
@@ -160,6 +174,7 @@ inFlightRef: React.MutableRefObject<boolean>
 ### Why Create Hive on Step 1?
 
 Previously, hive creation happened in Step 3 (loading step). Now it happens at the end of Step 1:
+
 - Simpler flow with fewer steps (2 instead of 3)
 - Immediate feedback on creation success/failure
 - Step 2 can fetch the share link for the already-created hive
@@ -187,6 +202,7 @@ Previously, hive creation happened in Step 3 (loading step). Now it happens at t
 ## Testing Coverage
 
 ### Unit/Integration Tests
+
 - **`app/tests/api/hives-create.test.ts`**: Hive creation API
   - Unauthenticated rejection
   - Invalid JSON body
@@ -199,6 +215,7 @@ Previously, hive creation happened in Step 3 (loading step). Now it happens at t
   - Private hive rejection with 403 HIVE_PRIVATE
 
 ### Manual Testing Scenarios
+
 1. **Happy path (public):** Create public hive with name + logo → Step 2 shows link → Go to hive
 2. **Happy path (private):** Create private hive → Step 2 shows link → Go to hive
 3. **Skip logo:** Create hive with name only (no logo) → Success

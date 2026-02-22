@@ -50,11 +50,14 @@ describe("POST /api/hives/[hiveId]/invite", () => {
   it("should reject unauthenticated user", async () => {
     mockGetServerSession.mockResolvedValue(null);
 
-    const request = new NextRequest("http://localhost/api/hives/hive-123/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ emails: ["test@example.com"] }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/hive-123/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emails: ["test@example.com"] }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "hive-123" });
     const response = await POST(request, { params });
@@ -65,11 +68,14 @@ describe("POST /api/hives/[hiveId]/invite", () => {
   });
 
   it("should reject invalid email format", async () => {
-    const request = new NextRequest("http://localhost/api/hives/hive-123/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ emails: ["invalid-email"] }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/hive-123/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emails: ["invalid-email"] }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "hive-123" });
     const response = await POST(request, { params });
@@ -82,11 +88,14 @@ describe("POST /api/hives/[hiveId]/invite", () => {
   it("should reject more than 10 emails", async () => {
     const emails = Array.from({ length: 11 }, (_, i) => `user${i}@example.com`);
 
-    const request = new NextRequest("http://localhost/api/hives/hive-123/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ emails }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/hive-123/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emails }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "hive-123" });
     const response = await POST(request, { params });
@@ -97,11 +106,14 @@ describe("POST /api/hives/[hiveId]/invite", () => {
   });
 
   it("should reject empty emails array", async () => {
-    const request = new NextRequest("http://localhost/api/hives/hive-123/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ emails: [] }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/hive-123/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emails: [] }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "hive-123" });
     const response = await POST(request, { params });
@@ -114,11 +126,14 @@ describe("POST /api/hives/[hiveId]/invite", () => {
   it("should reject non-existent hive", async () => {
     mockResolveHiveId.mockResolvedValue(null);
 
-    const request = new NextRequest("http://localhost/api/hives/non-existent/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ emails: ["test@example.com"] }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/non-existent/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emails: ["test@example.com"] }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "non-existent" });
     const response = await POST(request, { params });
@@ -147,11 +162,14 @@ describe("POST /api/hives/[hiveId]/invite", () => {
       }),
     });
 
-    const request = new NextRequest("http://localhost/api/hives/hive-123/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ emails: ["test@example.com"] }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/hive-123/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emails: ["test@example.com"] }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "hive-123" });
     const response = await POST(request, { params });
@@ -180,11 +198,14 @@ describe("POST /api/hives/[hiveId]/invite", () => {
       }),
     });
 
-    const request = new NextRequest("http://localhost/api/hives/hive-123/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ emails: ["test@example.com"] }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/hive-123/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emails: ["test@example.com"] }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "hive-123" });
     const response = await POST(request, { params });
@@ -225,13 +246,16 @@ describe("POST /api/hives/[hiveId]/invite", () => {
       }),
     });
 
-    const request = new NextRequest("http://localhost/api/hives/hive-123/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        emails: ["user1@example.com", "user2@example.com"],
-      }),
-    });
+    const request = new NextRequest(
+      "http://localhost/api/hives/hive-123/invite",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          emails: ["user1@example.com", "user2@example.com"],
+        }),
+      }
+    );
 
     const params = Promise.resolve({ hiveId: "hive-123" });
     const response = await POST(request, { params });

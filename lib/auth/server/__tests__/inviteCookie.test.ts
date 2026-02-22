@@ -1,4 +1,8 @@
-import { setInviteCookie, getInviteCookie, clearInviteCookie } from "../inviteCookie";
+import {
+  setInviteCookie,
+  getInviteCookie,
+  clearInviteCookie,
+} from "../inviteCookie";
 
 // Mock the cookies function from next/headers
 const mockCookieStore = {
@@ -59,7 +63,9 @@ describe("inviteCookie", () => {
     it("should delete the cookie", async () => {
       await clearInviteCookie();
 
-      expect(mockCookieStore.delete).toHaveBeenCalledWith("hivemind_invite_token");
+      expect(mockCookieStore.delete).toHaveBeenCalledWith(
+        "hivemind_invite_token"
+      );
     });
   });
 });

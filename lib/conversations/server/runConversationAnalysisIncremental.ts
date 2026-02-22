@@ -7,7 +7,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createOpenAIClient, generateEmbeddings } from "@/lib/analysis/openai/embeddingsClient";
+import {
+  createOpenAIClient,
+  generateEmbeddings,
+} from "@/lib/analysis/openai/embeddingsClient";
 import { detectOutliers, computeMADZScores } from "../domain/outlierDetection";
 import {
   MISC_CLUSTER_INDEX,
@@ -88,16 +91,25 @@ export async function runConversationAnalysisIncremental(
     const { data: newResponsesData, error: responsesError } = await query;
 
     if (responsesError) {
-      throw new Error(`Failed to fetch new responses: ${responsesError.message}`);
+      throw new Error(
+        `Failed to fetch new responses: ${responsesError.message}`
+      );
     }
 
     const newResponses: ResponseData[] =
-      newResponsesData?.map((row: { id: string; response_text: string; user_id: string; created_at: string }) => ({
-        id: row.id,
-        text: row.response_text,
-        userId: row.user_id,
-        createdAt: row.created_at,
-      })) ?? [];
+      newResponsesData?.map(
+        (row: {
+          id: string;
+          response_text: string;
+          user_id: string;
+          created_at: string;
+        }) => ({
+          id: row.id,
+          text: row.response_text,
+          userId: row.user_id,
+          createdAt: row.created_at,
+        })
+      ) ?? [];
 
     if (newResponses.length === 0) {
       console.log(
@@ -138,14 +150,19 @@ export async function runConversationAnalysisIncremental(
     await updateAnalysisStatus(supabase, conversationId, "analyzing");
 
     // 7. Assign each new response to nearest cluster
-    const { assignments, distances } = assignToNearestCluster(embeddings, clusterModels);
+    const { assignments, distances } = assignToNearestCluster(
+      embeddings,
+      clusterModels
+    );
 
     console.log(
       `[runConversationAnalysisIncremental] Assigned responses to clusters`
     );
 
     // 7a. Detect outliers per cluster
-    const outlierScores = new Array<number | null>(assignments.length).fill(null);
+    const outlierScores = new Array<number | null>(assignments.length).fill(
+      null
+    );
 
     // Group new responses by assigned cluster
     const responsesByCluster = new Map<number, number[]>();
@@ -160,14 +177,17 @@ export async function runConversationAnalysisIncremental(
     // Detect outliers per cluster
     let miscCount = 0;
     for (const [clusterIdx, responseIndices] of responsesByCluster.entries()) {
-      const clusterModel = clusterModels.find(m => m.clusterIndex === clusterIdx);
-      const clusterSize = (clusterModel?.clusterSize ?? 0) + responseIndices.length;
+      const clusterModel = clusterModels.find(
+        (m) => m.clusterIndex === clusterIdx
+      );
+      const clusterSize =
+        (clusterModel?.clusterSize ?? 0) + responseIndices.length;
 
       // Skip if cluster too small
       if (clusterSize < OUTLIER_MIN_CLUSTER_SIZE) continue;
 
       // Get distances for this cluster
-      const clusterDistances = responseIndices.map(i => distances[i]);
+      const clusterDistances = responseIndices.map((i) => distances[i]);
 
       // Compute z-scores for this cluster
       const zScores = computeMADZScores(clusterDistances);
@@ -437,15 +457,13 @@ async function updateThemeSizes(
   for (const [clusterIdx, size] of sizesMap.entries()) {
     if (clusterIdx === MISC_CLUSTER_INDEX) {
       // Upsert misc theme
-      await supabase
-        .from("conversation_themes")
-        .upsert({
-          conversation_id: conversationId,
-          cluster_index: MISC_CLUSTER_INDEX,
-          name: "Misc",
-          description: "Responses that don't fit well into other themes",
-          size,
-        });
+      await supabase.from("conversation_themes").upsert({
+        conversation_id: conversationId,
+        cluster_index: MISC_CLUSTER_INDEX,
+        name: "Misc",
+        description: "Responses that don't fit well into other themes",
+        size,
+      });
     } else {
       // Update regular theme
       await supabase
@@ -456,9 +474,7 @@ async function updateThemeSizes(
     }
   }
 
-  console.log(
-    `[updateThemeSizes] Updated ${sizesMap.size} theme sizes`
-  );
+  console.log(`[updateThemeSizes] Updated ${sizesMap.size} theme sizes`);
 }
 
 /**

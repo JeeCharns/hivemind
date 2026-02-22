@@ -58,12 +58,17 @@ export async function getDecisionViewModel(
   // 1. Fetch all proposals for this decision session
   const { data: proposals, error: proposalsError } = await supabase
     .from("decision_proposals")
-    .select("id, statement_text, source_cluster_index, original_agree_percent, display_order, source_bucket_id")
+    .select(
+      "id, statement_text, source_cluster_index, original_agree_percent, display_order, source_bucket_id"
+    )
     .eq("conversation_id", conversationId)
     .order("display_order", { ascending: true });
 
   if (proposalsError) {
-    console.error("[getDecisionViewModel] Failed to fetch proposals:", proposalsError);
+    console.error(
+      "[getDecisionViewModel] Failed to fetch proposals:",
+      proposalsError
+    );
     throw new Error("Failed to fetch proposals");
   }
 
@@ -103,13 +108,18 @@ export async function getDecisionViewModel(
   // 2. Fetch the current (most recent) round
   const { data: rounds, error: roundsError } = await supabase
     .from("decision_rounds")
-    .select("id, round_number, status, visibility, deadline, opened_at, closed_at")
+    .select(
+      "id, round_number, status, visibility, deadline, opened_at, closed_at"
+    )
     .eq("conversation_id", conversationId)
     .order("round_number", { ascending: false })
     .limit(1);
 
   if (roundsError) {
-    console.error("[getDecisionViewModel] Failed to fetch rounds:", roundsError);
+    console.error(
+      "[getDecisionViewModel] Failed to fetch rounds:",
+      roundsError
+    );
     throw new Error("Failed to fetch rounds");
   }
 
@@ -139,7 +149,10 @@ export async function getDecisionViewModel(
       .eq("user_id", userId);
 
     if (votesError) {
-      console.error("[getDecisionViewModel] Failed to fetch user votes:", votesError);
+      console.error(
+        "[getDecisionViewModel] Failed to fetch user votes:",
+        votesError
+      );
       throw new Error("Failed to fetch user votes");
     }
 
@@ -157,7 +170,10 @@ export async function getDecisionViewModel(
   let voterCount = 0;
 
   // Fetch all votes if needed for visibility or admin stats
-  if (currentRoundRow && (currentRoundRow.visibility === "transparent" || isAdmin)) {
+  if (
+    currentRoundRow &&
+    (currentRoundRow.visibility === "transparent" || isAdmin)
+  ) {
     const { data: allVotes, error: allVotesError } = await supabase
       .from("decision_votes")
       .select("proposal_id, votes, user_id")
@@ -176,7 +192,7 @@ export async function getDecisionViewModel(
         const userCredits: Record<string, number> = {};
         for (const vote of allVotes) {
           const current = userCredits[vote.user_id] || 0;
-          userCredits[vote.user_id] = current + (vote.votes * vote.votes); // Quadratic cost
+          userCredits[vote.user_id] = current + vote.votes * vote.votes; // Quadratic cost
         }
 
         // Calculate average percentage
@@ -195,21 +211,30 @@ export async function getDecisionViewModel(
   }
 
   // 5. Build proposal view models
-  const proposalViewModels: DecisionProposalViewModel[] = (proposals || []).map((p) => ({
-    id: p.id,
-    statementText: p.statement_text,
-    sourceClusterIndex: p.source_cluster_index,
-    originalAgreePercent: p.original_agree_percent,
-    displayOrder: p.display_order,
-    sourceBucketId: p.source_bucket_id,
-    totalVotes: currentRound?.visibility === "transparent" ? proposalTotals[p.id] : undefined,
-    userVotes: userVotes[p.id] ?? 0,
-  }));
+  const proposalViewModels: DecisionProposalViewModel[] = (proposals || []).map(
+    (p) => ({
+      id: p.id,
+      statementText: p.statement_text,
+      sourceClusterIndex: p.source_cluster_index,
+      originalAgreePercent: p.original_agree_percent,
+      displayOrder: p.display_order,
+      sourceBucketId: p.source_bucket_id,
+      totalVotes:
+        currentRound?.visibility === "transparent"
+          ? proposalTotals[p.id]
+          : undefined,
+      userVotes: userVotes[p.id] ?? 0,
+    })
+  );
 
   // 6. Fetch results for the current round (if closed)
   let results: DecisionResultViewModel | null = null;
 
-  if (currentRoundRow && (currentRoundRow.status === "voting_closed" || currentRoundRow.status === "results_generated")) {
+  if (
+    currentRoundRow &&
+    (currentRoundRow.status === "voting_closed" ||
+      currentRoundRow.status === "results_generated")
+  ) {
     const { data: resultData, error: resultError } = await supabase
       .from("decision_results")
       .select("round_id, proposal_rankings, ai_analysis, generated_at")

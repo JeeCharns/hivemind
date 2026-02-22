@@ -35,7 +35,9 @@ export function useHiveSettings(hiveId: string) {
         setStatus("success");
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to fetch hive"));
+        setError(
+          err instanceof Error ? err : new Error("Failed to fetch hive")
+        );
         setStatus("error");
       }
     };

@@ -32,15 +32,21 @@ describe("PageSelector", () => {
   it("shows the current route page even if currentPage is 'home'", () => {
     usePathnameMock.mockReturnValue("/hives/my-hive/members");
 
-    render(<PageSelector hiveId="hive-id" hiveSlug="my-hive" currentPage="home" />);
+    render(
+      <PageSelector hiveId="hive-id" hiveSlug="my-hive" currentPage="home" />
+    );
 
-    expect(screen.getByRole("button", { name: /members/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /members/i })
+    ).toBeInTheDocument();
   });
 
   it("defaults to home when route does not match a known page", () => {
     usePathnameMock.mockReturnValue("/hives/my-hive/conversations/abc");
 
-    render(<PageSelector hiveId="hive-id" hiveSlug="my-hive" currentPage="home" />);
+    render(
+      <PageSelector hiveId="hive-id" hiveSlug="my-hive" currentPage="home" />
+    );
 
     expect(screen.getByRole("button", { name: /home/i })).toBeInTheDocument();
   });

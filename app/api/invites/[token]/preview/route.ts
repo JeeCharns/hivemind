@@ -42,12 +42,17 @@ export async function GET(
     // resolve the hive name without relying on permissive RLS policies.
     const supabase = supabaseAdminClient();
 
-    console.log("[GET /api/invites/[token]/preview] Looking for token:", redactToken(token), {
-      supabaseHost: supabaseHostFromEnv(),
-      hasServiceRoleKey: Boolean(
-        process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
-      ),
-    });
+    console.log(
+      "[GET /api/invites/[token]/preview] Looking for token:",
+      redactToken(token),
+      {
+        supabaseHost: supabaseHostFromEnv(),
+        hasServiceRoleKey: Boolean(
+          process.env.SUPABASE_SECRET_KEY ??
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        ),
+      }
+    );
 
     // Fetch invite link and associated hive
     const { data: inviteLink, error: linkError } = await supabase
@@ -56,15 +61,24 @@ export async function GET(
       .eq("token", token)
       .maybeSingle();
 
-    console.log("[GET /api/invites/[token]/preview] Query result:", { inviteLink, linkError });
+    console.log("[GET /api/invites/[token]/preview] Query result:", {
+      inviteLink,
+      linkError,
+    });
 
     if (linkError) {
-      console.error("[GET /api/invites/[token]/preview] Query error:", linkError);
+      console.error(
+        "[GET /api/invites/[token]/preview] Query error:",
+        linkError
+      );
       return jsonError("Failed to fetch invite", 500);
     }
 
     if (!inviteLink) {
-      console.log("[GET /api/invites/[token]/preview] No invite link found for token:", token);
+      console.log(
+        "[GET /api/invites/[token]/preview] No invite link found for token:",
+        token
+      );
       return jsonError("Invite not found", 404, "INVITE_NOT_FOUND");
     }
 

@@ -2,7 +2,11 @@
  * Tests for broadcastResponse service
  */
 
-import { broadcastResponse, getFeedChannelName, FEED_BROADCAST_EVENT } from "../broadcastResponse";
+import {
+  broadcastResponse,
+  getFeedChannelName,
+  FEED_BROADCAST_EVENT,
+} from "../broadcastResponse";
 import type { LiveResponse } from "../../domain/listen.types";
 
 // Mock Supabase client

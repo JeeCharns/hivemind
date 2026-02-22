@@ -31,7 +31,9 @@ describe("formatRelativeTimestamp", () => {
 
   it("returns full date for older dates", () => {
     const lastWeek = new Date("2026-02-10T09:15:00Z");
-    expect(formatRelativeTimestamp(lastWeek, now)).toBe("February 10 2026 09:15");
+    expect(formatRelativeTimestamp(lastWeek, now)).toBe(
+      "February 10 2026 09:15"
+    );
 
     const january = new Date("2026-01-05T16:30:00Z");
     expect(formatRelativeTimestamp(january, now)).toBe("January 5 2026 16:30");
@@ -39,7 +41,9 @@ describe("formatRelativeTimestamp", () => {
 
   it("returns full date with year for different year", () => {
     const lastYear = new Date("2025-12-25T08:00:00Z");
-    expect(formatRelativeTimestamp(lastYear, now)).toBe("December 25 2025 08:00");
+    expect(formatRelativeTimestamp(lastYear, now)).toBe(
+      "December 25 2025 08:00"
+    );
   });
 
   it("handles string date input", () => {

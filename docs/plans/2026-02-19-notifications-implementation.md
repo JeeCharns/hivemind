@@ -13,6 +13,7 @@
 ## Task 1: Create Notification Types and Schemas
 
 **Files:**
+
 - Create: `lib/notifications/domain/notification.types.ts`
 - Create: `lib/notifications/server/schemas.ts`
 
@@ -28,10 +29,10 @@
  */
 
 export type NotificationType =
-  | 'new_conversation'
-  | 'analysis_complete'
-  | 'report_generated'
-  | 'opinion_liked';
+  | "new_conversation"
+  | "analysis_complete"
+  | "report_generated"
+  | "opinion_liked";
 
 export interface Notification {
   id: string;
@@ -83,7 +84,7 @@ export const DEFAULT_EMAIL_PREFERENCES: EmailPreferences = {
  * Runtime validation for notification-related API requests.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export const emailPreferencesSchema = z.object({
   new_conversation: z.boolean().optional(),
@@ -99,7 +100,9 @@ export const sendEmailRequestSchema = z.object({
   user_id: z.string().uuid(),
 });
 
-export type UpdateEmailPreferencesInput = z.infer<typeof updateEmailPreferencesSchema>;
+export type UpdateEmailPreferencesInput = z.infer<
+  typeof updateEmailPreferencesSchema
+>;
 export type SendEmailRequestInput = z.infer<typeof sendEmailRequestSchema>;
 ```
 
@@ -120,6 +123,7 @@ git commit -m "feat(notifications): add domain types and Zod schemas"
 ## Task 2: Create Database Migration
 
 **Files:**
+
 - Create: `supabase/migrations/038_create_notifications.sql`
 
 **Step 1: Write the migration file**
@@ -361,6 +365,7 @@ git commit -m "feat(db): add notifications table and triggers"
 ## Task 3: Create Email Service
 
 **Files:**
+
 - Create: `lib/notifications/server/emailService.ts`
 - Modify: `package.json` (add nodemailer)
 
@@ -380,11 +385,11 @@ Expected: Package added to package.json
  * Sends notification emails via Nodemailer with Zoho SMTP.
  */
 
-import nodemailer from 'nodemailer';
-import type { NotificationType } from '../domain/notification.types';
+import nodemailer from "nodemailer";
+import type { NotificationType } from "../domain/notification.types";
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST ?? 'smtp.zoho.com',
+  host: process.env.SMTP_HOST ?? "smtp.zoho.com",
   port: Number(process.env.SMTP_PORT ?? 465),
   secure: true,
   auth: {
@@ -404,37 +409,37 @@ function getEmailContent(
   body: string | null,
   linkPath: string
 ): EmailContent | null {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.hivemind.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hivemind.com";
   const fullLink = `${baseUrl}${linkPath}`;
 
   switch (type) {
-    case 'new_conversation':
+    case "new_conversation":
       return {
-        subject: `New conversation: ${body ?? 'Untitled'}`,
+        subject: `New conversation: ${body ?? "Untitled"}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #1e293b;">${title}</h2>
             <p style="color: #475569;">A new conversation has been started:</p>
-            <p style="color: #1e293b; font-size: 18px; font-weight: 500;">${body ?? 'Untitled'}</p>
+            <p style="color: #1e293b; font-size: 18px; font-weight: 500;">${body ?? "Untitled"}</p>
             <a href="${fullLink}" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px;">View Conversation</a>
           </div>
         `,
       };
 
-    case 'analysis_complete':
-    case 'report_generated':
+    case "analysis_complete":
+    case "report_generated":
       return {
-        subject: `${type === 'analysis_complete' ? 'Analysis complete' : 'New report available'}: ${body ?? 'Untitled'}`,
+        subject: `${type === "analysis_complete" ? "Analysis complete" : "New report available"}: ${body ?? "Untitled"}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #1e293b;">${title}</h2>
-            <p style="color: #475569;">The conversation "${body ?? 'Untitled'}" has new insights available.</p>
+            <p style="color: #475569;">The conversation "${body ?? "Untitled"}" has new insights available.</p>
             <a href="${fullLink}" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px;">View Insights</a>
           </div>
         `,
       };
 
-    case 'opinion_liked':
+    case "opinion_liked":
       // No email for opinion likes
       return null;
 
@@ -452,8 +457,8 @@ export async function sendNotificationEmail(
 ): Promise<{ success: boolean; error?: string }> {
   // Skip if SMTP not configured
   if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-    console.warn('[emailService] SMTP not configured, skipping email');
-    return { success: false, error: 'SMTP not configured' };
+    console.warn("[emailService] SMTP not configured, skipping email");
+    return { success: false, error: "SMTP not configured" };
   }
 
   const content = getEmailContent(type, title, body, linkPath);
@@ -472,7 +477,7 @@ export async function sendNotificationEmail(
     console.log(`[emailService] Email sent to ${to} for ${type}`);
     return { success: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : "Unknown error";
     console.error(`[emailService] Failed to send email: ${message}`);
     return { success: false, error: message };
   }
@@ -491,6 +496,7 @@ git commit -m "feat(notifications): add email service with Nodemailer"
 ## Task 4: Create Notification Service
 
 **Files:**
+
 - Create: `lib/notifications/server/notificationService.ts`
 
 **Step 1: Create the service**
@@ -504,14 +510,18 @@ git commit -m "feat(notifications): add email service with Nodemailer"
  * Server-side functions for fetching, updating, and deleting notifications.
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Notification, NotificationRow, EmailPreferences } from '../domain/notification.types';
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type {
+  Notification,
+  NotificationRow,
+  EmailPreferences,
+} from "../domain/notification.types";
 
 function mapRowToNotification(row: NotificationRow): Notification {
   return {
     id: row.id,
     userId: row.user_id,
-    type: row.type as Notification['type'],
+    type: row.type as Notification["type"],
     title: row.title,
     body: row.body,
     hiveId: row.hive_id,
@@ -529,15 +539,15 @@ export async function getNotifications(
   limit = 20
 ): Promise<Notification[]> {
   const { data, error } = await supabase
-    .from('user_notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .from("user_notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
-    console.error('[notificationService] getNotifications error:', error);
-    throw new Error('Failed to fetch notifications');
+    console.error("[notificationService] getNotifications error:", error);
+    throw new Error("Failed to fetch notifications");
   }
 
   return (data ?? []).map(mapRowToNotification);
@@ -548,13 +558,13 @@ export async function getUnreadCount(
   userId: string
 ): Promise<number> {
   const { count, error } = await supabase
-    .from('user_notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .is('read_at', null);
+    .from("user_notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .is("read_at", null);
 
   if (error) {
-    console.error('[notificationService] getUnreadCount error:', error);
+    console.error("[notificationService] getUnreadCount error:", error);
     return 0;
   }
 
@@ -566,14 +576,14 @@ export async function markAllAsRead(
   userId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from('user_notifications')
+    .from("user_notifications")
     .update({ read_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .is('read_at', null);
+    .eq("user_id", userId)
+    .is("read_at", null);
 
   if (error) {
-    console.error('[notificationService] markAllAsRead error:', error);
-    throw new Error('Failed to mark notifications as read');
+    console.error("[notificationService] markAllAsRead error:", error);
+    throw new Error("Failed to mark notifications as read");
   }
 }
 
@@ -582,13 +592,13 @@ export async function clearAllNotifications(
   userId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from('user_notifications')
+    .from("user_notifications")
     .delete()
-    .eq('user_id', userId);
+    .eq("user_id", userId);
 
   if (error) {
-    console.error('[notificationService] clearAllNotifications error:', error);
-    throw new Error('Failed to clear notifications');
+    console.error("[notificationService] clearAllNotifications error:", error);
+    throw new Error("Failed to clear notifications");
   }
 }
 
@@ -598,10 +608,10 @@ export async function getNotificationById(
   userId: string
 ): Promise<Notification | null> {
   const { data, error } = await supabase
-    .from('user_notifications')
-    .select('*')
-    .eq('id', notificationId)
-    .eq('user_id', userId)
+    .from("user_notifications")
+    .select("*")
+    .eq("id", notificationId)
+    .eq("user_id", userId)
     .single();
 
   if (error || !data) {
@@ -616,9 +626,9 @@ export async function getEmailPreferences(
   userId: string
 ): Promise<EmailPreferences> {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('email_preferences')
-    .eq('id', userId)
+    .from("profiles")
+    .select("email_preferences")
+    .eq("id", userId)
     .single();
 
   if (error || !data?.email_preferences) {
@@ -638,13 +648,13 @@ export async function updateEmailPreferences(
   const updated = { ...current, ...preferences };
 
   const { error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update({ email_preferences: updated })
-    .eq('id', userId);
+    .eq("id", userId);
 
   if (error) {
-    console.error('[notificationService] updateEmailPreferences error:', error);
-    throw new Error('Failed to update email preferences');
+    console.error("[notificationService] updateEmailPreferences error:", error);
+    throw new Error("Failed to update email preferences");
   }
 
   return updated;
@@ -657,7 +667,7 @@ export async function getUserEmail(
   const { data, error } = await supabase.auth.admin.getUserById(userId);
 
   if (error || !data?.user?.email) {
-    console.error('[notificationService] getUserEmail error:', error);
+    console.error("[notificationService] getUserEmail error:", error);
     return null;
   }
 
@@ -677,6 +687,7 @@ git commit -m "feat(notifications): add notification service"
 ## Task 5: Create API Endpoints
 
 **Files:**
+
 - Create: `app/api/notifications/route.ts`
 - Create: `app/api/notifications/read/route.ts`
 - Create: `app/api/notifications/email/route.ts`
@@ -694,21 +705,21 @@ git commit -m "feat(notifications): add notification service"
  * DELETE - Clear all notifications
  */
 
-import { NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth/server/requireAuth';
-import { supabaseServerClient } from '@/lib/supabase/serverClient';
-import { jsonError } from '@/lib/api/errors';
+import { NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { jsonError } from "@/lib/api/errors";
 import {
   getNotifications,
   getUnreadCount,
   clearAllNotifications,
-} from '@/lib/notifications/server/notificationService';
+} from "@/lib/notifications/server/notificationService";
 
 export async function GET() {
   try {
     const session = await getServerSession();
     if (!session) {
-      return jsonError('Unauthorised', 401);
+      return jsonError("Unauthorised", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -719,8 +730,8 @@ export async function GET() {
 
     return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
-    console.error('[GET /api/notifications] Error:', error);
-    return jsonError('Internal server error', 500);
+    console.error("[GET /api/notifications] Error:", error);
+    return jsonError("Internal server error", 500);
   }
 }
 
@@ -728,7 +739,7 @@ export async function DELETE() {
   try {
     const session = await getServerSession();
     if (!session) {
-      return jsonError('Unauthorised', 401);
+      return jsonError("Unauthorised", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -736,8 +747,8 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[DELETE /api/notifications] Error:', error);
-    return jsonError('Internal server error', 500);
+    console.error("[DELETE /api/notifications] Error:", error);
+    return jsonError("Internal server error", 500);
   }
 }
 ```
@@ -753,17 +764,17 @@ export async function DELETE() {
  * PATCH - Mark all notifications as read
  */
 
-import { NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth/server/requireAuth';
-import { supabaseServerClient } from '@/lib/supabase/serverClient';
-import { jsonError } from '@/lib/api/errors';
-import { markAllAsRead } from '@/lib/notifications/server/notificationService';
+import { NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { jsonError } from "@/lib/api/errors";
+import { markAllAsRead } from "@/lib/notifications/server/notificationService";
 
 export async function PATCH() {
   try {
     const session = await getServerSession();
     if (!session) {
-      return jsonError('Unauthorised', 401);
+      return jsonError("Unauthorised", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -771,8 +782,8 @@ export async function PATCH() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[PATCH /api/notifications/read] Error:', error);
-    return jsonError('Internal server error', 500);
+    console.error("[PATCH /api/notifications/read] Error:", error);
+    return jsonError("Internal server error", 500);
   }
 }
 ```
@@ -790,40 +801,44 @@ export async function PATCH() {
  * Security: Requires INTERNAL_API_KEY header
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { jsonError } from '@/lib/api/errors';
-import { sendEmailRequestSchema } from '@/lib/notifications/server/schemas';
-import { supabaseAdmin } from '@/lib/supabase/adminClient';
+import { NextRequest, NextResponse } from "next/server";
+import { jsonError } from "@/lib/api/errors";
+import { sendEmailRequestSchema } from "@/lib/notifications/server/schemas";
+import { supabaseAdmin } from "@/lib/supabase/adminClient";
 import {
   getNotificationById,
   getEmailPreferences,
   getUserEmail,
-} from '@/lib/notifications/server/notificationService';
-import { sendNotificationEmail } from '@/lib/notifications/server/emailService';
-import type { NotificationType } from '@/lib/notifications/domain/notification.types';
+} from "@/lib/notifications/server/notificationService";
+import { sendNotificationEmail } from "@/lib/notifications/server/emailService";
+import type { NotificationType } from "@/lib/notifications/domain/notification.types";
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Verify internal API key
-    const apiKey = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const apiKey = request.headers.get("Authorization")?.replace("Bearer ", "");
     if (!apiKey || apiKey !== process.env.INTERNAL_API_KEY) {
-      return jsonError('Unauthorised', 401);
+      return jsonError("Unauthorised", 401);
     }
 
     // 2. Parse and validate request body
     const body = await request.json();
     const parsed = sendEmailRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonError('Invalid request body', 400);
+      return jsonError("Invalid request body", 400);
     }
 
     const { notification_id, user_id } = parsed.data;
 
     // 3. Get notification details
     const supabase = supabaseAdmin();
-    const notification = await getNotificationById(supabase, notification_id, user_id);
+    const notification = await getNotificationById(
+      supabase,
+      notification_id,
+      user_id
+    );
     if (!notification) {
-      return jsonError('Notification not found', 404);
+      return jsonError("Notification not found", 404);
     }
 
     // 4. Check email preferences
@@ -832,18 +847,23 @@ export async function POST(request: NextRequest) {
 
     // Map notification types to preference keys
     const shouldSendEmail =
-      (notificationType === 'new_conversation' && preferences.new_conversation) ||
-      ((notificationType === 'analysis_complete' || notificationType === 'report_generated') &&
+      (notificationType === "new_conversation" &&
+        preferences.new_conversation) ||
+      ((notificationType === "analysis_complete" ||
+        notificationType === "report_generated") &&
         preferences.conversation_progress);
 
     if (!shouldSendEmail) {
-      return NextResponse.json({ success: true, skipped: 'preference_disabled' });
+      return NextResponse.json({
+        success: true,
+        skipped: "preference_disabled",
+      });
     }
 
     // 5. Get user email
     const email = await getUserEmail(supabase, user_id);
     if (!email) {
-      return NextResponse.json({ success: false, error: 'No email address' });
+      return NextResponse.json({ success: false, error: "No email address" });
     }
 
     // 6. Send email
@@ -857,8 +877,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('[POST /api/notifications/email] Error:', error);
-    return jsonError('Internal server error', 500);
+    console.error("[POST /api/notifications/email] Error:", error);
+    return jsonError("Internal server error", 500);
   }
 }
 ```
@@ -875,21 +895,21 @@ export async function POST(request: NextRequest) {
  * PATCH - Update email preferences
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth/server/requireAuth';
-import { supabaseServerClient } from '@/lib/supabase/serverClient';
-import { jsonError } from '@/lib/api/errors';
-import { updateEmailPreferencesSchema } from '@/lib/notifications/server/schemas';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/server/requireAuth";
+import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { jsonError } from "@/lib/api/errors";
+import { updateEmailPreferencesSchema } from "@/lib/notifications/server/schemas";
 import {
   getEmailPreferences,
   updateEmailPreferences,
-} from '@/lib/notifications/server/notificationService';
+} from "@/lib/notifications/server/notificationService";
 
 export async function GET() {
   try {
     const session = await getServerSession();
     if (!session) {
-      return jsonError('Unauthorised', 401);
+      return jsonError("Unauthorised", 401);
     }
 
     const supabase = await supabaseServerClient();
@@ -897,8 +917,8 @@ export async function GET() {
 
     return NextResponse.json({ email_preferences: preferences });
   } catch (error) {
-    console.error('[GET /api/profile/notifications] Error:', error);
-    return jsonError('Internal server error', 500);
+    console.error("[GET /api/profile/notifications] Error:", error);
+    return jsonError("Internal server error", 500);
   }
 }
 
@@ -906,13 +926,13 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession();
     if (!session) {
-      return jsonError('Unauthorised', 401);
+      return jsonError("Unauthorised", 401);
     }
 
     const body = await request.json();
     const parsed = updateEmailPreferencesSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonError('Invalid request body', 400);
+      return jsonError("Invalid request body", 400);
     }
 
     const supabase = await supabaseServerClient();
@@ -924,8 +944,8 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ email_preferences: updated });
   } catch (error) {
-    console.error('[PATCH /api/profile/notifications] Error:', error);
-    return jsonError('Internal server error', 500);
+    console.error("[PATCH /api/profile/notifications] Error:", error);
+    return jsonError("Internal server error", 500);
   }
 }
 ```
@@ -942,6 +962,7 @@ git commit -m "feat(api): add notification API endpoints"
 ## Task 6: Create useNotifications Hook
 
 **Files:**
+
 - Create: `lib/notifications/hooks/useNotifications.ts`
 
 **Step 1: Create the hook**
@@ -949,7 +970,7 @@ git commit -m "feat(api): add notification API endpoints"
 ```typescript
 // lib/notifications/hooks/useNotifications.ts
 
-'use client';
+"use client";
 
 /**
  * useNotifications Hook
@@ -958,12 +979,18 @@ git commit -m "feat(api): add notification API endpoints"
  * Subscribes to postgres_changes on user_notifications table.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import type { Notification, NotificationRow } from '../domain/notification.types';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import type {
+  Notification,
+  NotificationRow,
+} from "../domain/notification.types";
 
-type NotificationStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
+type NotificationStatus = "connecting" | "connected" | "error" | "disconnected";
 
 interface UseNotificationsResult {
   notifications: Notification[];
@@ -978,7 +1005,7 @@ function mapRowToNotification(row: NotificationRow): Notification {
   return {
     id: row.id,
     userId: row.user_id,
-    type: row.type as Notification['type'],
+    type: row.type as Notification["type"],
     title: row.title,
     body: row.body,
     hiveId: row.hive_id,
@@ -990,10 +1017,12 @@ function mapRowToNotification(row: NotificationRow): Notification {
   };
 }
 
-export function useNotifications(userId: string | undefined): UseNotificationsResult {
+export function useNotifications(
+  userId: string | undefined
+): UseNotificationsResult {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [status, setStatus] = useState<NotificationStatus>('disconnected');
+  const [status, setStatus] = useState<NotificationStatus>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Fetch notifications from API
@@ -1001,9 +1030,9 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
     if (!userId) return;
 
     try {
-      const response = await fetch('/api/notifications');
+      const response = await fetch("/api/notifications");
       if (!response.ok) {
-        console.error('[useNotifications] Refresh failed:', response.status);
+        console.error("[useNotifications] Refresh failed:", response.status);
         return;
       }
 
@@ -1011,7 +1040,7 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
       setNotifications(data.notifications ?? []);
       setUnreadCount(data.unreadCount ?? 0);
     } catch (err) {
-      console.error('[useNotifications] Refresh error:', err);
+      console.error("[useNotifications] Refresh error:", err);
     }
   }, [userId]);
 
@@ -1020,15 +1049,20 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
     if (!userId) return;
 
     try {
-      const response = await fetch('/api/notifications/read', { method: 'PATCH' });
+      const response = await fetch("/api/notifications/read", {
+        method: "PATCH",
+      });
       if (response.ok) {
         setNotifications((prev) =>
-          prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() }))
+          prev.map((n) => ({
+            ...n,
+            readAt: n.readAt ?? new Date().toISOString(),
+          }))
         );
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('[useNotifications] markAllRead error:', err);
+      console.error("[useNotifications] markAllRead error:", err);
     }
   }, [userId]);
 
@@ -1037,20 +1071,20 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
     if (!userId) return;
 
     try {
-      const response = await fetch('/api/notifications', { method: 'DELETE' });
+      const response = await fetch("/api/notifications", { method: "DELETE" });
       if (response.ok) {
         setNotifications([]);
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('[useNotifications] clearAll error:', err);
+      console.error("[useNotifications] clearAll error:", err);
     }
   }, [userId]);
 
   // Handle new notification from realtime
   const handleNewNotification = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
+      if (payload.eventType === "INSERT" && payload.new) {
         const row = payload.new as unknown as NotificationRow;
         const newNotification = mapRowToNotification(row);
 
@@ -1070,29 +1104,29 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
     // Initial fetch
     refresh();
 
-    queueMicrotask(() => setStatus('connecting'));
+    queueMicrotask(() => setStatus("connecting"));
 
     const channelName = `user:${userId}:notifications`;
 
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'user_notifications',
+          event: "INSERT",
+          schema: "public",
+          table: "user_notifications",
           filter: `user_id=eq.${userId}`,
         },
         handleNewNotification
       )
       .subscribe((subscriptionStatus, err) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-        } else if (subscriptionStatus === 'CHANNEL_ERROR' || err) {
-          setStatus('error');
-        } else if (subscriptionStatus === 'CLOSED') {
-          setStatus('disconnected');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (subscriptionStatus === "CHANNEL_ERROR" || err) {
+          setStatus("error");
+        } else if (subscriptionStatus === "CLOSED") {
+          setStatus("disconnected");
         }
       });
 
@@ -1129,6 +1163,7 @@ git commit -m "feat(notifications): add useNotifications real-time hook"
 ## Task 7: Create Notification Bell Component
 
 **Files:**
+
 - Create: `app/components/navbar/NotificationBell.tsx`
 - Create: `app/components/navbar/NotificationDropdown.tsx`
 
@@ -1351,6 +1386,7 @@ git commit -m "feat(ui): add NotificationBell and NotificationDropdown component
 ## Task 8: Integrate Bell into Navbar
 
 **Files:**
+
 - Modify: `app/components/Navbar.tsx`
 - Modify: `types/navbar.ts`
 
@@ -1361,7 +1397,7 @@ git commit -m "feat(ui): add NotificationBell and NotificationDropdown component
 
 export interface NavbarViewModel {
   user: NavbarUser | null;
-  userId: string | null;  // Add this line
+  userId: string | null; // Add this line
   hives: HiveOption[];
   currentHive: CurrentHive | null;
   currentPage: NavbarPage;
@@ -1409,6 +1445,7 @@ git commit -m "feat(navbar): integrate notification bell"
 ## Task 9: Add Notification Preferences to Settings
 
 **Files:**
+
 - Create: `lib/notifications/hooks/useNotificationPreferences.ts`
 - Modify: `app/settings/page.tsx`
 - Modify: `app/settings/AccountSettingsForm.tsx`
@@ -1418,7 +1455,7 @@ git commit -m "feat(navbar): integrate notification bell"
 ```typescript
 // lib/notifications/hooks/useNotificationPreferences.ts
 
-'use client';
+"use client";
 
 /**
  * useNotificationPreferences Hook
@@ -1426,8 +1463,8 @@ git commit -m "feat(navbar): integrate notification bell"
  * Fetches and updates email notification preferences.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import type { EmailPreferences } from '../domain/notification.types';
+import { useState, useEffect, useCallback } from "react";
+import type { EmailPreferences } from "../domain/notification.types";
 
 interface UseNotificationPreferencesResult {
   preferences: EmailPreferences | null;
@@ -1445,14 +1482,14 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
   useEffect(() => {
     async function fetchPreferences() {
       try {
-        const response = await fetch('/api/profile/notifications');
+        const response = await fetch("/api/profile/notifications");
         if (!response.ok) {
-          throw new Error('Failed to fetch preferences');
+          throw new Error("Failed to fetch preferences");
         }
         const data = await response.json();
         setPreferences(data.email_preferences);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
@@ -1462,31 +1499,34 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
   }, []);
 
   // Update preferences
-  const updatePreferences = useCallback(async (updates: Partial<EmailPreferences>) => {
-    if (!preferences) return;
+  const updatePreferences = useCallback(
+    async (updates: Partial<EmailPreferences>) => {
+      if (!preferences) return;
 
-    const optimisticUpdate = { ...preferences, ...updates };
-    setPreferences(optimisticUpdate);
+      const optimisticUpdate = { ...preferences, ...updates };
+      setPreferences(optimisticUpdate);
 
-    try {
-      const response = await fetch('/api/profile/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email_preferences: updates }),
-      });
+      try {
+        const response = await fetch("/api/profile/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email_preferences: updates }),
+        });
 
-      if (!response.ok) {
-        // Rollback on error
-        setPreferences(preferences);
-        throw new Error('Failed to update preferences');
+        if (!response.ok) {
+          // Rollback on error
+          setPreferences(preferences);
+          throw new Error("Failed to update preferences");
+        }
+
+        const data = await response.json();
+        setPreferences(data.email_preferences);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
       }
-
-      const data = await response.json();
-      setPreferences(data.email_preferences);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    }
-  }, [preferences]);
+    },
+    [preferences]
+  );
 
   return { preferences, loading, error, updatePreferences };
 }
@@ -1564,6 +1604,7 @@ git commit -m "feat(settings): add notification preferences UI"
 ## Task 10: Add Email Trigger to Database (pg_net)
 
 **Files:**
+
 - Modify: `supabase/migrations/038_create_notifications.sql`
 
 **Step 1: Update triggers to call email API**
@@ -1594,6 +1635,7 @@ PERFORM net.http_post(
 **Step 2: Alternative - Use Edge Function or Application-Level Email**
 
 If pg_net is not available or too complex, emails can be sent from the application layer by:
+
 1. Listening to realtime events in a server process
 2. Or calling the email API from the notification service when creating notifications via the app
 
@@ -1609,6 +1651,7 @@ git commit -m "feat(db): add email triggers via pg_net"
 ## Task 11: Update Documentation
 
 **Files:**
+
 - Modify: `docs/feature-map.md`
 - Modify: `docs/setup/README.md`
 
@@ -1627,7 +1670,7 @@ git commit -m "feat(db): add email triggers via pg_net"
 
 **Step 2: Add env vars to setup docs**
 
-```markdown
+````markdown
 ### Email Notifications (Optional)
 
 ```env
@@ -1638,14 +1681,16 @@ SMTP_PASSWORD=your-smtp-password
 SMTP_FROM="Hivemind <noreply@yourdomain.com>"
 INTERNAL_API_KEY=your-internal-api-key
 ```
-```
+````
+
+````
 
 **Step 3: Commit**
 
 ```bash
 git add docs/feature-map.md docs/setup/README.md
 git commit -m "docs: add notifications feature documentation"
-```
+````
 
 ---
 
@@ -1690,17 +1735,17 @@ git commit -m "feat(notifications): complete notification system implementation"
 
 ## Summary
 
-| Task | Description |
-|------|-------------|
-| 1 | Types and schemas |
-| 2 | Database migration (table, triggers, RLS) |
-| 3 | Email service with Nodemailer |
-| 4 | Notification service (CRUD operations) |
-| 5 | API endpoints |
-| 6 | useNotifications real-time hook |
-| 7 | NotificationBell and Dropdown components |
-| 8 | Navbar integration |
-| 9 | Settings preferences UI |
-| 10 | Email trigger integration |
-| 11 | Documentation updates |
-| 12 | Testing and verification |
+| Task | Description                               |
+| ---- | ----------------------------------------- |
+| 1    | Types and schemas                         |
+| 2    | Database migration (table, triggers, RLS) |
+| 3    | Email service with Nodemailer             |
+| 4    | Notification service (CRUD operations)    |
+| 5    | API endpoints                             |
+| 6    | useNotifications real-time hook           |
+| 7    | NotificationBell and Dropdown components  |
+| 8    | Navbar integration                        |
+| 9    | Settings preferences UI                   |
+| 10   | Email trigger integration                 |
+| 11   | Documentation updates                     |
+| 12   | Testing and verification                  |

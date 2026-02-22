@@ -7,10 +7,13 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { NavbarViewModel, NavbarPage } from "@/types/navbar";
+import HiveLogo from "@/app/components/hive-logo";
+import { getLogoSignedUrl } from "@/lib/supabase/storage";
+import type { HiveOption } from "@/types/navbar";
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -18,17 +21,47 @@ interface MobileDrawerProps {
   viewModel: NavbarViewModel;
 }
 
-const allPages: { id: NavbarPage; label: string; path: string; adminOnly: boolean }[] = [
+const allPages: {
+  id: NavbarPage;
+  label: string;
+  path: string;
+  adminOnly: boolean;
+}[] = [
   { id: "home", label: "Home", path: "", adminOnly: false },
   { id: "members", label: "Members", path: "/members", adminOnly: false },
   { id: "settings", label: "Settings", path: "/settings", adminOnly: true },
   { id: "invite", label: "Invite", path: "/invite", adminOnly: false },
 ];
 
-export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawerProps) {
+export default function MobileDrawer({
+  isOpen,
+  onClose,
+  viewModel,
+}: MobileDrawerProps) {
   const { user, hives, currentHive, currentPage } = viewModel;
   const router = useRouter();
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [logoUrls, setLogoUrls] = useState<Record<string, string | null>>({});
+
+  // Resolve signed URLs for hive logos
+  useEffect(() => {
+    let cancelled = false;
+    const resolve = async () => {
+      const entries = await Promise.all(
+        hives.map(async (h: HiveOption) => {
+          const url = await getLogoSignedUrl(h.logoUrl);
+          return [h.id, url] as const;
+        })
+      );
+      if (!cancelled) {
+        setLogoUrls(Object.fromEntries(entries));
+      }
+    };
+    resolve();
+    return () => {
+      cancelled = true;
+    };
+  }, [hives]);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -122,24 +155,26 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
           {currentHive ? (
             // Show page links when in a hive
             <>
-              {allPages.filter((p) => !p.adminOnly || currentHive.isAdmin).map((page) => {
-                const isActive = page.id === currentPage;
-                const href = basePath + page.path;
-                return (
-                  <Link
-                    key={page.id}
-                    href={href}
-                    onClick={() => onClose()}
-                    className={`flex items-center px-4 py-3 text-body transition ${
-                      isActive
-                        ? "bg-indigo-50 text-indigo-600 font-medium"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {page.label}
-                  </Link>
-                );
-              })}
+              {allPages
+                .filter((p) => !p.adminOnly || currentHive.isAdmin)
+                .map((page) => {
+                  const isActive = page.id === currentPage;
+                  const href = basePath + page.path;
+                  return (
+                    <Link
+                      key={page.id}
+                      href={href}
+                      onClick={() => onClose()}
+                      className={`flex items-center px-4 py-3 text-body transition ${
+                        isActive
+                          ? "bg-indigo-50 text-indigo-600 font-medium"
+                          : "text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {page.label}
+                    </Link>
+                  );
+                })}
 
               {/* Hive switcher */}
               {hives.length > 1 && (
@@ -156,9 +191,12 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
                         onClick={() => onClose()}
                         className="flex items-center gap-3 px-4 py-3 text-body text-slate-700 hover:bg-slate-50 transition"
                       >
-                        <span className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-label text-slate-600 shrink-0">
-                          {hive.name.charAt(0).toUpperCase()}
-                        </span>
+                        <HiveLogo
+                          src={logoUrls[hive.id] ?? null}
+                          name={hive.name}
+                          size={32}
+                          className="shrink-0"
+                        />
                         <span className="truncate">{hive.name}</span>
                       </Link>
                     ))}
@@ -179,9 +217,12 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
                     onClick={() => onClose()}
                     className="flex items-center gap-3 px-4 py-3 text-body text-slate-700 hover:bg-slate-50 transition"
                   >
-                    <span className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-label text-slate-600 shrink-0">
-                      {hive.name.charAt(0).toUpperCase()}
-                    </span>
+                    <HiveLogo
+                      src={logoUrls[hive.id] ?? null}
+                      name={hive.name}
+                      size={32}
+                      className="shrink-0"
+                    />
                     <span className="truncate">{hive.name}</span>
                   </Link>
                 ))
@@ -201,7 +242,9 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
             <div className="px-4 py-3 border-b border-slate-100">
               <p className="text-subtitle text-slate-800">{user.displayName}</p>
               {user.email && (
-                <p className="text-info text-slate-500 truncate">{user.email}</p>
+                <p className="text-info text-slate-500 truncate">
+                  {user.email}
+                </p>
               )}
             </div>
 

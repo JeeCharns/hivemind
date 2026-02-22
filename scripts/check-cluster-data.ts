@@ -6,9 +6,11 @@
 import { createClient } from "@supabase/supabase-js";
 
 async function main() {
-  const conversationId = process.argv[2] || "f17c2645-1d6d-4f0f-9305-8cb72cb310bc";
+  const conversationId =
+    process.argv[2] || "f17c2645-1d6d-4f0f-9305-8cb72cb310bc";
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !supabaseSecretKey) {
@@ -60,21 +62,27 @@ async function main() {
       return a - b;
     })
     .forEach(([cluster, items]) => {
-      const clusterLabel = cluster === null ? "NULL" : cluster === -1 ? "MISC" : cluster;
+      const clusterLabel =
+        cluster === null ? "NULL" : cluster === -1 ? "MISC" : cluster;
       console.log(`\nCluster ${clusterLabel}: ${items.length} responses`);
 
       // Check for missing coordinates
-      const missingCoords = items.filter((r) => r.x_umap === null || r.y_umap === null);
+      const missingCoords = items.filter(
+        (r) => r.x_umap === null || r.y_umap === null
+      );
       if (missingCoords.length > 0) {
-        console.log(`  ⚠️  ${missingCoords.length} responses missing UMAP coordinates`);
+        console.log(
+          `  ⚠️  ${missingCoords.length} responses missing UMAP coordinates`
+        );
       }
 
       // Show first 3 responses
       items.slice(0, 3).forEach((r, i) => {
         const preview = r.response_text.slice(0, 60).replace(/\n/g, " ");
-        const coords = r.x_umap !== null && r.y_umap !== null
-          ? `(${r.x_umap.toFixed(2)}, ${r.y_umap.toFixed(2)})`
-          : "(no coords)";
+        const coords =
+          r.x_umap !== null && r.y_umap !== null
+            ? `(${r.x_umap.toFixed(2)}, ${r.y_umap.toFixed(2)})`
+            : "(no coords)";
         console.log(`  ${i + 1}. ${preview}... ${coords}`);
       });
 

@@ -58,12 +58,18 @@ export default function HivesHome({ hives, error }: HivesHomeProps) {
               </button>
             ))}
 
-            <Button className="w-full py-4" onClick={() => router.push("/hives/new")}>
+            <Button
+              className="w-full py-4"
+              onClick={() => router.push("/hives/new")}
+            >
               Create a New Hive
             </Button>
 
             {/* Join search block (matches temp welcome page styling/text) */}
-            <JoinHiveSearch showMembershipStatus={false} disableAlreadyMember={false} />
+            <JoinHiveSearch
+              showMembershipStatus={false}
+              disableAlreadyMember={false}
+            />
           </div>
         )}
       </div>

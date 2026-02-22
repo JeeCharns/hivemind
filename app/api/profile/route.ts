@@ -9,7 +9,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { upsertProfile } from "@/lib/profile/server/upsertProfile";
-import { upsertProfileFormSchema, avatarFileSchema } from "@/lib/profile/schemas";
+import {
+  upsertProfileFormSchema,
+  avatarFileSchema,
+} from "@/lib/profile/schemas";
 import { jsonError } from "@/lib/api/errors";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB

@@ -11,7 +11,9 @@ import type { Session } from "../domain/session.types";
 export async function requireAuth(): Promise<Session> {
   // Fast path: validate token locally first (no network call)
   const cookieStore = await cookies();
-  const allCookies = cookieStore.getAll().map((c) => ({ name: c.name, value: c.value }));
+  const allCookies = cookieStore
+    .getAll()
+    .map((c) => ({ name: c.name, value: c.value }));
   const authState = getValidatedAuthState(allCookies);
 
   if (!authState.isAuthenticated) {
@@ -21,8 +23,9 @@ export async function requireAuth(): Promise<Session> {
   const session = authState.session!; // Safe because isAuthenticated === true
 
   const supabase = await supabaseServerClient();
-  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null =
-    null;
+  let user:
+    | Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"]
+    | null = null;
   let error: Awaited<ReturnType<typeof supabase.auth.getUser>>["error"] | null =
     null;
   try {
@@ -56,7 +59,9 @@ export async function requireAuth(): Promise<Session> {
 export async function getServerSession(): Promise<Session | null> {
   // Fast path: validate token locally first (no network call)
   const cookieStore = await cookies();
-  const allCookies = cookieStore.getAll().map((c) => ({ name: c.name, value: c.value }));
+  const allCookies = cookieStore
+    .getAll()
+    .map((c) => ({ name: c.name, value: c.value }));
   const authState = getValidatedAuthState(allCookies);
 
   if (!authState.isAuthenticated) {
@@ -66,8 +71,9 @@ export async function getServerSession(): Promise<Session | null> {
   const session = authState.session!; // Safe because isAuthenticated === true
 
   const supabase = await supabaseServerClient();
-  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null =
-    null;
+  let user:
+    | Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"]
+    | null = null;
   let error: Awaited<ReturnType<typeof supabase.auth.getUser>>["error"] | null =
     null;
   try {

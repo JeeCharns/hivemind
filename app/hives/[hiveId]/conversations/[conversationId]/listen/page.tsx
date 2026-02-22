@@ -74,7 +74,8 @@ export default async function ListenPage({ params }: ListenPageProps) {
         .eq("id", conversation.source_conversation_id)
         .maybeSingle();
 
-      sourceReportConversationTitle = sourceConv?.title || "Problem Space Report";
+      sourceReportConversationTitle =
+        sourceConv?.title || "Problem Space Report";
 
       // Fetch the report HTML from conversation_reports table
       const { data: reportData } = await supabase
@@ -99,7 +100,9 @@ export default async function ListenPage({ params }: ListenPageProps) {
       <ListenView
         conversationId={conversation.id}
         currentUserDisplayName={currentUserDisplayName}
-        initialAnalysisStatus={conversation.analysis_status as AnalysisStatus | null}
+        initialAnalysisStatus={
+          conversation.analysis_status as AnalysisStatus | null
+        }
         sourceReportHtml={sourceReportHtml}
         sourceReportConversationTitle={sourceReportConversationTitle}
         conversationType={conversation.type as "understand" | "decide"}

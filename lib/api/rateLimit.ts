@@ -134,10 +134,9 @@ export function rateLimitResponse(result: RateLimitResult): NextResponse {
  * });
  * ```
  */
-export function withRateLimit<T extends (...args: unknown[]) => Promise<NextResponse>>(
-  type: RateLimitType,
-  handler: T
-): T {
+export function withRateLimit<
+  T extends (...args: unknown[]) => Promise<NextResponse>,
+>(type: RateLimitType, handler: T): T {
   return (async (...args: Parameters<T>) => {
     // Rate limiting is applied at the start of the handler
     // The actual user ID extraction should happen in the handler

@@ -120,9 +120,7 @@ export default function VoteView({
           <div className="text-3xl font-bold text-indigo-600">
             {creditsRemaining}
           </div>
-          <div className="text-sm text-slate-600">
-            of 99 credits remaining
-          </div>
+          <div className="text-sm text-slate-600">of 99 credits remaining</div>
         </div>
       </div>
 
@@ -152,7 +150,9 @@ export default function VoteView({
                       {proposal.text}
                     </p>
                     <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <span className="font-medium">{proposal.author.name}</span>
+                      <span className="font-medium">
+                        {proposal.author.name}
+                      </span>
                       <span>•</span>
                       <span>{formatTimestamp(proposal.createdAt)}</span>
                     </div>
@@ -205,7 +205,8 @@ export default function VoteView({
                       )}
                       {currentVotes === 0 && nextUpCost > 0 && (
                         <div className="text-xs text-slate-500">
-                          First vote: {nextUpCost} credit{nextUpCost !== 1 ? "s" : ""}
+                          First vote: {nextUpCost} credit
+                          {nextUpCost !== 1 ? "s" : ""}
                         </div>
                       )}
                     </div>
@@ -220,7 +221,8 @@ export default function VoteView({
       {/* Summary Footer */}
       <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center justify-between text-sm">
         <span className="text-slate-600">
-          Total votes cast: {Object.values(localVotes).reduce((sum, v) => sum + v, 0)}
+          Total votes cast:{" "}
+          {Object.values(localVotes).reduce((sum, v) => sum + v, 0)}
         </span>
         <span className="text-slate-600">
           Total credits spent: {creditsSpent} / 99

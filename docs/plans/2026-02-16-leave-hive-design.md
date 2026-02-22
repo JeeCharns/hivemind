@@ -17,17 +17,18 @@ Add a "Leave Hive" button to the navbar dropdown (PageSelector) that allows user
 
 ## Components
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `ConfirmationModal` | `app/components/ConfirmationModal.tsx` | Reusable modal for confirmations |
-| `LeaveHiveButton` | `app/components/navbar/LeaveHiveButton.tsx` | Button + modal trigger in dropdown |
-| `leaveHiveAction` | `app/hives/[hiveId]/members/actions.ts` | Server action to remove current user |
+| Component           | Location                                    | Purpose                              |
+| ------------------- | ------------------------------------------- | ------------------------------------ |
+| `ConfirmationModal` | `app/components/ConfirmationModal.tsx`      | Reusable modal for confirmations     |
+| `LeaveHiveButton`   | `app/components/navbar/LeaveHiveButton.tsx` | Button + modal trigger in dropdown   |
+| `leaveHiveAction`   | `app/hives/[hiveId]/members/actions.ts`     | Server action to remove current user |
 
 ## Technical Details
 
 ### ConfirmationModal
 
 Reusable component with:
+
 - Title and message props
 - Confirm/cancel buttons with customisable labels
 - Click-outside and Escape key to close
@@ -58,9 +59,9 @@ Reusable component with:
 
 ## Error Handling
 
-| Scenario | Behaviour |
-|----------|-----------|
-| Last admin | Show error in modal, don't close |
+| Scenario      | Behaviour                            |
+| ------------- | ------------------------------------ |
+| Last admin    | Show error in modal, don't close     |
 | Network error | Show error message with retry option |
-| Not a member | Redirect to `/hives` (already left) |
-| Success | Redirect to `/hives` |
+| Not a member  | Redirect to `/hives` (already left)  |
+| Success       | Redirect to `/hives`                 |

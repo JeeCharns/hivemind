@@ -41,9 +41,7 @@ export default function CreateHiveForm({
         disabled={isSubmitting}
         required
       />
-      {error && (
-        <div className="text-sm text-red-600 px-2">{error}</div>
-      )}
+      {error && <div className="text-sm text-red-600 px-2">{error}</div>}
       <Button type="submit" disabled={isSubmitting || !name.trim()}>
         {isSubmitting ? "Creating..." : "Create Hive"}
       </Button>

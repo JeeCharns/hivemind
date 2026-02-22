@@ -11,10 +11,7 @@ import {
 import type { ConsolidationInput } from "@/lib/conversations/domain/statementConsolidation";
 
 // Mock OpenAI client
-function createMockOpenAI(
-  mockResponse?: string,
-  shouldThrow = false
-): OpenAI {
+function createMockOpenAI(mockResponse?: string, shouldThrow = false): OpenAI {
   return {
     chat: {
       completions: {
@@ -26,7 +23,8 @@ function createMockOpenAI(
             choices: [
               {
                 message: {
-                  content: mockResponse ?? '{"statement": "Synthesized statement"}',
+                  content:
+                    mockResponse ?? '{"statement": "Synthesized statement"}',
                 },
               },
             ],
@@ -220,9 +218,7 @@ describe("statementSynthesizer", () => {
                 throw new Error("API error");
               }
               return {
-                choices: [
-                  { message: { content: '{"statement": "Success"}' } },
-                ],
+                choices: [{ message: { content: '{"statement": "Success"}' } }],
               };
             }),
           },

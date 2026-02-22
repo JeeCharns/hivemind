@@ -64,10 +64,17 @@ export async function GET(
 
     // 5. Parse pagination params
     const url = new URL(req.url);
-    const offset = Math.max(0, parseInt(url.searchParams.get("offset") || "0", 10) || 0);
+    const offset = Math.max(
+      0,
+      parseInt(url.searchParams.get("offset") || "0", 10) || 0
+    );
     const limit = Math.min(
       MAX_LIMIT,
-      Math.max(1, parseInt(url.searchParams.get("limit") || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT)
+      Math.max(
+        1,
+        parseInt(url.searchParams.get("limit") || String(DEFAULT_LIMIT), 10) ||
+          DEFAULT_LIMIT
+      )
     );
 
     // 6. Fetch response IDs from bucket members with pagination

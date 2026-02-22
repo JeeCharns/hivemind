@@ -59,20 +59,44 @@ Total voters: ${totalVoters}
 ### Top Outcomes (by vote count):
 ${topResults.map((r) => `${r.rank}. "${r.statementText}" - ${r.totalVotes} votes (${r.votePercent}%)${r.changeFromPrevious !== undefined ? ` [${r.changeFromPrevious > 0 ? "+" : ""}${r.changeFromPrevious} from previous round]` : ""}`).join("\n")}
 
-${minorityResults.length > 0 ? `### Notable Minority Positions (10%+ votes but not top 3):
-${minorityResults.map((r) => `- "${r.statementText}" - ${r.totalVotes} votes (${r.votePercent}%)`).join("\n")}` : ""}
+${
+  minorityResults.length > 0
+    ? `### Notable Minority Positions (10%+ votes but not top 3):
+${minorityResults.map((r) => `- "${r.statementText}" - ${r.totalVotes} votes (${r.votePercent}%)`).join("\n")}`
+    : ""
+}
 
-${sourceConsensusData.length > 0 ? `### Original Consensus Data (from understand session):
-${sourceConsensusData.slice(0, 10).map((s) => `- "${s.statementText.substring(0, 100)}${s.statementText.length > 100 ? "..." : ""}" - ${s.agreePercent}% agreement`).join("\n")}` : ""}
+${
+  sourceConsensusData.length > 0
+    ? `### Original Consensus Data (from understand session):
+${sourceConsensusData
+  .slice(0, 10)
+  .map(
+    (s) =>
+      `- "${s.statementText.substring(0, 100)}${s.statementText.length > 100 ? "..." : ""}" - ${s.agreePercent}% agreement`
+  )
+  .join("\n")}`
+    : ""
+}
 
-${previousRankings ? `### Comparison to Previous Round:
-${rankings.slice(0, 5).map((r) => {
-  const change = r.changeFromPrevious;
-  if (change === undefined) return "";
-  if (change > 0) return `- "${r.statementText.substring(0, 50)}${r.statementText.length > 50 ? "..." : ""}" moved UP ${change} position(s)`;
-  if (change < 0) return `- "${r.statementText.substring(0, 50)}${r.statementText.length > 50 ? "..." : ""}" moved DOWN ${Math.abs(change)} position(s)`;
-  return `- "${r.statementText.substring(0, 50)}${r.statementText.length > 50 ? "..." : ""}" stayed at same position`;
-}).filter(Boolean).join("\n")}` : ""}
+${
+  previousRankings
+    ? `### Comparison to Previous Round:
+${rankings
+  .slice(0, 5)
+  .map((r) => {
+    const change = r.changeFromPrevious;
+    if (change === undefined) return "";
+    if (change > 0)
+      return `- "${r.statementText.substring(0, 50)}${r.statementText.length > 50 ? "..." : ""}" moved UP ${change} position(s)`;
+    if (change < 0)
+      return `- "${r.statementText.substring(0, 50)}${r.statementText.length > 50 ? "..." : ""}" moved DOWN ${Math.abs(change)} position(s)`;
+    return `- "${r.statementText.substring(0, 50)}${r.statementText.length > 50 ? "..." : ""}" stayed at same position`;
+  })
+  .filter(Boolean)
+  .join("\n")}`
+    : ""
+}
 
 ---
 

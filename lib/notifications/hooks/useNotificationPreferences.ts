@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * useNotificationPreferences Hook
@@ -7,8 +7,8 @@
  * Provides optimistic updates with rollback on error.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import type { EmailPreferences } from '../domain/notification.types';
+import { useState, useEffect, useCallback } from "react";
+import type { EmailPreferences } from "../domain/notification.types";
 
 interface UseNotificationPreferencesResult {
   preferences: EmailPreferences | null;
@@ -28,9 +28,9 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
 
     async function fetchPreferences() {
       try {
-        const response = await fetch('/api/profile/notifications');
+        const response = await fetch("/api/profile/notifications");
         if (!response.ok) {
-          throw new Error('Failed to fetch preferences');
+          throw new Error("Failed to fetch preferences");
         }
         const data = await response.json();
         if (!cancelled) {
@@ -38,7 +38,7 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Unknown error');
+          setError(err instanceof Error ? err.message : "Unknown error");
         }
       } finally {
         if (!cancelled) {
@@ -65,22 +65,22 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
       setError(null);
 
       try {
-        const response = await fetch('/api/profile/notifications', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/profile/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email_preferences: updates }),
         });
 
         if (!response.ok) {
           // Rollback on error
           setPreferences(previousPreferences);
-          throw new Error('Failed to update preferences');
+          throw new Error("Failed to update preferences");
         }
 
         const data = await response.json();
         setPreferences(data.email_preferences);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setError(err instanceof Error ? err.message : "Unknown error");
       }
     },
     [preferences]

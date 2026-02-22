@@ -12,28 +12,29 @@
 
 ## Task Overview
 
-| # | Task | Description |
-|---|------|-------------|
-| 1 | Database: Social tables | Create `hive_activity`, `hive_reactions`, `user_presence` tables |
-| 2 | Database: System hive column | Add `is_system_hive` column to `hives` table |
-| 3 | Welcome Hive seed | Create seed script for Welcome Hive + conversations |
-| 4 | Auto-join on signup | Add Welcome Hive membership in auth callback |
-| 5 | Activity service | Server functions to log and fetch activity |
-| 6 | Reactions service | Server functions to add/fetch reactions |
-| 7 | Presence hook | Client hook for real-time presence |
-| 8 | Activity feed hook | Client hook for real-time activity |
-| 9 | Reactions hook | Client hook for real-time reactions |
-| 10 | Multi-step card component | Card showing Discuss → Decide with bottom sheet |
-| 11 | Sidebar components | Presence, Activity, Reactions sidebar widgets |
-| 12 | Homepage layout | Two-column layout with sidebar |
-| 13 | Create Hive CTA | Prominent CTA for Welcome Hive |
-| 14 | Mobile responsive | Sidebar collapse behaviour |
+| #   | Task                         | Description                                                      |
+| --- | ---------------------------- | ---------------------------------------------------------------- |
+| 1   | Database: Social tables      | Create `hive_activity`, `hive_reactions`, `user_presence` tables |
+| 2   | Database: System hive column | Add `is_system_hive` column to `hives` table                     |
+| 3   | Welcome Hive seed            | Create seed script for Welcome Hive + conversations              |
+| 4   | Auto-join on signup          | Add Welcome Hive membership in auth callback                     |
+| 5   | Activity service             | Server functions to log and fetch activity                       |
+| 6   | Reactions service            | Server functions to add/fetch reactions                          |
+| 7   | Presence hook                | Client hook for real-time presence                               |
+| 8   | Activity feed hook           | Client hook for real-time activity                               |
+| 9   | Reactions hook               | Client hook for real-time reactions                              |
+| 10  | Multi-step card component    | Card showing Discuss → Decide with bottom sheet                  |
+| 11  | Sidebar components           | Presence, Activity, Reactions sidebar widgets                    |
+| 12  | Homepage layout              | Two-column layout with sidebar                                   |
+| 13  | Create Hive CTA              | Prominent CTA for Welcome Hive                                   |
+| 14  | Mobile responsive            | Sidebar collapse behaviour                                       |
 
 ---
 
 ## Task 1: Database — Social Tables Migration
 
 **Files:**
+
 - Create: `supabase/migrations/025_create_social_tables.sql`
 
 **Step 1: Write the migration file**
@@ -222,6 +223,7 @@ git commit -m "feat(db): add social feature tables (activity, reactions, presenc
 ## Task 2: Database — System Hive Column
 
 **Files:**
+
 - Create: `supabase/migrations/026_add_system_hive_column.sql`
 
 **Step 1: Write the migration file**
@@ -269,6 +271,7 @@ git commit -m "feat(db): add is_system_hive column with deletion protection"
 ## Task 3: Welcome Hive Seed Script
 
 **Files:**
+
 - Create: `scripts/seed-welcome-hive.ts`
 - Create: `lib/hives/constants.ts`
 
@@ -283,12 +286,12 @@ Create `lib/hives/constants.ts`:
  */
 
 // Welcome Hive: Auto-joined by all new users
-export const WELCOME_HIVE_ID = '00000000-0000-0000-0000-000000000001';
-export const WELCOME_HIVE_SLUG = 'welcome';
+export const WELCOME_HIVE_ID = "00000000-0000-0000-0000-000000000001";
+export const WELCOME_HIVE_SLUG = "welcome";
 
 // Welcome Hive conversation IDs (for multi-step card linking)
-export const WELCOME_DISCUSS_ID = '00000000-0000-0000-0000-000000000002';
-export const WELCOME_DECIDE_ID = '00000000-0000-0000-0000-000000000003';
+export const WELCOME_DISCUSS_ID = "00000000-0000-0000-0000-000000000002";
+export const WELCOME_DECIDE_ID = "00000000-0000-0000-0000-000000000003";
 ```
 
 **Step 2: Create seed script**
@@ -304,101 +307,98 @@ Create `scripts/seed-welcome-hive.ts`:
  * Idempotent: Safe to run multiple times.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 import {
   WELCOME_HIVE_ID,
   WELCOME_HIVE_SLUG,
   WELCOME_DISCUSS_ID,
   WELCOME_DECIDE_ID,
-} from '../lib/hives/constants';
+} from "../lib/hives/constants";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY');
+  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY");
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function seedWelcomeHive() {
-  console.log('[seed] Creating Welcome Hive...');
+  console.log("[seed] Creating Welcome Hive...");
 
   // 1. Upsert the Welcome Hive
-  const { error: hiveError } = await supabase
-    .from('hives')
-    .upsert(
-      {
-        id: WELCOME_HIVE_ID,
-        slug: WELCOME_HIVE_SLUG,
-        name: 'Welcome to Hivemind',
-        visibility: 'private', // Only joined via auto-join, not searchable
-        is_system_hive: true,
-      },
-      { onConflict: 'id' }
-    );
+  const { error: hiveError } = await supabase.from("hives").upsert(
+    {
+      id: WELCOME_HIVE_ID,
+      slug: WELCOME_HIVE_SLUG,
+      name: "Welcome to Hivemind",
+      visibility: "private", // Only joined via auto-join, not searchable
+      is_system_hive: true,
+    },
+    { onConflict: "id" }
+  );
 
   if (hiveError) {
-    console.error('[seed] Failed to create Welcome Hive:', hiveError);
+    console.error("[seed] Failed to create Welcome Hive:", hiveError);
     process.exit(1);
   }
-  console.log('[seed] Welcome Hive created/updated');
+  console.log("[seed] Welcome Hive created/updated");
 
   // 2. Upsert the Discuss conversation
-  const { error: discussError } = await supabase
-    .from('conversations')
-    .upsert(
-      {
-        id: WELCOME_DISCUSS_ID,
-        hive_id: WELCOME_HIVE_ID,
-        slug: 'what-should-hive-build-discuss',
-        title: 'What should Hive build next?',
-        description:
-          'Share your ideas for new features. What would make Hivemind more useful for your community?',
-        type: 'understand',
-        phase: 'listen_open',
-        analysis_status: 'not_started',
-      },
-      { onConflict: 'id' }
-    );
+  const { error: discussError } = await supabase.from("conversations").upsert(
+    {
+      id: WELCOME_DISCUSS_ID,
+      hive_id: WELCOME_HIVE_ID,
+      slug: "what-should-hive-build-discuss",
+      title: "What should Hive build next?",
+      description:
+        "Share your ideas for new features. What would make Hivemind more useful for your community?",
+      type: "understand",
+      phase: "listen_open",
+      analysis_status: "not_started",
+    },
+    { onConflict: "id" }
+  );
 
   if (discussError) {
-    console.error('[seed] Failed to create Discuss conversation:', discussError);
+    console.error(
+      "[seed] Failed to create Discuss conversation:",
+      discussError
+    );
     process.exit(1);
   }
-  console.log('[seed] Discuss conversation created/updated');
+  console.log("[seed] Discuss conversation created/updated");
 
   // 3. Upsert the Decide conversation (linked to Discuss)
-  const { error: decideError } = await supabase
-    .from('conversations')
-    .upsert(
-      {
-        id: WELCOME_DECIDE_ID,
-        hive_id: WELCOME_HIVE_ID,
-        slug: 'what-should-hive-build-decide',
-        title: 'What should Hive build next?',
-        description:
-          'Vote on the top ideas from our discussion. Use your credits wisely!',
-        type: 'decide',
-        phase: 'listen_open', // Will transition to vote_open later
-        analysis_status: 'not_started',
-        source_conversation_id: WELCOME_DISCUSS_ID,
-      },
-      { onConflict: 'id' }
-    );
+  const { error: decideError } = await supabase.from("conversations").upsert(
+    {
+      id: WELCOME_DECIDE_ID,
+      hive_id: WELCOME_HIVE_ID,
+      slug: "what-should-hive-build-decide",
+      title: "What should Hive build next?",
+      description:
+        "Vote on the top ideas from our discussion. Use your credits wisely!",
+      type: "decide",
+      phase: "listen_open", // Will transition to vote_open later
+      analysis_status: "not_started",
+      source_conversation_id: WELCOME_DISCUSS_ID,
+    },
+    { onConflict: "id" }
+  );
 
   if (decideError) {
-    console.error('[seed] Failed to create Decide conversation:', decideError);
+    console.error("[seed] Failed to create Decide conversation:", decideError);
     process.exit(1);
   }
-  console.log('[seed] Decide conversation created/updated');
+  console.log("[seed] Decide conversation created/updated");
 
-  console.log('[seed] Welcome Hive seeding complete!');
+  console.log("[seed] Welcome Hive seeding complete!");
 }
 
 seedWelcomeHive().catch((err) => {
-  console.error('[seed] Unexpected error:', err);
+  console.error("[seed] Unexpected error:", err);
   process.exit(1);
 });
 ```
@@ -429,6 +429,7 @@ git commit -m "feat: add Welcome Hive seed script and constants
 ## Task 4: Auto-Join Welcome Hive on Signup
 
 **Files:**
+
 - Modify: `app/(auth)/callback/page.tsx`
 - Create: `lib/hives/server/joinWelcomeHive.ts`
 - Create: `lib/hives/server/__tests__/joinWelcomeHive.test.ts`
@@ -438,16 +439,16 @@ git commit -m "feat: add Welcome Hive seed script and constants
 Create `lib/hives/server/__tests__/joinWelcomeHive.test.ts`:
 
 ```typescript
-import { joinWelcomeHive } from '../joinWelcomeHive';
-import { WELCOME_HIVE_ID } from '../../constants';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { joinWelcomeHive } from "../joinWelcomeHive";
+import { WELCOME_HIVE_ID } from "../../constants";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-describe('joinWelcomeHive', () => {
-  const mockUserId = 'user-123';
+describe("joinWelcomeHive", () => {
+  const mockUserId = "user-123";
 
-  const createMockSupabase = (
-    upsertResult: { error: Error | null }
-  ): SupabaseClient => {
+  const createMockSupabase = (upsertResult: {
+    error: Error | null;
+  }): SupabaseClient => {
     return {
       from: jest.fn().mockReturnValue({
         upsert: jest.fn().mockResolvedValue(upsertResult),
@@ -455,36 +456,36 @@ describe('joinWelcomeHive', () => {
     } as unknown as SupabaseClient;
   };
 
-  it('should upsert membership for Welcome Hive', async () => {
+  it("should upsert membership for Welcome Hive", async () => {
     const supabase = createMockSupabase({ error: null });
 
     await joinWelcomeHive(supabase, mockUserId);
 
-    expect(supabase.from).toHaveBeenCalledWith('hive_members');
-    expect(supabase.from('hive_members').upsert).toHaveBeenCalledWith(
+    expect(supabase.from).toHaveBeenCalledWith("hive_members");
+    expect(supabase.from("hive_members").upsert).toHaveBeenCalledWith(
       {
         hive_id: WELCOME_HIVE_ID,
         user_id: mockUserId,
-        role: 'member',
+        role: "member",
       },
-      { onConflict: 'hive_id,user_id' }
+      { onConflict: "hive_id,user_id" }
     );
   });
 
-  it('should not throw on duplicate membership (idempotent)', async () => {
+  it("should not throw on duplicate membership (idempotent)", async () => {
     const supabase = createMockSupabase({ error: null });
 
     // Should not throw
     await expect(joinWelcomeHive(supabase, mockUserId)).resolves.not.toThrow();
   });
 
-  it('should throw on database error', async () => {
+  it("should throw on database error", async () => {
     const supabase = createMockSupabase({
-      error: new Error('Database error'),
+      error: new Error("Database error"),
     });
 
     await expect(joinWelcomeHive(supabase, mockUserId)).rejects.toThrow(
-      'Failed to join Welcome Hive'
+      "Failed to join Welcome Hive"
     );
   });
 });
@@ -500,8 +501,8 @@ Expected: FAIL with "Cannot find module '../joinWelcomeHive'"
 Create `lib/hives/server/joinWelcomeHive.ts`:
 
 ```typescript
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { WELCOME_HIVE_ID } from '../constants';
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { WELCOME_HIVE_ID } from "../constants";
 
 /**
  * Adds a user to the Welcome Hive.
@@ -513,18 +514,18 @@ export async function joinWelcomeHive(
   supabase: SupabaseClient,
   userId: string
 ): Promise<void> {
-  const { error } = await supabase.from('hive_members').upsert(
+  const { error } = await supabase.from("hive_members").upsert(
     {
       hive_id: WELCOME_HIVE_ID,
       user_id: userId,
-      role: 'member',
+      role: "member",
     },
-    { onConflict: 'hive_id,user_id' }
+    { onConflict: "hive_id,user_id" }
   );
 
   if (error) {
-    console.error('[joinWelcomeHive] Error:', error);
-    throw new Error('Failed to join Welcome Hive');
+    console.error("[joinWelcomeHive] Error:", error);
+    throw new Error("Failed to join Welcome Hive");
   }
 }
 ```
@@ -540,12 +541,14 @@ Modify `app/(auth)/callback/page.tsx`. Find the section after user is authentica
 
 ```typescript
 // After user authentication is confirmed, add to Welcome Hive
-import { joinWelcomeHive } from '@/lib/hives/server/joinWelcomeHive';
-import { createServerClient } from '@/lib/supabase/server';
+import { joinWelcomeHive } from "@/lib/hives/server/joinWelcomeHive";
+import { createServerClient } from "@/lib/supabase/server";
 
 // In the callback handler, after session is established:
 const supabase = await createServerClient();
-const { data: { user } } = await supabase.auth.getUser();
+const {
+  data: { user },
+} = await supabase.auth.getUser();
 
 if (user) {
   // Auto-join Welcome Hive (idempotent)
@@ -553,7 +556,7 @@ if (user) {
     await joinWelcomeHive(supabase, user.id);
   } catch (err) {
     // Log but don't block signup
-    console.error('[callback] Failed to join Welcome Hive:', err);
+    console.error("[callback] Failed to join Welcome Hive:", err);
   }
 }
 ```
@@ -579,6 +582,7 @@ git commit -m "feat: auto-join Welcome Hive on signup
 ## Task 5: Activity Service
 
 **Files:**
+
 - Create: `lib/social/types.ts`
 - Create: `lib/social/server/activityService.ts`
 - Create: `lib/social/server/__tests__/activityService.test.ts`
@@ -592,7 +596,7 @@ Create `lib/social/types.ts`:
  * Types for social features: activity, reactions, presence.
  */
 
-export type ActivityEventType = 'join' | 'response' | 'vote' | 'phase_change';
+export type ActivityEventType = "join" | "response" | "vote" | "phase_change";
 
 export interface ActivityEvent {
   id: string;
@@ -610,7 +614,7 @@ export interface ActivityEventInput {
   metadata?: Record<string, unknown>;
 }
 
-export type ReactionEmoji = '👋' | '🎉' | '💡' | '❤️' | '🐝';
+export type ReactionEmoji = "👋" | "🎉" | "💡" | "❤️" | "🐝";
 
 export interface Reaction {
   id: string;
@@ -640,11 +644,11 @@ export interface PresenceUser {
 Create `lib/social/server/__tests__/activityService.test.ts`:
 
 ```typescript
-import { logActivity, getRecentActivity } from '../activityService';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { logActivity, getRecentActivity } from "../activityService";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-describe('activityService', () => {
-  describe('logActivity', () => {
+describe("activityService", () => {
+  describe("logActivity", () => {
     const createMockSupabase = (insertResult: {
       error: Error | null;
     }): SupabaseClient => {
@@ -655,52 +659,52 @@ describe('activityService', () => {
       } as unknown as SupabaseClient;
     };
 
-    it('should insert activity event', async () => {
+    it("should insert activity event", async () => {
       const supabase = createMockSupabase({ error: null });
 
       await logActivity(supabase, {
-        hiveId: 'hive-123',
-        eventType: 'join',
-        userId: 'user-456',
+        hiveId: "hive-123",
+        eventType: "join",
+        userId: "user-456",
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('hive_activity');
-      expect(supabase.from('hive_activity').insert).toHaveBeenCalledWith({
-        hive_id: 'hive-123',
-        event_type: 'join',
-        user_id: 'user-456',
+      expect(supabase.from).toHaveBeenCalledWith("hive_activity");
+      expect(supabase.from("hive_activity").insert).toHaveBeenCalledWith({
+        hive_id: "hive-123",
+        event_type: "join",
+        user_id: "user-456",
         metadata: {},
       });
     });
 
-    it('should allow null userId for anonymised events', async () => {
+    it("should allow null userId for anonymised events", async () => {
       const supabase = createMockSupabase({ error: null });
 
       await logActivity(supabase, {
-        hiveId: 'hive-123',
-        eventType: 'response',
+        hiveId: "hive-123",
+        eventType: "response",
         userId: null,
         metadata: { count: 1 },
       });
 
-      expect(supabase.from('hive_activity').insert).toHaveBeenCalledWith({
-        hive_id: 'hive-123',
-        event_type: 'response',
+      expect(supabase.from("hive_activity").insert).toHaveBeenCalledWith({
+        hive_id: "hive-123",
+        event_type: "response",
         user_id: null,
         metadata: { count: 1 },
       });
     });
   });
 
-  describe('getRecentActivity', () => {
+  describe("getRecentActivity", () => {
     const mockActivities = [
       {
-        id: 'act-1',
-        hive_id: 'hive-123',
-        event_type: 'join',
-        user_id: 'user-1',
+        id: "act-1",
+        hive_id: "hive-123",
+        event_type: "join",
+        user_id: "user-1",
         metadata: {},
-        created_at: '2026-02-19T10:00:00Z',
+        created_at: "2026-02-19T10:00:00Z",
       },
     ];
 
@@ -718,14 +722,14 @@ describe('activityService', () => {
       } as unknown as SupabaseClient;
     };
 
-    it('should fetch recent activity for a hive', async () => {
+    it("should fetch recent activity for a hive", async () => {
       const supabase = createMockSupabase(mockActivities);
 
-      const result = await getRecentActivity(supabase, 'hive-123', 10);
+      const result = await getRecentActivity(supabase, "hive-123", 10);
 
       expect(result).toHaveLength(1);
-      expect(result[0].eventType).toBe('join');
-      expect(result[0].hiveId).toBe('hive-123');
+      expect(result[0].eventType).toBe("join");
+      expect(result[0].hiveId).toBe("hive-123");
     });
   });
 });
@@ -741,8 +745,8 @@ Expected: FAIL with "Cannot find module '../activityService'"
 Create `lib/social/server/activityService.ts`:
 
 ```typescript
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { ActivityEvent, ActivityEventInput } from '../types';
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ActivityEvent, ActivityEventInput } from "../types";
 
 /**
  * Logs an activity event to the hive_activity table.
@@ -751,7 +755,7 @@ export async function logActivity(
   supabase: SupabaseClient,
   input: ActivityEventInput
 ): Promise<void> {
-  const { error } = await supabase.from('hive_activity').insert({
+  const { error } = await supabase.from("hive_activity").insert({
     hive_id: input.hiveId,
     event_type: input.eventType,
     user_id: input.userId ?? null,
@@ -759,7 +763,7 @@ export async function logActivity(
   });
 
   if (error) {
-    console.error('[logActivity] Error:', error);
+    console.error("[logActivity] Error:", error);
     // Don't throw - activity logging is non-critical
   }
 }
@@ -773,14 +777,14 @@ export async function getRecentActivity(
   limit: number = 15
 ): Promise<ActivityEvent[]> {
   const { data, error } = await supabase
-    .from('hive_activity')
-    .select('id, hive_id, event_type, user_id, metadata, created_at')
-    .eq('hive_id', hiveId)
-    .order('created_at', { ascending: false })
+    .from("hive_activity")
+    .select("id, hive_id, event_type, user_id, metadata, created_at")
+    .eq("hive_id", hiveId)
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
-    console.error('[getRecentActivity] Error:', error);
+    console.error("[getRecentActivity] Error:", error);
     return [];
   }
 
@@ -816,6 +820,7 @@ git commit -m "feat: add activity service for hive activity feed
 ## Task 6: Reactions Service
 
 **Files:**
+
 - Create: `lib/social/server/reactionsService.ts`
 - Create: `lib/social/server/__tests__/reactionsService.test.ts`
 
@@ -824,14 +829,14 @@ git commit -m "feat: add activity service for hive activity feed
 Create `lib/social/server/__tests__/reactionsService.test.ts`:
 
 ```typescript
-import { addReaction, getRecentReactions } from '../reactionsService';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { addReaction, getRecentReactions } from "../reactionsService";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-describe('reactionsService', () => {
-  const mockUserId = 'user-123';
-  const mockHiveId = 'hive-456';
+describe("reactionsService", () => {
+  const mockUserId = "user-123";
+  const mockHiveId = "hive-456";
 
-  describe('addReaction', () => {
+  describe("addReaction", () => {
     const createMockSupabase = (upsertResult: {
       error: Error | null;
     }): SupabaseClient => {
@@ -842,51 +847,51 @@ describe('reactionsService', () => {
       } as unknown as SupabaseClient;
     };
 
-    it('should upsert reaction with emoji and message', async () => {
+    it("should upsert reaction with emoji and message", async () => {
       const supabase = createMockSupabase({ error: null });
 
       await addReaction(supabase, mockUserId, {
         hiveId: mockHiveId,
-        emoji: '👋',
-        message: 'Hello!',
+        emoji: "👋",
+        message: "Hello!",
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('hive_reactions');
-      expect(supabase.from('hive_reactions').upsert).toHaveBeenCalledWith(
+      expect(supabase.from).toHaveBeenCalledWith("hive_reactions");
+      expect(supabase.from("hive_reactions").upsert).toHaveBeenCalledWith(
         {
           hive_id: mockHiveId,
           user_id: mockUserId,
-          emoji: '👋',
-          message: 'Hello!',
+          emoji: "👋",
+          message: "Hello!",
         },
-        { onConflict: 'hive_id,user_id,emoji' }
+        { onConflict: "hive_id,user_id,emoji" }
       );
     });
 
-    it('should allow null message', async () => {
+    it("should allow null message", async () => {
       const supabase = createMockSupabase({ error: null });
 
       await addReaction(supabase, mockUserId, {
         hiveId: mockHiveId,
-        emoji: '🎉',
+        emoji: "🎉",
       });
 
-      expect(supabase.from('hive_reactions').upsert).toHaveBeenCalledWith(
+      expect(supabase.from("hive_reactions").upsert).toHaveBeenCalledWith(
         expect.objectContaining({ message: null }),
         expect.any(Object)
       );
     });
   });
 
-  describe('getRecentReactions', () => {
+  describe("getRecentReactions", () => {
     const mockReactions = [
       {
-        id: 'react-1',
+        id: "react-1",
         hive_id: mockHiveId,
         user_id: mockUserId,
-        emoji: '👋',
-        message: 'Hi!',
-        created_at: '2026-02-19T10:00:00Z',
+        emoji: "👋",
+        message: "Hi!",
+        created_at: "2026-02-19T10:00:00Z",
       },
     ];
 
@@ -904,14 +909,14 @@ describe('reactionsService', () => {
       } as unknown as SupabaseClient;
     };
 
-    it('should fetch recent reactions for a hive', async () => {
+    it("should fetch recent reactions for a hive", async () => {
       const supabase = createMockSupabase(mockReactions);
 
       const result = await getRecentReactions(supabase, mockHiveId, 10);
 
       expect(result).toHaveLength(1);
-      expect(result[0].emoji).toBe('👋');
-      expect(result[0].message).toBe('Hi!');
+      expect(result[0].emoji).toBe("👋");
+      expect(result[0].message).toBe("Hi!");
     });
   });
 });
@@ -927,8 +932,8 @@ Expected: FAIL
 Create `lib/social/server/reactionsService.ts`:
 
 ```typescript
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Reaction, ReactionInput } from '../types';
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Reaction, ReactionInput } from "../types";
 
 /**
  * Adds or updates a reaction for a user in a hive.
@@ -939,19 +944,19 @@ export async function addReaction(
   userId: string,
   input: ReactionInput
 ): Promise<void> {
-  const { error } = await supabase.from('hive_reactions').upsert(
+  const { error } = await supabase.from("hive_reactions").upsert(
     {
       hive_id: input.hiveId,
       user_id: userId,
       emoji: input.emoji,
       message: input.message ?? null,
     },
-    { onConflict: 'hive_id,user_id,emoji' }
+    { onConflict: "hive_id,user_id,emoji" }
   );
 
   if (error) {
-    console.error('[addReaction] Error:', error);
-    throw new Error('Failed to add reaction');
+    console.error("[addReaction] Error:", error);
+    throw new Error("Failed to add reaction");
   }
 }
 
@@ -964,14 +969,14 @@ export async function getRecentReactions(
   limit: number = 20
 ): Promise<Reaction[]> {
   const { data, error } = await supabase
-    .from('hive_reactions')
-    .select('id, hive_id, user_id, emoji, message, created_at')
-    .eq('hive_id', hiveId)
-    .order('created_at', { ascending: false })
+    .from("hive_reactions")
+    .select("id, hive_id, user_id, emoji, message, created_at")
+    .eq("hive_id", hiveId)
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
-    console.error('[getRecentReactions] Error:', error);
+    console.error("[getRecentReactions] Error:", error);
     return [];
   }
 
@@ -1007,6 +1012,7 @@ git commit -m "feat: add reactions service for hive reaction wall
 ## Task 7: Presence Hook
 
 **Files:**
+
 - Create: `lib/social/hooks/useHivePresence.ts`
 - Create: `lib/social/hooks/__tests__/useHivePresence.test.tsx`
 
@@ -1015,28 +1021,28 @@ git commit -m "feat: add reactions service for hive reaction wall
 Create `lib/social/hooks/__tests__/useHivePresence.test.tsx`:
 
 ```typescript
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { useHivePresence } from '../useHivePresence';
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { useHivePresence } from "../useHivePresence";
 
 // Mock Supabase
 const mockChannel = {
   on: jest.fn().mockReturnThis(),
   subscribe: jest.fn((callback) => {
-    setTimeout(() => callback('SUBSCRIBED'), 0);
+    setTimeout(() => callback("SUBSCRIBED"), 0);
     return mockChannel;
   }),
-  track: jest.fn().mockResolvedValue('ok'),
+  track: jest.fn().mockResolvedValue("ok"),
   presenceState: jest.fn().mockReturnValue({}),
 };
 
-jest.mock('@/lib/supabase/client', () => ({
+jest.mock("@/lib/supabase/client", () => ({
   supabase: {
     channel: jest.fn(() => mockChannel),
     removeChannel: jest.fn(),
   },
 }));
 
-describe('useHivePresence', () => {
+describe("useHivePresence", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
@@ -1046,26 +1052,26 @@ describe('useHivePresence', () => {
     jest.useRealTimers();
   });
 
-  it('should return empty array initially', () => {
+  it("should return empty array initially", () => {
     const { result } = renderHook(() =>
-      useHivePresence({ hiveId: 'hive-123', userId: 'user-456' })
+      useHivePresence({ hiveId: "hive-123", userId: "user-456" })
     );
 
     expect(result.current.activeUsers).toEqual([]);
   });
 
-  it('should subscribe to presence channel', async () => {
+  it("should subscribe to presence channel", async () => {
     renderHook(() =>
-      useHivePresence({ hiveId: 'hive-123', userId: 'user-456' })
+      useHivePresence({ hiveId: "hive-123", userId: "user-456" })
     );
 
     await act(async () => {
       jest.advanceTimersByTime(10);
     });
 
-    const { supabase } = await import('@/lib/supabase/client');
-    expect(supabase.channel).toHaveBeenCalledWith('hive:hive-123:presence', {
-      config: { presence: { key: 'user-456' } },
+    const { supabase } = await import("@/lib/supabase/client");
+    expect(supabase.channel).toHaveBeenCalledWith("hive:hive-123:presence", {
+      config: { presence: { key: "user-456" } },
     });
   });
 });
@@ -1081,12 +1087,12 @@ Expected: FAIL
 Create `lib/social/hooks/useHivePresence.ts`:
 
 ```typescript
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { PresenceUser } from '../types';
+import { useEffect, useState, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { PresenceUser } from "../types";
 
 interface UseHivePresenceOptions {
   hiveId: string;
@@ -1097,7 +1103,7 @@ interface UseHivePresenceOptions {
 
 interface UseHivePresenceResult {
   activeUsers: PresenceUser[];
-  status: 'connecting' | 'connected' | 'error' | 'disconnected';
+  status: "connecting" | "connected" | "error" | "disconnected";
 }
 
 /**
@@ -1107,11 +1113,12 @@ interface UseHivePresenceResult {
 export function useHivePresence({
   hiveId,
   userId,
-  displayName = 'Anonymous',
+  displayName = "Anonymous",
   avatarUrl = null,
 }: UseHivePresenceOptions): UseHivePresenceResult {
   const [activeUsers, setActiveUsers] = useState<PresenceUser[]>([]);
-  const [status, setStatus] = useState<UseHivePresenceResult['status']>('disconnected');
+  const [status, setStatus] =
+    useState<UseHivePresenceResult["status"]>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
@@ -1126,16 +1133,21 @@ export function useHivePresence({
     });
 
     channel
-      .on('presence', { event: 'sync' }, () => {
+      .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
         const users: PresenceUser[] = [];
 
         for (const [key, presences] of Object.entries(state)) {
-          const presence = (presences as Array<{ displayName: string; avatarUrl: string | null }>)[0];
+          const presence = (
+            presences as Array<{
+              displayName: string;
+              avatarUrl: string | null;
+            }>
+          )[0];
           if (presence) {
             users.push({
               userId: key,
-              displayName: presence.displayName || 'Anonymous',
+              displayName: presence.displayName || "Anonymous",
               avatarUrl: presence.avatarUrl || null,
               lastActiveAt: new Date().toISOString(),
             });
@@ -1145,15 +1157,15 @@ export function useHivePresence({
         setActiveUsers(users);
       })
       .subscribe(async (subscriptionStatus) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
           // Track our own presence
           await channel.track({
             displayName,
             avatarUrl,
           });
-        } else if (subscriptionStatus === 'CHANNEL_ERROR') {
-          setStatus('error');
+        } else if (subscriptionStatus === "CHANNEL_ERROR") {
+          setStatus("error");
         }
       });
 
@@ -1192,6 +1204,7 @@ git commit -m "feat: add useHivePresence hook for real-time presence
 ## Task 8: Activity Feed Hook
 
 **Files:**
+
 - Create: `lib/social/hooks/useHiveActivity.ts`
 
 **Step 1: Write the hook**
@@ -1199,12 +1212,15 @@ git commit -m "feat: add useHivePresence hook for real-time presence
 Create `lib/social/hooks/useHiveActivity.ts`:
 
 ```typescript
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import type { ActivityEvent } from '../types';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import type { ActivityEvent } from "../types";
 
 interface UseHiveActivityOptions {
   hiveId: string;
@@ -1213,7 +1229,7 @@ interface UseHiveActivityOptions {
 
 interface UseHiveActivityResult {
   activity: ActivityEvent[];
-  status: 'connecting' | 'connected' | 'error' | 'disconnected';
+  status: "connecting" | "connected" | "error" | "disconnected";
 }
 
 /**
@@ -1225,12 +1241,13 @@ export function useHiveActivity({
   initialActivity = [],
 }: UseHiveActivityOptions): UseHiveActivityResult {
   const [activity, setActivity] = useState<ActivityEvent[]>(initialActivity);
-  const [status, setStatus] = useState<UseHiveActivityResult['status']>('disconnected');
+  const [status, setStatus] =
+    useState<UseHiveActivityResult["status"]>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const handleNewActivity = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
+      if (payload.eventType === "INSERT" && payload.new) {
         const row = payload.new as {
           id: string;
           hive_id: string;
@@ -1243,7 +1260,7 @@ export function useHiveActivity({
         const newEvent: ActivityEvent = {
           id: row.id,
           hiveId: row.hive_id,
-          eventType: row.event_type as ActivityEvent['eventType'],
+          eventType: row.event_type as ActivityEvent["eventType"],
           userId: row.user_id,
           metadata: row.metadata ?? {},
           createdAt: row.created_at,
@@ -1265,20 +1282,20 @@ export function useHiveActivity({
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'hive_activity',
+          event: "INSERT",
+          schema: "public",
+          table: "hive_activity",
           filter: `hive_id=eq.${hiveId}`,
         },
         handleNewActivity
       )
       .subscribe((subscriptionStatus) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-        } else if (subscriptionStatus === 'CHANNEL_ERROR') {
-          setStatus('error');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (subscriptionStatus === "CHANNEL_ERROR") {
+          setStatus("error");
         }
       });
 
@@ -1311,6 +1328,7 @@ git commit -m "feat: add useHiveActivity hook for real-time activity feed
 ## Task 9: Reactions Hook
 
 **Files:**
+
 - Create: `lib/social/hooks/useHiveReactions.ts`
 
 **Step 1: Write the hook**
@@ -1318,12 +1336,15 @@ git commit -m "feat: add useHiveActivity hook for real-time activity feed
 Create `lib/social/hooks/useHiveReactions.ts`:
 
 ```typescript
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import type { Reaction } from '../types';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import type { Reaction } from "../types";
 
 interface UseHiveReactionsOptions {
   hiveId: string;
@@ -1332,7 +1353,7 @@ interface UseHiveReactionsOptions {
 
 interface UseHiveReactionsResult {
   reactions: Reaction[];
-  status: 'connecting' | 'connected' | 'error' | 'disconnected';
+  status: "connecting" | "connected" | "error" | "disconnected";
 }
 
 /**
@@ -1344,12 +1365,13 @@ export function useHiveReactions({
   initialReactions = [],
 }: UseHiveReactionsOptions): UseHiveReactionsResult {
   const [reactions, setReactions] = useState<Reaction[]>(initialReactions);
-  const [status, setStatus] = useState<UseHiveReactionsResult['status']>('disconnected');
+  const [status, setStatus] =
+    useState<UseHiveReactionsResult["status"]>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const handleChange = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
+      if (payload.eventType === "INSERT" && payload.new) {
         const row = payload.new as {
           id: string;
           hive_id: string;
@@ -1363,7 +1385,7 @@ export function useHiveReactions({
           id: row.id,
           hiveId: row.hive_id,
           userId: row.user_id,
-          emoji: row.emoji as Reaction['emoji'],
+          emoji: row.emoji as Reaction["emoji"],
           message: row.message,
           createdAt: row.created_at,
         };
@@ -1384,20 +1406,20 @@ export function useHiveReactions({
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'hive_reactions',
+          event: "INSERT",
+          schema: "public",
+          table: "hive_reactions",
           filter: `hive_id=eq.${hiveId}`,
         },
         handleChange
       )
       .subscribe((subscriptionStatus) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-        } else if (subscriptionStatus === 'CHANNEL_ERROR') {
-          setStatus('error');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (subscriptionStatus === "CHANNEL_ERROR") {
+          setStatus("error");
         }
       });
 
@@ -1419,9 +1441,9 @@ export function useHiveReactions({
 Create `lib/social/hooks/index.ts`:
 
 ```typescript
-export { useHivePresence } from './useHivePresence';
-export { useHiveActivity } from './useHiveActivity';
-export { useHiveReactions } from './useHiveReactions';
+export { useHivePresence } from "./useHivePresence";
+export { useHiveActivity } from "./useHiveActivity";
+export { useHiveReactions } from "./useHiveReactions";
 ```
 
 **Step 3: Commit**
@@ -1441,6 +1463,7 @@ git commit -m "feat: add useHiveReactions hook for real-time reaction wall
 ## Task 10: Multi-Step Conversation Card Component
 
 **Files:**
+
 - Create: `components/conversations/MultiStepCard.tsx`
 - Create: `components/conversations/__tests__/MultiStepCard.test.tsx`
 
@@ -1708,6 +1731,7 @@ git commit -m "feat: add MultiStepCard component for Discuss → Decide journey
 ## Task 11: Sidebar Components
 
 **Files:**
+
 - Create: `components/social/PresenceSidebar.tsx`
 - Create: `components/social/ActivitySidebar.tsx`
 - Create: `components/social/ReactionsSidebar.tsx`
@@ -1985,9 +2009,9 @@ export function ReactionsSidebar({
 Create `components/social/index.ts`:
 
 ```typescript
-export { PresenceSidebar } from './PresenceSidebar';
-export { ActivitySidebar } from './ActivitySidebar';
-export { ReactionsSidebar } from './ReactionsSidebar';
+export { PresenceSidebar } from "./PresenceSidebar";
+export { ActivitySidebar } from "./ActivitySidebar";
+export { ReactionsSidebar } from "./ReactionsSidebar";
 ```
 
 **Step 5: Commit**
@@ -2006,6 +2030,7 @@ git commit -m "feat: add sidebar components for social features
 ## Task 12: Homepage Layout with Sidebar
 
 **Files:**
+
 - Modify: `app/hives/[hiveId]/HiveHome.tsx`
 - Create: `app/hives/[hiveId]/HiveHomeSidebar.tsx`
 
@@ -2195,6 +2220,7 @@ git commit -m "feat: add two-column hive homepage layout with social sidebar
 ## Task 13: Create Hive CTA
 
 **Files:**
+
 - Create: `components/hives/CreateHiveCTA.tsx`
 - Modify: `app/hives/[hiveId]/HiveHome.tsx`
 
@@ -2295,6 +2321,7 @@ git commit -m "feat: add Create Hive CTA for Welcome Hive
 ## Task 14: Mobile Responsive Sidebar
 
 **Files:**
+
 - Modify: `app/hives/[hiveId]/HiveHome.tsx`
 - Create: `components/social/MobileSocialSheet.tsx`
 
@@ -2457,6 +2484,7 @@ git commit -m "feat: add mobile social sheet for responsive sidebar
 ## Task 15: Update Documentation
 
 **Files:**
+
 - Modify: `docs/feature-map.md`
 - Modify: `docs/setup/README.md`
 - Modify: `supabase/README.md`
@@ -2511,22 +2539,22 @@ npm run build
 
 ## Summary
 
-| Task | Files | Tests |
-|------|-------|-------|
-| 1. Social tables migration | 1 | - |
-| 2. System hive column | 1 | - |
-| 3. Welcome Hive seed | 2 | - |
-| 4. Auto-join on signup | 3 | ✓ |
-| 5. Activity service | 3 | ✓ |
-| 6. Reactions service | 2 | ✓ |
-| 7. Presence hook | 2 | ✓ |
-| 8. Activity hook | 1 | - |
-| 9. Reactions hook | 2 | - |
-| 10. Multi-step card | 2 | ✓ |
-| 11. Sidebar components | 4 | - |
-| 12. Homepage layout | 3 | - |
-| 13. Create Hive CTA | 3 | - |
-| 14. Mobile responsive | 2 | - |
-| 15. Documentation | 3 | - |
+| Task                       | Files | Tests |
+| -------------------------- | ----- | ----- |
+| 1. Social tables migration | 1     | -     |
+| 2. System hive column      | 1     | -     |
+| 3. Welcome Hive seed       | 2     | -     |
+| 4. Auto-join on signup     | 3     | ✓     |
+| 5. Activity service        | 3     | ✓     |
+| 6. Reactions service       | 2     | ✓     |
+| 7. Presence hook           | 2     | ✓     |
+| 8. Activity hook           | 1     | -     |
+| 9. Reactions hook          | 2     | -     |
+| 10. Multi-step card        | 2     | ✓     |
+| 11. Sidebar components     | 4     | -     |
+| 12. Homepage layout        | 3     | -     |
+| 13. Create Hive CTA        | 3     | -     |
+| 14. Mobile responsive      | 2     | -     |
+| 15. Documentation          | 3     | -     |
 
 **Total: ~34 files, 14 commits**

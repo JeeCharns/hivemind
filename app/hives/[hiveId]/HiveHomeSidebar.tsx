@@ -1,8 +1,12 @@
-'use client';
+"use client";
 
-import { ActivitySidebar, ReactionsSidebar } from '@/components/social';
-import { useHivePresence } from '@/lib/social/hooks';
-import type { ActivityEvent, Reaction, ReactionEmoji } from '@/lib/social/types';
+import { ActivitySidebar, ReactionsSidebar } from "@/components/social";
+import { useHivePresence } from "@/lib/social/hooks";
+import type {
+  ActivityEvent,
+  Reaction,
+  ReactionEmoji,
+} from "@/lib/social/types";
 
 interface HiveHomeSidebarProps {
   hiveId: string;

@@ -39,10 +39,13 @@ export interface IConversationReportClient {
  */
 export class ConversationReportClient implements IConversationReportClient {
   async generate(conversationId: string): Promise<GenerateReportResult> {
-    const response = await fetch(`/api/conversations/${conversationId}/report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const response = await fetch(
+      `/api/conversations/${conversationId}/report`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
     if (!response.ok) {
       const error = await response

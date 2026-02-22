@@ -202,10 +202,16 @@ describe("UnderstandView theme filters", () => {
     await user.click(showButton);
 
     // Should now show the individual response list (using selector to avoid SVG titles)
-    expect(screen.getByText("Response in A", { selector: "p" })).toBeInTheDocument();
-    expect(screen.getByText("Another response in A", { selector: "p" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Response in A", { selector: "p" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Another response in A", { selector: "p" })
+    ).toBeInTheDocument();
     // Should NOT show responses from Theme B
-    expect(screen.queryByText("Response in B", { selector: "p" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Response in B", { selector: "p" })
+    ).not.toBeInTheDocument();
   });
 
   it("renders unclustered card when unclustered responses exist", () => {
@@ -319,8 +325,12 @@ describe("UnderstandView theme filters", () => {
     await user.click(unclusteredShowButton);
 
     // Should show only unclustered response (using selector to avoid SVG titles)
-    expect(screen.getByText("Unclustered response", { selector: "p" })).toBeInTheDocument();
-    expect(screen.queryByText("Response in A", { selector: "p" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Unclustered response", { selector: "p" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Response in A", { selector: "p" })
+    ).not.toBeInTheDocument();
   });
 
   it("shows unclustered card in summary view only when unclustered responses exist", async () => {
@@ -370,7 +380,9 @@ describe("UnderstandView theme filters", () => {
       loadingId: null,
     });
 
-    const { rerender } = render(<UnderstandView viewModel={viewModelWithUnclustered} />);
+    const { rerender } = render(
+      <UnderstandView viewModel={viewModelWithUnclustered} />
+    );
 
     // Should see unclustered card in the summary view
     expect(screen.getByText("Unclustered/New responses")).toBeInTheDocument();
@@ -409,7 +421,9 @@ describe("UnderstandView theme filters", () => {
     rerender(<UnderstandView viewModel={viewModelWithoutUnclustered} />);
 
     // Should NOT see unclustered card when no unclustered responses exist
-    expect(screen.queryByText("Unclustered/New responses")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Unclustered/New responses")
+    ).not.toBeInTheDocument();
   });
 
   it("vote buttons work after drilling into a theme", async () => {
@@ -483,11 +497,17 @@ describe("UnderstandView theme filters", () => {
     // Should now show individual responses for Theme A only (using selector to avoid SVG titles)
     // The theme title should be shown at the top (and also in the map SVG)
     expect(screen.getAllByText("Theme A").length).toBeGreaterThan(0);
-    expect(screen.getByText("Response in A", { selector: "p" })).toBeInTheDocument();
-    expect(screen.queryByText("Response in B", { selector: "p" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Response in A", { selector: "p" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Response in B", { selector: "p" })
+    ).not.toBeInTheDocument();
 
     // Go back to "All themes" using the back button
-    const backButton = screen.getByRole("button", { name: /Back to all themes/i });
+    const backButton = screen.getByRole("button", {
+      name: /Back to all themes/i,
+    });
     await user.click(backButton);
 
     // Should show cluster summaries again (themes appear in both map and cards)

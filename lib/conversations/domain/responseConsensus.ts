@@ -111,7 +111,11 @@ export function computeConsolidatedConsensusItems(
 
   feedbackRows.forEach((row) => {
     if (!feedbackByResponseId.has(row.responseId)) {
-      feedbackByResponseId.set(row.responseId, { agree: 0, pass: 0, disagree: 0 });
+      feedbackByResponseId.set(row.responseId, {
+        agree: 0,
+        pass: 0,
+        disagree: 0,
+      });
     }
     const counts = feedbackByResponseId.get(row.responseId)!;
     if (row.feedback === "agree") counts.agree++;
@@ -127,7 +131,9 @@ export function computeConsolidatedConsensusItems(
     // Only count votes on the representative response (first response in the bucket)
     // Votes are cast on the representative, not aggregated from all original responses
     const representativeId = bucket.responseIds[0];
-    const counts = representativeId ? feedbackByResponseId.get(representativeId) : undefined;
+    const counts = representativeId
+      ? feedbackByResponseId.get(representativeId)
+      : undefined;
 
     const totalAgree = counts?.agree ?? 0;
     const totalPass = counts?.pass ?? 0;
@@ -220,4 +226,3 @@ export function computeConsolidatedConsensusItems(
   // Return voted items first, then unvoted items
   return [...votedItems, ...unvotedItems];
 }
-

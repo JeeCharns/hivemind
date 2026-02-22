@@ -15,7 +15,13 @@
  *                    ERROR ←──────────┘
  */
 
-import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import type { UnderstandViewModel } from "@/types/conversation-understand";
 import UnderstandView from "./UnderstandView";
 import {
@@ -80,9 +86,7 @@ function AnalysisAlert({
         </div>
         <div>
           <p className="text-sm font-medium text-amber-900">{title}</p>
-          {subtitle && (
-            <p className="text-xs text-amber-700">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-xs text-amber-700">{subtitle}</p>}
         </div>
       </div>
       {action && <div className="shrink-0">{action}</div>}
@@ -93,7 +97,9 @@ function AnalysisAlert({
 /**
  * Determine initial UI state based on analysis status
  */
-function getInitialUiState(analysisStatus: string | null | undefined): AnalysisUiState {
+function getInitialUiState(
+  analysisStatus: string | null | undefined
+): AnalysisUiState {
   if (analysisStatus === "embedding" || analysisStatus === "analyzing") {
     return "analysing";
   }
@@ -117,7 +123,8 @@ export default function UnderstandViewContainer({
     getInitialUiState(initialViewModel.analysisStatus)
   );
   const lastReadyViewModelRef = useRef<UnderstandViewModel | null>(null);
-  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null);
+  const [analysisProgress, setAnalysisProgress] =
+    useState<AnalysisProgress | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Derive legacy flags from uiState for backward compatibility
@@ -164,7 +171,9 @@ export default function UnderstandViewContainer({
   const fetchUnderstandData = useCallback(async () => {
     console.log("[Analysis] Fetching fresh understand data...");
     try {
-      const res = await fetch(`/api/conversations/${conversationId}/understand`);
+      const res = await fetch(
+        `/api/conversations/${conversationId}/understand`
+      );
       if (!res.ok) {
         throw new Error(`Failed to fetch: ${res.status}`);
       }
@@ -173,7 +182,11 @@ export default function UnderstandViewContainer({
       console.log("[Analysis] → analysisStatus:", data.analysisStatus);
       console.log("[Analysis] → responseCount:", data.responseCount);
       console.log("[Analysis] → themes:", data.themes?.length ?? 0, "themes");
-      console.log("[Analysis] → responses:", data.responses?.length ?? 0, "responses");
+      console.log(
+        "[Analysis] → responses:",
+        data.responses?.length ?? 0,
+        "responses"
+      );
 
       // Update viewModel with fresh data
       setViewModel(data);
@@ -181,7 +194,9 @@ export default function UnderstandViewContainer({
       // Only transition to ready state if data indicates analysis is complete
       // This ensures we don't clear loading state until we have the actual data
       if (data.analysisStatus === "ready") {
-        console.log("[Analysis] ✓ Analysis complete - transitioning to ready state");
+        console.log(
+          "[Analysis] ✓ Analysis complete - transitioning to ready state"
+        );
         setUiState("ready");
         setAnalysisProgress(null);
       }
@@ -225,7 +240,9 @@ export default function UnderstandViewContainer({
         }
         setAnalysisProgress(null);
         setUiState("error");
-        setToastMessage("Analysis failed - please ask an admin to regenerate the analysis");
+        setToastMessage(
+          "Analysis failed - please ask an admin to regenerate the analysis"
+        );
       }
 
       // When backend reports ready, transition to loading_results
@@ -266,8 +283,7 @@ export default function UnderstandViewContainer({
   const statusPollingInterval = 30000; // 30s when polling (was 5s)
 
   // Fallback: Show UI indicator only when realtime is unavailable
-  const useFallbackPolling =
-    shouldSubscribe && realtimeStatus === "error";
+  const useFallbackPolling = shouldSubscribe && realtimeStatus === "error";
 
   const { data: statusData } = useAnalysisStatus({
     conversationId,
@@ -315,11 +331,13 @@ export default function UnderstandViewContainer({
               Need {threshold} Responses for Themes
             </h2>
             <p className="text-slate-600">
-              You currently have {responseCount} response{responseCount !== 1 ? "s" : ""}.
-              Once you reach {threshold} responses, a theme map can be generated for analysis.
+              You currently have {responseCount} response
+              {responseCount !== 1 ? "s" : ""}. Once you reach {threshold}{" "}
+              responses, a theme map can be generated for analysis.
             </p>
             <p className="text-sm text-slate-500 mt-4">
-              {nextStepsCopy} Add more responses in the Listen tab or upload a CSV to get started.
+              {nextStepsCopy} Add more responses in the Listen tab or upload a
+              CSV to get started.
             </p>
           </div>
         </div>
@@ -328,7 +346,8 @@ export default function UnderstandViewContainer({
   }
 
   // Initial analysis (first time, no existing data): show full-page loading state
-  const hasNoExistingAnalysis = !viewModel.responses || viewModel.responses.length === 0;
+  const hasNoExistingAnalysis =
+    !viewModel.responses || viewModel.responses.length === 0;
 
   if (analysisInProgress && hasNoExistingAnalysis) {
     return (
@@ -341,13 +360,18 @@ export default function UnderstandViewContainer({
 
             {/* Step-based progress display */}
             <AnalysisProgressSteps
-              progressStage={analysisProgress?.progressStage as AnalysisProgressStage | undefined}
+              progressStage={
+                analysisProgress?.progressStage as
+                  | AnalysisProgressStage
+                  | undefined
+              }
               customMessage={analysisProgress?.progressMessage}
               size="md"
             />
 
             <p className="text-sm text-slate-500 mt-6">
-              This usually takes 30-60 seconds. We&apos;ll update automatically when ready.
+              This usually takes 30-60 seconds. We&apos;ll update automatically
+              when ready.
             </p>
             {realtimeStatus === "connected" && (
               <p className="text-xs text-emerald-600 mt-2">
@@ -473,7 +497,9 @@ export default function UnderstandViewContainer({
 
     // Store current state for rollback on error
     lastReadyViewModelRef.current = viewModel;
-    console.log("[Analysis] Starting regeneration from UnderstandViewContainer...");
+    console.log(
+      "[Analysis] Starting regeneration from UnderstandViewContainer..."
+    );
     console.log("[Analysis] → conversationId:", conversationId);
 
     // OPTIMISTIC: Immediately show starting state before API call

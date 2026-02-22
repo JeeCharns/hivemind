@@ -41,7 +41,9 @@ async function main() {
     return;
   }
 
-  console.log(`Found ${failedJobs.length} job(s) that failed due to PostgREST schema cache issues:\n`);
+  console.log(
+    `Found ${failedJobs.length} job(s) that failed due to PostgREST schema cache issues:\n`
+  );
 
   // Check each job's conversation to see if analysis actually completed
   for (const job of failedJobs) {
@@ -52,12 +54,16 @@ async function main() {
       .maybeSingle();
 
     if (convError) {
-      console.log(`  ❌  Job ${job.id.substring(0, 8)}... - error: ${convError.message}`);
+      console.log(
+        `  ❌  Job ${job.id.substring(0, 8)}... - error: ${convError.message}`
+      );
       continue;
     }
 
     if (!conv) {
-      console.log(`  ⚠️  Job ${job.id.substring(0, 8)}... - conversation not found`);
+      console.log(
+        `  ⚠️  Job ${job.id.substring(0, 8)}... - conversation not found`
+      );
       continue;
     }
 
@@ -68,11 +74,12 @@ async function main() {
     // If the conversation has ready/completed status,
     // the analysis actually succeeded despite the job failure
     const analysisSucceeded =
-      conv.analysis_status === "ready" ||
-      conv.analysis_status === "completed";
+      conv.analysis_status === "ready" || conv.analysis_status === "completed";
 
     if (analysisSucceeded) {
-      console.log(`    ✅ Analysis actually succeeded! Marking job as succeeded...`);
+      console.log(
+        `    ✅ Analysis actually succeeded! Marking job as succeeded...`
+      );
 
       const { error: updateError } = await supabase
         .from("conversation_analysis_jobs")

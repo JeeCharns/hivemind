@@ -197,7 +197,9 @@ describe("POST /api/hives/[hiveId]/join", () => {
 
     // Second join (idempotent)
     const response2 = await POST(request, {
-      params: Promise.resolve({ hiveId: "11111111-1111-4111-8111-111111111111" }),
+      params: Promise.resolve({
+        hiveId: "11111111-1111-4111-8111-111111111111",
+      }),
     });
     const data2 = await response2.json();
 

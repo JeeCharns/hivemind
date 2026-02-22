@@ -10,7 +10,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ConversationCardData } from "@/types/conversations";
-import type { ActivityEvent, Reaction, ReactionEmoji } from "@/lib/social/types";
+import type {
+  ActivityEvent,
+  Reaction,
+  ReactionEmoji,
+} from "@/lib/social/types";
 import { useHiveConversations } from "@/lib/conversations/hooks";
 import ConversationCard from "./components/ConversationCard";
 import NewSessionLauncher from "@/app/components/new-session-launcher";
@@ -96,11 +100,19 @@ export default function HiveHome({
       {/* Header */}
       <header className="flex flex-row items-center justify-between gap-3 md:gap-6">
         <div className="flex items-center gap-2 md:gap-4 min-w-0">
-          <HiveLogo src={logoSignedUrl} name={hiveName} size={64} className="w-8 h-8 md:w-16 md:h-16 shrink-0" />
+          <HiveLogo
+            src={logoSignedUrl}
+            name={hiveName}
+            size={64}
+            className="w-8 h-8 md:w-16 md:h-16 shrink-0"
+          />
           <div className="flex flex-col gap-0.5 md:gap-2 min-w-0">
-            <h1 className="text-h4 md:text-h1 text-text-primary truncate">{hiveName}</h1>
+            <h1 className="text-h4 md:text-h1 text-text-primary truncate">
+              {hiveName}
+            </h1>
             <p className="text-body text-text-secondary hidden md:block">
-              Your organisation&apos;s collective intelligence sessions live here
+              Your organisation&apos;s collective intelligence sessions live
+              here
             </p>
           </div>
         </div>

@@ -26,13 +26,21 @@ export async function POST(request: NextRequest) {
 
     // Use admin client to bypass RLS for insert operations
     const supabase = supabaseAdminClient();
-    const result = await createDecisionSession(supabase, userId, parseResult.data);
+    const result = await createDecisionSession(
+      supabase,
+      userId,
+      parseResult.data
+    );
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     console.error("[POST /api/decision-space]", err);
     const message = err instanceof Error ? err.message : "Internal error";
     const status = message.includes("admin") ? 403 : 500;
-    return jsonError(message, status, status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR");
+    return jsonError(
+      message,
+      status,
+      status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR"
+    );
   }
 }

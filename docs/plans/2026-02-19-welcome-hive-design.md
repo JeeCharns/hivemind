@@ -12,12 +12,12 @@ Every new user automatically joins a shared **Welcome Hive** where they can expe
 
 ### Success Metrics
 
-| Stage | Metric |
-|-------|--------|
-| Adoption | % of new users who view Welcome Hive |
+| Stage         | Metric                                   |
+| ------------- | ---------------------------------------- |
+| Adoption      | % of new users who view Welcome Hive     |
 | Participation | % who submit ≥1 response in Welcome Hive |
-| Return | % who return within 7 days |
-| Conversion | % who create their own hive |
+| Return        | % who return within 7 days               |
+| Conversion    | % who create their own hive              |
 
 ---
 
@@ -45,6 +45,7 @@ Give every new user an immediate home where they can experience how collective d
 ### Invite Flow Edge Case
 
 When a new user signs up via an invite link to another hive:
+
 - Silently add them to Welcome Hive
 - Redirect to the invited hive (their intended destination)
 - Welcome Hive appears in their hives list for later exploration
@@ -97,7 +98,7 @@ Show the Discuss → Decide journey as a single unit with clear progress indicat
 └─────────────────────────────────────────────┘
 ```
 
-- Tap card → overlay slides up from bottom *inside* the card
+- Tap card → overlay slides up from bottom _inside_ the card
 - Dark scrim covers upper portion of card content
 - Full-width menu with "View Discussion" / "View Decision" options
 - Two options show step indicators + action hint
@@ -164,11 +165,13 @@ Two-column layout with main content area and right sidebar.
 ### Member Presence ("Who's Here")
 
 **Data:**
+
 - Track "last active" timestamp per user per hive
 - "Active" = activity within last 5 minutes
 - Update on: page view, response submitted, vote cast
 
 **Display:**
+
 - Show up to 3-4 active members with avatar + name
 - Overflow: "+ N others online"
 - Clicking expands to full member list (existing members page)
@@ -180,12 +183,14 @@ Two-column layout with main content area and right sidebar.
 ### Activity Feed
 
 **Events captured:**
+
 - User joined hive
 - Response submitted (anonymised: "Someone shared an idea")
 - Vote cast (anonymised: "+1 vote on Decide")
 - Phase transitions ("Voting is now open!")
 
 **Display:**
+
 - Chronological list, newest at top
 - Relative timestamps ("2m ago", "just now")
 - Max 10-15 items visible, older items fade or paginate
@@ -199,12 +204,14 @@ Two-column layout with main content area and right sidebar.
 **Purpose:** Lowest-friction participation — users can engage without committing to a full response.
 
 **Mechanics:**
+
 - Pre-set reactions: 👋 (wave), 🎉 (celebrate), 💡 (idea), ❤️ (love), 🐝 (on-brand)
 - Users tap to add a reaction with optional short message (max 50 chars)
 - Reactions display in a feed: "🎉 Sarah: Welcome everyone!"
 - **Limit:** One reaction per user per emoji type
 
 **Display:**
+
 - Compact list of recent reactions
 - "Add reaction" button opens emoji picker + optional message input
 
@@ -270,6 +277,7 @@ On signup (in auth flow):
 ### Real-time Subscriptions
 
 **Channels needed:**
+
 - `hive:{hiveId}:presence` — who's online (Supabase Presence or Broadcast)
 - `hive:{hiveId}:activity` — live activity feed (Postgres changes on hive_activity)
 - `hive:{hiveId}:reactions` — new reactions (Postgres changes on hive_reactions)
@@ -277,6 +285,7 @@ On signup (in auth flow):
 ### Multi-Step Card Data
 
 **Fetching:**
+
 - Query conversations with their `source_conversation_id` to identify linked pairs
 - Return both conversations together for card rendering
 - Card component receives: discuss conversation + decide conversation + their statuses
@@ -285,18 +294,18 @@ On signup (in auth flow):
 
 ## 6. Scope Summary
 
-| Component | Included |
-|-----------|----------|
-| Welcome Hive (auto-join, seeding) | ✅ |
-| Multi-step conversation card | ✅ |
-| Internal bottom sheet menu | ✅ |
-| Homepage two-column layout | ✅ |
-| Member presence sidebar | ✅ |
-| Activity feed sidebar | ✅ |
-| Reaction wall sidebar | ✅ |
-| "Create Your Own Hive" CTA | ✅ |
-| Responsive/mobile layout | ✅ |
-| Real-time updates | ✅ |
+| Component                         | Included |
+| --------------------------------- | -------- |
+| Welcome Hive (auto-join, seeding) | ✅       |
+| Multi-step conversation card      | ✅       |
+| Internal bottom sheet menu        | ✅       |
+| Homepage two-column layout        | ✅       |
+| Member presence sidebar           | ✅       |
+| Activity feed sidebar             | ✅       |
+| Reaction wall sidebar             | ✅       |
+| "Create Your Own Hive" CTA        | ✅       |
+| Responsive/mobile layout          | ✅       |
+| Real-time updates                 | ✅       |
 
 ---
 

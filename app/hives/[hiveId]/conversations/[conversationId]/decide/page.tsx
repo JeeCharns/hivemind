@@ -24,7 +24,10 @@ interface DecidePageProps {
   }>;
 }
 
-export default async function DecidePage({ params, searchParams }: DecidePageProps) {
+export default async function DecidePage({
+  params,
+  searchParams,
+}: DecidePageProps) {
   const { hiveId: hiveKey, conversationId: conversationKey } = await params;
   const { tab } = await searchParams;
   const activeTab = (tab as "vote" | "results") || "vote";

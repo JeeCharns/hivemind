@@ -18,7 +18,9 @@ import { requireAuth } from "@/lib/auth/server/requireAuth";
 import { createConversation } from "@/lib/conversations/server/createConversation";
 
 describe("POST /api/conversations", () => {
-  const mockRequireAuth = requireAuth as jest.MockedFunction<typeof requireAuth>;
+  const mockRequireAuth = requireAuth as jest.MockedFunction<
+    typeof requireAuth
+  >;
   const mockCreateConversation = createConversation as jest.MockedFunction<
     typeof createConversation
   >;

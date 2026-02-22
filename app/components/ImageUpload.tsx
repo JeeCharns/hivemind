@@ -119,13 +119,12 @@ export default function ImageUpload({
 
       {/* Helper Text */}
       <p className="text-xs text-slate-500">
-        {accept.includes("image") && `Max size: ${maxSizeMB}MB. Formats: JPEG, PNG, WebP, GIF`}
+        {accept.includes("image") &&
+          `Max size: ${maxSizeMB}MB. Formats: JPEG, PNG, WebP, GIF`}
       </p>
 
       {/* Error Message */}
-      {error && (
-        <p className="text-xs text-red-600">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }

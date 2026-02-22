@@ -109,12 +109,18 @@ describe("triggerConversationAnalysis", () => {
       mockCountQuery(supabase, 25);
 
       // Mock jobs query - existing job found (recent, not stale)
-      mockDataQuery(supabase, [{
-        id: "job-123",
-        status: "queued",
-        created_at: new Date().toISOString(), // Recent job, not stale
-        locked_at: null,
-      }], false);
+      mockDataQuery(
+        supabase,
+        [
+          {
+            id: "job-123",
+            status: "queued",
+            created_at: new Date().toISOString(), // Recent job, not stale
+            locked_at: null,
+          },
+        ],
+        false
+      );
 
       const result = await triggerConversationAnalysis(
         supabase,
@@ -200,10 +206,13 @@ describe("triggerConversationAnalysis", () => {
       const supabase = createMockSupabase();
 
       // Mock conversation with 15 new responses
-      mockDataQuery(supabase, generateConversation({
+      mockDataQuery(
+        supabase,
+        generateConversation({
           analysis_status: "ready",
           analysis_response_count: 20,
-        }));
+        })
+      );
 
       mockDataQuery(supabase, generateMembership(userId), false);
 
@@ -230,10 +239,13 @@ describe("triggerConversationAnalysis", () => {
     it("chooses full when newCount = 10 (boundary)", async () => {
       const supabase = createMockSupabase();
 
-      mockDataQuery(supabase, generateConversation({
+      mockDataQuery(
+        supabase,
+        generateConversation({
           analysis_status: "ready",
           analysis_response_count: 20,
-        }));
+        })
+      );
 
       mockDataQuery(supabase, generateMembership(userId), false);
 
@@ -257,10 +269,13 @@ describe("triggerConversationAnalysis", () => {
     it("respects explicit strategy=full", async () => {
       const supabase = createMockSupabase();
 
-      mockDataQuery(supabase, generateConversation({
+      mockDataQuery(
+        supabase,
+        generateConversation({
           analysis_status: "ready",
           analysis_response_count: 20,
-        }));
+        })
+      );
 
       mockDataQuery(supabase, generateMembership(userId), false);
 
@@ -286,10 +301,13 @@ describe("triggerConversationAnalysis", () => {
     it("respects explicit strategy=incremental", async () => {
       const supabase = createMockSupabase();
 
-      mockDataQuery(supabase, generateConversation({
+      mockDataQuery(
+        supabase,
+        generateConversation({
           analysis_status: "ready",
           analysis_response_count: 20,
-        }));
+        })
+      );
 
       mockDataQuery(supabase, generateMembership(userId), false);
 
@@ -394,22 +412,31 @@ describe("triggerConversationAnalysis", () => {
     it("returns already_running when job already queued", async () => {
       const supabase = createMockSupabase();
 
-      mockDataQuery(supabase, generateConversation({
+      mockDataQuery(
+        supabase,
+        generateConversation({
           analysis_status: "ready",
           analysis_response_count: 20,
-        }));
+        })
+      );
 
       mockDataQuery(supabase, generateMembership(userId), false);
 
       mockCountQuery(supabase, 25);
 
       // Mock existing job found (recent, not stale)
-      mockDataQuery(supabase, [{
-        id: "existing-job",
-        status: "queued",
-        created_at: new Date().toISOString(), // Recent job
-        locked_at: null,
-      }], false);
+      mockDataQuery(
+        supabase,
+        [
+          {
+            id: "existing-job",
+            status: "queued",
+            created_at: new Date().toISOString(), // Recent job
+            locked_at: null,
+          },
+        ],
+        false
+      );
 
       const result = await triggerConversationAnalysis(
         supabase,
@@ -426,10 +453,13 @@ describe("triggerConversationAnalysis", () => {
       const supabase = createMockSupabase();
 
       // 1. Conversation query
-      mockDataQuery(supabase, generateConversation({
+      mockDataQuery(
+        supabase,
+        generateConversation({
           analysis_status: "ready",
           analysis_response_count: 20,
-        }));
+        })
+      );
 
       // 2. Membership query
       mockDataQuery(supabase, generateMembership(userId), false);
@@ -438,13 +468,21 @@ describe("triggerConversationAnalysis", () => {
       mockCountQuery(supabase, 25);
 
       // 4. Jobs query - returns stale job (created 2 hours ago)
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      mockDataQuery(supabase, [{
-        id: "stale-job",
-        status: "queued",
-        created_at: twoHoursAgo, // Stale job (> 1 hour for queued)
-        locked_at: null,
-      }], false);
+      const twoHoursAgo = new Date(
+        Date.now() - 2 * 60 * 60 * 1000
+      ).toISOString();
+      mockDataQuery(
+        supabase,
+        [
+          {
+            id: "stale-job",
+            status: "queued",
+            created_at: twoHoursAgo, // Stale job (> 1 hour for queued)
+            locked_at: null,
+          },
+        ],
+        false
+      );
 
       // 5. Retire stale job update
       mockUpdate(supabase);
@@ -548,10 +586,13 @@ describe("triggerConversationAnalysis", () => {
     it("includes metadata in already_complete response", async () => {
       const supabase = createMockSupabase();
 
-      mockDataQuery(supabase, generateConversation({
+      mockDataQuery(
+        supabase,
+        generateConversation({
           analysis_status: "ready",
           analysis_response_count: 25,
-        }));
+        })
+      );
 
       mockDataQuery(supabase, generateMembership(userId), false);
 
@@ -591,12 +632,18 @@ describe("triggerConversationAnalysis", () => {
       mockCountQuery(supabase, 25);
 
       // Mock existing job that will be retired (recent job, but regenerate mode overrides)
-      mockDataQuery(supabase, [{
-        id: "existing-job",
-        status: "queued",
-        created_at: new Date().toISOString(),
-        locked_at: null,
-      }], false);
+      mockDataQuery(
+        supabase,
+        [
+          {
+            id: "existing-job",
+            status: "queued",
+            created_at: new Date().toISOString(),
+            locked_at: null,
+          },
+        ],
+        false
+      );
 
       // Note: cluster models check is skipped for regenerate mode (always uses full strategy)
 

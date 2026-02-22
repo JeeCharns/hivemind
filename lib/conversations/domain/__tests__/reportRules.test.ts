@@ -4,7 +4,11 @@
  * Tests for report gating and generation logic
  */
 
-import { canOpenReport, canGenerateReport, MIN_RESPONSES_FOR_REPORT } from "../reportRules";
+import {
+  canOpenReport,
+  canGenerateReport,
+  MIN_RESPONSES_FOR_REPORT,
+} from "../reportRules";
 
 describe("canOpenReport", () => {
   it("should allow when responseCount >= MIN and phase is report_open", () => {
@@ -50,7 +54,7 @@ describe("canGenerateReport", () => {
 
   it("should return true when all conditions met", () => {
     const result = canGenerateReport(
-      true,  // isMember
+      true, // isMember
       "understand",
       "ready",
       allowedGate
@@ -60,7 +64,7 @@ describe("canGenerateReport", () => {
 
   it("should return false when not a member", () => {
     const result = canGenerateReport(
-      false,  // not a member
+      false, // not a member
       "understand",
       "ready",
       allowedGate
@@ -69,22 +73,12 @@ describe("canGenerateReport", () => {
   });
 
   it("should return false when gate not allowed", () => {
-    const result = canGenerateReport(
-      true,
-      "understand",
-      "ready",
-      blockedGate
-    );
+    const result = canGenerateReport(true, "understand", "ready", blockedGate);
     expect(result).toBe(false);
   });
 
   it("should return false when type is not understand", () => {
-    const result = canGenerateReport(
-      true,
-      "other",
-      "ready",
-      allowedGate
-    );
+    const result = canGenerateReport(true, "other", "ready", allowedGate);
     expect(result).toBe(false);
   });
 
@@ -99,12 +93,7 @@ describe("canGenerateReport", () => {
   });
 
   it("should return false when analysis status is null", () => {
-    const result = canGenerateReport(
-      true,
-      "understand",
-      null,
-      allowedGate
-    );
+    const result = canGenerateReport(true, "understand", null, allowedGate);
     expect(result).toBe(false);
   });
 

@@ -158,8 +158,8 @@ export default function ReportView({ viewModel }: ReportViewProps) {
             <div className="flex-1 p-6 md:p-8 overflow-y-auto min-h-80">
               {!hasEnoughResponses ? (
                 <p className="text-body text-slate-500 italic">
-                  At least {MIN_RESPONSES_FOR_REPORT} responses are required before generating the
-                  executive summary.
+                  At least {MIN_RESPONSES_FOR_REPORT} responses are required
+                  before generating the executive summary.
                 </p>
               ) : loading ? (
                 <div className="h-full flex items-center justify-center flex-col gap-3 text-slate-400">
@@ -171,8 +171,9 @@ export default function ReportView({ viewModel }: ReportViewProps) {
                 </div>
               ) : currentHtml ? (
                 <article>
-                  <style dangerouslySetInnerHTML={{
-                    __html: `
+                  <style
+                    dangerouslySetInnerHTML={{
+                      __html: `
                       .report-content h1 {
                         font-size: 1.5rem;
                         font-weight: 600;
@@ -215,9 +216,13 @@ export default function ReportView({ viewModel }: ReportViewProps) {
                       .report-content ol li {
                         list-style-type: decimal;
                       }
-                    `
-                  }} />
-                  <div className="report-content" dangerouslySetInnerHTML={{ __html: currentHtml }} />
+                    `,
+                    }}
+                  />
+                  <div
+                    className="report-content"
+                    dangerouslySetInnerHTML={{ __html: currentHtml }}
+                  />
                 </article>
               ) : (
                 <p className="text-body text-slate-400 italic text-center mt-10">

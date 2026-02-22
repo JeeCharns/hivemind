@@ -70,9 +70,9 @@ export default function NewHiveWizard() {
         throw new Error(message);
       }
 
-      const hiveData = (await response.json().catch(() => null)) as
-        | CreatedHive
-        | null;
+      const hiveData = (await response
+        .json()
+        .catch(() => null)) as CreatedHive | null;
 
       if (!hiveData?.id) {
         throw new Error("Hive created but response was invalid");

@@ -41,4 +41,3 @@ export type HiveInviteRow = {
 export type ListInvitesResponse = HiveInviteRow[];
 
 export type HivesApiError = ApiErrorShape;
-

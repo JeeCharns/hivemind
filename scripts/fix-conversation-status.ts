@@ -10,12 +10,17 @@ const conversationId = process.argv[2];
 const newStatus = process.argv[3] || "not_started";
 
 if (!conversationId) {
-  console.error("Usage: npx tsx scripts/fix-conversation-status.ts <conversation-id> [status]");
-  console.error("  status: not_started | embedding | analyzing | ready (default: not_started)");
+  console.error(
+    "Usage: npx tsx scripts/fix-conversation-status.ts <conversation-id> [status]"
+  );
+  console.error(
+    "  status: not_started | embedding | analyzing | ready (default: not_started)"
+  );
   process.exit(1);
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseSecretKey) {
@@ -71,7 +76,9 @@ async function main() {
     console.log(`   SET analysis_status = '${newStatus}'`);
     console.log(`   WHERE id = '${conversationId}';`);
     console.log(`\n   Then verify with:`);
-    console.log(`   SELECT id, analysis_status FROM conversations WHERE id = '${conversationId}';\n`);
+    console.log(
+      `   SELECT id, analysis_status FROM conversations WHERE id = '${conversationId}';\n`
+    );
 
     process.exit(1);
   }

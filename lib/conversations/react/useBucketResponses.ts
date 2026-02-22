@@ -56,7 +56,9 @@ export function useBucketResponses({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Failed to fetch responses: ${res.status}`);
+        throw new Error(
+          data.error || `Failed to fetch responses: ${res.status}`
+        );
       }
 
       const data = await res.json();
@@ -89,7 +91,9 @@ export function useBucketResponses({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Failed to fetch responses: ${res.status}`);
+        throw new Error(
+          data.error || `Failed to fetch responses: ${res.status}`
+        );
       }
 
       const data = await res.json();
@@ -105,10 +109,18 @@ export function useBucketResponses({
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: err instanceof Error ? err.message : "Failed to load more responses",
+        error:
+          err instanceof Error ? err.message : "Failed to load more responses",
       }));
     }
-  }, [conversationId, bucketId, pageSize, state.isLoading, state.hasMore, state.responses.length]);
+  }, [
+    conversationId,
+    bucketId,
+    pageSize,
+    state.isLoading,
+    state.hasMore,
+    state.responses.length,
+  ]);
 
   const reset = useCallback(() => {
     setState({

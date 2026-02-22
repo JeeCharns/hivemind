@@ -47,7 +47,10 @@ export async function GET(
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("[GET /api/hives/[hiveId]/invites] Error fetching invites:", error);
+      console.error(
+        "[GET /api/hives/[hiveId]/invites] Error fetching invites:",
+        error
+      );
       return jsonError(error.message, 500);
     }
 

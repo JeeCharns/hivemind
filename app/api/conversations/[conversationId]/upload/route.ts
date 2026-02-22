@@ -56,7 +56,8 @@ export async function POST(
       err
     );
 
-    const message = err instanceof Error ? err.message : "Internal server error";
+    const message =
+      err instanceof Error ? err.message : "Internal server error";
 
     // Map specific errors to user-friendly messages
     let errorMessage = "Failed to upload CSV";

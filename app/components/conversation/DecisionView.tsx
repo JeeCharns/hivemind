@@ -55,9 +55,15 @@ export default function DecisionView({
   const [loading, setLoading] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
-  const [expandedResponses, setExpandedResponses] = useState<Record<string, boolean>>({});
-  const [proposalResponses, setProposalResponses] = useState<Record<string, OriginalResponse[]>>({});
-  const [loadingResponses, setLoadingResponses] = useState<Record<string, boolean>>({});
+  const [expandedResponses, setExpandedResponses] = useState<
+    Record<string, boolean>
+  >({});
+  const [proposalResponses, setProposalResponses] = useState<
+    Record<string, OriginalResponse[]>
+  >({});
+  const [loadingResponses, setLoadingResponses] = useState<
+    Record<string, boolean>
+  >({});
   const [localVotes, setLocalVotes] = useState<Record<string, number>>(() => {
     const votes: Record<string, number> = {};
     viewModel.proposals.forEach((p) => {
@@ -66,7 +72,9 @@ export default function DecisionView({
     return votes;
   });
   const [creditsSpent, setCreditsSpent] = useState(viewModel.totalCreditsSpent);
-  const [creditsRemaining, setCreditsRemaining] = useState(viewModel.remainingCredits);
+  const [creditsRemaining, setCreditsRemaining] = useState(
+    viewModel.remainingCredits
+  );
 
   // Calculate and update time remaining for deadline
   useEffect(() => {
@@ -86,7 +94,9 @@ export default function DecisionView({
       }
 
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const hours = Math.floor(
+        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+      );
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
       if (days > 0) {
@@ -130,21 +140,31 @@ export default function DecisionView({
       const url = `/api/decision-space/proposals/${proposalId}/responses`;
       console.log("[DecisionView] Fetching responses from:", url);
       const response = await fetch(url);
-      console.log("[DecisionView] Response status:", response.status, response.statusText);
+      console.log(
+        "[DecisionView] Response status:",
+        response.status,
+        response.statusText
+      );
       const text = await response.text();
       console.log("[DecisionView] Response body:", text.substring(0, 500));
       let data;
       try {
         data = JSON.parse(text);
       } catch {
-        console.error("[DecisionView] Failed to parse JSON:", text.substring(0, 200));
+        console.error(
+          "[DecisionView] Failed to parse JSON:",
+          text.substring(0, 200)
+        );
         throw new Error("Invalid response from server");
       }
       if (!response.ok) {
         console.error("[DecisionView] API error:", data);
         throw new Error(data.error || "Failed to fetch responses");
       }
-      setProposalResponses((prev) => ({ ...prev, [proposalId]: data.responses }));
+      setProposalResponses((prev) => ({
+        ...prev,
+        [proposalId]: data.responses,
+      }));
       setExpandedResponses((prev) => ({ ...prev, [proposalId]: true }));
     } catch (err) {
       console.error("[DecisionView] Failed to fetch responses:", err);
@@ -200,7 +220,9 @@ export default function DecisionView({
 
   // Sort proposals by total votes (descending) when transparent
   const sortedProposals = isTransparent
-    ? [...viewModel.proposals].sort((a, b) => (b.totalVotes ?? 0) - (a.totalVotes ?? 0))
+    ? [...viewModel.proposals].sort(
+        (a, b) => (b.totalVotes ?? 0) - (a.totalVotes ?? 0)
+      )
     : viewModel.proposals;
 
   return (
@@ -240,7 +262,8 @@ export default function DecisionView({
                   {viewModel.averageCreditUsagePercent}% avg credit usage
                 </p>
                 <p className="text-xs text-slate-500">
-                  {viewModel.voterCount} voter{viewModel.voterCount !== 1 ? "s" : ""}
+                  {viewModel.voterCount} voter
+                  {viewModel.voterCount !== 1 ? "s" : ""}
                 </p>
               </div>
             )}
@@ -265,7 +288,8 @@ export default function DecisionView({
               Close voting round?
             </h3>
             <p className="text-slate-600 mb-4">
-              Are you sure you want to close the voting round? This will end voting and generate the results. This action cannot be undone.
+              Are you sure you want to close the voting round? This will end
+              voting and generate the results. This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <Button
@@ -390,19 +414,28 @@ export default function DecisionView({
                                 </>
                               )}
                             </button>
-                            {expandedResponses[proposal.id] && proposalResponses[proposal.id] && (
-                              <div className="mt-3 pl-4 border-l-2 border-slate-200 space-y-2">
-                                {proposalResponses[proposal.id].length === 0 ? (
-                                  <p className="text-sm text-slate-400 italic">No original responses found</p>
-                                ) : (
-                                  proposalResponses[proposal.id].map((response) => (
-                                    <p key={response.id} className="text-sm text-slate-600">
-                                      &ldquo;{response.text}&rdquo;
+                            {expandedResponses[proposal.id] &&
+                              proposalResponses[proposal.id] && (
+                                <div className="mt-3 pl-4 border-l-2 border-slate-200 space-y-2">
+                                  {proposalResponses[proposal.id].length ===
+                                  0 ? (
+                                    <p className="text-sm text-slate-400 italic">
+                                      No original responses found
                                     </p>
-                                  ))
-                                )}
-                              </div>
-                            )}
+                                  ) : (
+                                    proposalResponses[proposal.id].map(
+                                      (response) => (
+                                        <p
+                                          key={response.id}
+                                          className="text-sm text-slate-600"
+                                        >
+                                          &ldquo;{response.text}&rdquo;
+                                        </p>
+                                      )
+                                    )
+                                  )}
+                                </div>
+                              )}
                           </div>
                         )}
                       </div>
@@ -432,7 +465,9 @@ export default function DecisionView({
                               <div className="text-2xl font-bold text-indigo-600">
                                 {currentVotes}
                               </div>
-                              <div className="text-xs text-slate-500">votes</div>
+                              <div className="text-xs text-slate-500">
+                                votes
+                              </div>
                             </div>
 
                             <Button
@@ -464,7 +499,9 @@ export default function DecisionView({
                             <div className="text-xl md:text-2xl font-bold text-slate-700">
                               {proposal.totalVotes ?? 0}
                             </div>
-                            <div className="text-xs text-slate-500">total votes</div>
+                            <div className="text-xs text-slate-500">
+                              total votes
+                            </div>
                           </div>
                         )}
                       </div>
@@ -478,7 +515,8 @@ export default function DecisionView({
           {/* Summary Footer */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 flex flex-col gap-1 md:flex-row md:items-center md:justify-between text-sm">
             <span className="text-slate-600">
-              Total votes cast: {Object.values(localVotes).reduce((sum, v) => sum + v, 0)}
+              Total votes cast:{" "}
+              {Object.values(localVotes).reduce((sum, v) => sum + v, 0)}
             </span>
             <span className="text-slate-600">
               Total credits spent: {creditsSpent} / 99
@@ -509,10 +547,10 @@ export default function DecisionView({
                         index === 0
                           ? "bg-amber-50 border-amber-200"
                           : index === 1
-                          ? "bg-slate-100 border-slate-200"
-                          : index === 2
-                          ? "bg-orange-50 border-orange-200"
-                          : "bg-white border-slate-200"
+                            ? "bg-slate-100 border-slate-200"
+                            : index === 2
+                              ? "bg-orange-50 border-orange-200"
+                              : "bg-white border-slate-200"
                       }`}
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
@@ -522,35 +560,41 @@ export default function DecisionView({
                               index === 0
                                 ? "bg-amber-200 text-amber-800"
                                 : index === 1
-                                ? "bg-slate-300 text-slate-700"
-                                : index === 2
-                                ? "bg-orange-200 text-orange-800"
-                                : "bg-slate-200 text-slate-600"
+                                  ? "bg-slate-300 text-slate-700"
+                                  : index === 2
+                                    ? "bg-orange-200 text-orange-800"
+                                    : "bg-slate-200 text-slate-600"
                             }`}
                           >
                             {ranking.rank}
                           </div>
                           <div className="flex-1">
-                            <p className="text-slate-900">{ranking.statementText}</p>
+                            <p className="text-slate-900">
+                              {ranking.statementText}
+                            </p>
                             {ranking.changeFromPrevious !== undefined && (
                               <p
                                 className={`text-sm mt-1 flex items-center gap-1 ${
                                   ranking.changeFromPrevious > 0
                                     ? "text-green-600"
                                     : ranking.changeFromPrevious < 0
-                                    ? "text-red-600"
-                                    : "text-slate-500"
+                                      ? "text-red-600"
+                                      : "text-slate-500"
                                 }`}
                               >
                                 {ranking.changeFromPrevious > 0 ? (
                                   <>
                                     <ArrowUp size={14} weight="bold" />
-                                    Up {ranking.changeFromPrevious} from last round
+                                    Up {ranking.changeFromPrevious} from last
+                                    round
                                   </>
                                 ) : ranking.changeFromPrevious < 0 ? (
                                   <>
                                     <ArrowDown size={14} weight="bold" />
-                                    Down {Math.abs(ranking.changeFromPrevious)} from last round
+                                    Down {Math.abs(
+                                      ranking.changeFromPrevious
+                                    )}{" "}
+                                    from last round
                                   </>
                                 ) : (
                                   "No change"
@@ -577,7 +621,11 @@ export default function DecisionView({
               {viewModel.results.aiAnalysis && (
                 <div className="bg-white rounded-xl border border-slate-200 p-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <Users size={24} className="text-indigo-600" weight="fill" />
+                    <Users
+                      size={24}
+                      className="text-indigo-600"
+                      weight="fill"
+                    />
                     <h2 className="text-xl font-semibold text-slate-900">
                       Analysis
                     </h2>

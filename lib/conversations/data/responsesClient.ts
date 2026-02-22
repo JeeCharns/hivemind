@@ -13,7 +13,10 @@ import type { LiveResponse, SubmitResponseInput } from "../domain/listen.types";
  */
 export interface IConversationResponsesClient {
   list(conversationId: string): Promise<LiveResponse[]>;
-  create(conversationId: string, input: SubmitResponseInput): Promise<LiveResponse>;
+  create(
+    conversationId: string,
+    input: SubmitResponseInput
+  ): Promise<LiveResponse>;
 }
 
 /**
@@ -21,10 +24,14 @@ export interface IConversationResponsesClient {
  */
 export class ConversationResponsesClient implements IConversationResponsesClient {
   async list(conversationId: string): Promise<LiveResponse[]> {
-    const response = await fetch(`/api/conversations/${conversationId}/responses`);
+    const response = await fetch(
+      `/api/conversations/${conversationId}/responses`
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "Failed to fetch responses" }));
+      const error = await response
+        .json()
+        .catch(() => ({ error: "Failed to fetch responses" }));
       throw new Error(error.error || "Failed to fetch responses");
     }
 
@@ -32,15 +39,23 @@ export class ConversationResponsesClient implements IConversationResponsesClient
     return data.responses || [];
   }
 
-  async create(conversationId: string, input: SubmitResponseInput): Promise<LiveResponse> {
-    const response = await fetch(`/api/conversations/${conversationId}/responses`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
+  async create(
+    conversationId: string,
+    input: SubmitResponseInput
+  ): Promise<LiveResponse> {
+    const response = await fetch(
+      `/api/conversations/${conversationId}/responses`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "Failed to create response" }));
+      const error = await response
+        .json()
+        .catch(() => ({ error: "Failed to create response" }));
       throw new Error(error.error || "Failed to create response");
     }
 

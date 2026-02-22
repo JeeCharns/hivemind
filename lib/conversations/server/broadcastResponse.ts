@@ -39,14 +39,19 @@ interface BroadcastResponseInput {
  *
  * @param input - The conversation ID and response to broadcast
  */
-export async function broadcastResponse(input: BroadcastResponseInput): Promise<void> {
+export async function broadcastResponse(
+  input: BroadcastResponseInput
+): Promise<void> {
   const { conversationId, response } = input;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseServiceKey =
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[broadcastResponse] Missing Supabase environment variables for broadcast");
+    console.error(
+      "[broadcastResponse] Missing Supabase environment variables for broadcast"
+    );
     return;
   }
 

@@ -23,15 +23,15 @@ The Hivemind app now has a **standardized typography system** that makes fonts c
 
 ### Common Tokens
 
-| Element | Class | Example |
-|---------|-------|---------|
-| Page title | `text-h1 text-text-primary` | `<h1 className="text-h1 text-text-primary">Dashboard</h1>` |
-| Section | `text-h2 text-text-primary` | `<h2 className="text-h2 text-text-primary">Settings</h2>` |
-| Card heading | `text-h4 text-text-primary` | `<h4 className="text-h4 text-text-primary">Profile</h4>` |
-| Body text | `text-body text-text-primary` | `<p className="text-body text-text-primary">Content</p>` |
-| Emphasized | `text-subtitle text-slate-800` | `<span className="text-subtitle">Important</span>` |
-| Label | `text-label text-text-secondary` | `<label className="text-label">Email</label>` |
-| Helper text | `text-info text-slate-500` | `<span className="text-info">Optional</span>` |
+| Element      | Class                            | Example                                                    |
+| ------------ | -------------------------------- | ---------------------------------------------------------- |
+| Page title   | `text-h1 text-text-primary`      | `<h1 className="text-h1 text-text-primary">Dashboard</h1>` |
+| Section      | `text-h2 text-text-primary`      | `<h2 className="text-h2 text-text-primary">Settings</h2>`  |
+| Card heading | `text-h4 text-text-primary`      | `<h4 className="text-h4 text-text-primary">Profile</h4>`   |
+| Body text    | `text-body text-text-primary`    | `<p className="text-body text-text-primary">Content</p>`   |
+| Emphasized   | `text-subtitle text-slate-800`   | `<span className="text-subtitle">Important</span>`         |
+| Label        | `text-label text-text-secondary` | `<label className="text-label">Email</label>`              |
+| Helper text  | `text-info text-slate-500`       | `<span className="text-info">Optional</span>`              |
 
 ### Font Families
 
@@ -48,12 +48,14 @@ The Hivemind app now has a **standardized typography system** that makes fonts c
 ## Files Modified
 
 ### ✅ Complete (10 files)
+
 - Core components: Button, Input, Alert
 - Navigation: HiveSelector, PageSelector, UserMenu
 - Pages: ConversationHeader, Login, Hive Overview
 - Config: tailwind.config.ts, app/globals.css
 
 ### 📋 To Do (~12 files)
+
 See [TYPOGRAPHY_MIGRATION_BATCH.md](docs/TYPOGRAPHY_MIGRATION_BATCH.md) for line-by-line instructions.
 
 ## Key Benefits

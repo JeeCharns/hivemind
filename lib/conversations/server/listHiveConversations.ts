@@ -38,7 +38,9 @@ export async function listHiveConversations(
   // 2. Fetch conversations (minimal data for cards)
   const { data: conversations, error } = await supabase
     .from("conversations")
-    .select("id, slug, type, title, description, created_at, analysis_status, report_json, phase, source_conversation_id")
+    .select(
+      "id, slug, type, title, description, created_at, analysis_status, report_json, phase, source_conversation_id"
+    )
     .eq("hive_id", hiveId)
     .order("created_at", { ascending: false });
 

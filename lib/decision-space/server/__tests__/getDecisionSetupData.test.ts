@@ -41,8 +41,18 @@ describe("getDecisionSetupData", () => {
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockResolvedValue({
         data: [
-          { cluster_index: 0, name: "Climate", description: "Climate topics", size: 10 },
-          { cluster_index: 1, name: "Economy", description: "Economic topics", size: 8 },
+          {
+            cluster_index: 0,
+            name: "Climate",
+            description: "Climate topics",
+            size: 10,
+          },
+          {
+            cluster_index: 1,
+            name: "Economy",
+            description: "Economic topics",
+            size: 8,
+          },
         ],
         error: null,
       }),
@@ -78,7 +88,8 @@ describe("getDecisionSetupData", () => {
       if (table === "conversations") return mockConversationChain;
       if (table === "conversation_themes") return mockThemesChain;
       if (table === "conversation_cluster_buckets") return mockBucketsChain;
-      if (table === "conversation_cluster_bucket_members") return mockMembersChain;
+      if (table === "conversation_cluster_bucket_members")
+        return mockMembersChain;
       return { select: jest.fn().mockReturnThis() };
     });
 
@@ -93,7 +104,9 @@ describe("getDecisionSetupData", () => {
     expect(result.clusters).toHaveLength(2);
     expect(result.clusters[0].name).toBe("Climate");
     expect(result.statements).toHaveLength(1);
-    expect(result.statements[0].statementText).toBe("We should invest in renewable energy");
+    expect(result.statements[0].statementText).toBe(
+      "We should invest in renewable energy"
+    );
   });
 
   it("throws error if conversation not found", async () => {
@@ -104,7 +117,11 @@ describe("getDecisionSetupData", () => {
     });
 
     await expect(
-      getDecisionSetupData(mockSupabase as unknown as SupabaseClient, "user-789", "invalid-id")
+      getDecisionSetupData(
+        mockSupabase as unknown as SupabaseClient,
+        "user-789",
+        "invalid-id"
+      )
     ).rejects.toThrow("Source conversation not found");
   });
 
@@ -124,7 +141,11 @@ describe("getDecisionSetupData", () => {
     });
 
     await expect(
-      getDecisionSetupData(mockSupabase as unknown as SupabaseClient, "user-789", "conv-123")
+      getDecisionSetupData(
+        mockSupabase as unknown as SupabaseClient,
+        "user-789",
+        "conv-123"
+      )
     ).rejects.toThrow("Source must be an understand session");
   });
 
@@ -144,7 +165,11 @@ describe("getDecisionSetupData", () => {
     });
 
     await expect(
-      getDecisionSetupData(mockSupabase as unknown as SupabaseClient, "user-789", "conv-123")
+      getDecisionSetupData(
+        mockSupabase as unknown as SupabaseClient,
+        "user-789",
+        "conv-123"
+      )
     ).rejects.toThrow("Analysis must be complete");
   });
 });

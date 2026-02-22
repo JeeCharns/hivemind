@@ -38,7 +38,10 @@ export async function getVoteViewModel(
     .order("created_at", { ascending: false });
 
   if (responsesError) {
-    console.error("[getVoteViewModel] Failed to fetch proposals:", responsesError);
+    console.error(
+      "[getVoteViewModel] Failed to fetch proposals:",
+      responsesError
+    );
     throw new Error("Failed to fetch proposals");
   }
 
@@ -57,8 +60,8 @@ export async function getVoteViewModel(
       id: String(r.id), // Convert to string for consistent key matching
       text: r.response_text,
       author: {
-        name: isAnonymous ? "Anonymous" : (profile?.display_name || "Member"),
-        avatarUrl: isAnonymous ? null : (profile?.avatar_path || null),
+        name: isAnonymous ? "Anonymous" : profile?.display_name || "Member",
+        avatarUrl: isAnonymous ? null : profile?.avatar_path || null,
       },
       createdAt: r.created_at,
       currentVotes: voteSummary.votes[String(r.id)] || 0, // Use string key to match votes object

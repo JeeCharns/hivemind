@@ -8,7 +8,10 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UpdateAccountProfileResponse } from "@/types/account-api";
-import { upsertProfile, type UpsertProfileInput } from "@/lib/profile/server/upsertProfile";
+import {
+  upsertProfile,
+  type UpsertProfileInput,
+} from "@/lib/profile/server/upsertProfile";
 
 /**
  * Update account profile

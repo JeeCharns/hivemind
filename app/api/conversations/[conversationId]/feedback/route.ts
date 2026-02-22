@@ -58,7 +58,11 @@ export async function POST(
 
     // 4. Feedback is disabled for decision sessions (read-only Understand tab)
     if (conversation.type === "decide") {
-      return jsonError("Feedback is disabled for decision sessions", 409, "FEEDBACK_DISABLED");
+      return jsonError(
+        "Feedback is disabled for decision sessions",
+        409,
+        "FEEDBACK_DISABLED"
+      );
     }
 
     // 4. Validate input (Zod boundary validation)
@@ -67,7 +71,10 @@ export async function POST(
 
     if (!parsed.success) {
       if (process.env.NODE_ENV !== "production") {
-        const maybeObj = rawBody as { responseId?: unknown; feedback?: unknown } | null;
+        const maybeObj = rawBody as {
+          responseId?: unknown;
+          feedback?: unknown;
+        } | null;
         console.log("[POST /api/conversations/:id/feedback] Invalid body", {
           conversationId,
           userId: session.user.id,
@@ -143,9 +150,12 @@ export async function POST(
     }
 
     // 7. Fetch updated counts using SQL aggregate function (O(index scan) vs O(n) row fetch)
-    const { data: countsData, error: countError } = await supabase.rpc("get_feedback_counts", {
-      p_response_id: responseId,
-    });
+    const { data: countsData, error: countError } = await supabase.rpc(
+      "get_feedback_counts",
+      {
+        p_response_id: responseId,
+      }
+    );
 
     if (countError) {
       console.error("[POST feedback] Count error:", countError);

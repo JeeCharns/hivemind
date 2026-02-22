@@ -50,7 +50,11 @@ export async function DELETE(
       { table: "conversation_reports", column: "conversation_id" },
       { table: "conversation_themes", column: "conversation_id" },
       { table: "response_feedback", column: "conversation_id" },
-      { table: "response_likes", column: "response_id", joinTable: "conversation_responses" },
+      {
+        table: "response_likes",
+        column: "response_id",
+        joinTable: "conversation_responses",
+      },
       { table: "quadratic_vote_budgets", column: "conversation_id" },
       { table: "quadratic_vote_allocations", column: "conversation_id" },
       { table: "conversation_analysis_jobs", column: "conversation_id" },
@@ -81,7 +85,10 @@ export async function DELETE(
         .eq(t.column, conversationId);
 
       if (error) {
-        console.error(`[DELETE conversation] Failed to delete ${t.table}:`, error);
+        console.error(
+          `[DELETE conversation] Failed to delete ${t.table}:`,
+          error
+        );
         return jsonError(`Failed to delete ${t.table}`, 500);
       }
     }
@@ -93,7 +100,10 @@ export async function DELETE(
       .eq("id", conversationId);
 
     if (convoError) {
-      console.error("[DELETE conversation] Failed to delete conversation:", convoError);
+      console.error(
+        "[DELETE conversation] Failed to delete conversation:",
+        convoError
+      );
       return jsonError("Failed to delete conversation", 500);
     }
 

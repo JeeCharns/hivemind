@@ -57,16 +57,14 @@ export async function joinHive(
   }
 
   // 3. Upsert membership (idempotent - onConflict handles existing memberships)
-  const { error: upsertError } = await supabase
-    .from("hive_members")
-    .upsert(
-      {
-        hive_id: hive.id,
-        user_id: user.id,
-        role: "member",
-      },
-      { onConflict: "hive_id,user_id" }
-    );
+  const { error: upsertError } = await supabase.from("hive_members").upsert(
+    {
+      hive_id: hive.id,
+      user_id: user.id,
+      role: "member",
+    },
+    { onConflict: "hive_id,user_id" }
+  );
 
   if (upsertError) {
     console.error("[joinHive] Upsert error:", upsertError);

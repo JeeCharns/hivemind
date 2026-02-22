@@ -66,7 +66,10 @@ describe("getAccountSettings", () => {
     });
 
     expect(mockSelect).toHaveBeenCalledWith("display_name, avatar_path");
-    expect(mockCreateSignedUrl).toHaveBeenCalledWith("user-123/avatar.png", 3600);
+    expect(mockCreateSignedUrl).toHaveBeenCalledWith(
+      "user-123/avatar.png",
+      3600
+    );
   });
 
   it("should return null avatar when no avatar_path", async () => {

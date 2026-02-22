@@ -51,7 +51,9 @@ export async function GET(
     // 4. Fetch responses with profile data and is_anonymous flag
     const { data: responses, error } = await supabase
       .from("conversation_responses")
-      .select("id,response_text,tag,created_at,user_id,is_anonymous,profiles:user_id(display_name,avatar_path)")
+      .select(
+        "id,response_text,tag,created_at,user_id,is_anonymous,profiles:user_id(display_name,avatar_path)"
+      )
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false });
 
@@ -74,7 +76,10 @@ export async function GET(
     const userLikes = new Set<string>();
 
     likes?.forEach((like) => {
-      likeCounts.set(like.response_id, (likeCounts.get(like.response_id) ?? 0) + 1);
+      likeCounts.set(
+        like.response_id,
+        (likeCounts.get(like.response_id) ?? 0) + 1
+      );
       if (like.user_id === session.user.id) {
         userLikes.add(like.response_id);
       }
@@ -84,7 +89,10 @@ export async function GET(
     // Collect unique avatar paths to convert to signed URLs
     const avatarPaths = new Set<string>();
     responses?.forEach((r: unknown) => {
-      const row = r as { is_anonymous?: boolean | null; profiles?: { avatar_path?: string | null } | null };
+      const row = r as {
+        is_anonymous?: boolean | null;
+        profiles?: { avatar_path?: string | null } | null;
+      };
       if (!row.is_anonymous && row.profiles?.avatar_path) {
         avatarPaths.add(row.profiles.avatar_path);
       }
@@ -108,7 +116,10 @@ export async function GET(
           created_at: string;
           user_id: string;
           is_anonymous?: boolean | null;
-          profiles?: { display_name?: string | null; avatar_path?: string | null } | null;
+          profiles?: {
+            display_name?: string | null;
+            avatar_path?: string | null;
+          } | null;
         };
         const isAnonymous = row.is_anonymous ?? false;
         const avatarPath = row.profiles?.avatar_path;
@@ -120,8 +131,12 @@ export async function GET(
           user: {
             name: isAnonymous
               ? "Anonymous"
-              : (row.profiles?.display_name || "Member"),
-            avatarUrl: isAnonymous ? null : (avatarPath ? avatarUrlMap.get(avatarPath) ?? null : null),
+              : row.profiles?.display_name || "Member",
+            avatarUrl: isAnonymous
+              ? null
+              : avatarPath
+                ? (avatarUrlMap.get(avatarPath) ?? null)
+                : null,
           },
           likeCount: likeCounts.get(row.id) ?? 0,
           likedByMe: userLikes.has(row.id),
@@ -195,7 +210,9 @@ export async function POST(
         user_id: session.user.id,
         is_anonymous: !!anonymous,
       })
-      .select("id,response_text,tag,created_at,user_id,is_anonymous,profiles:user_id(display_name,avatar_path)")
+      .select(
+        "id,response_text,tag,created_at,user_id,is_anonymous,profiles:user_id(display_name,avatar_path)"
+      )
       .maybeSingle();
 
     if (error || !data) {
@@ -222,7 +239,7 @@ export async function POST(
       tag: data.tag,
       createdAt: data.created_at,
       user: {
-        name: isAnonymous ? "Anonymous" : (profile?.display_name || "Member"),
+        name: isAnonymous ? "Anonymous" : profile?.display_name || "Member",
         avatarUrl,
       },
       likeCount: 0,

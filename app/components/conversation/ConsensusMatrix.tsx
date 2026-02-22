@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ConsensusItem, ConsensusMetrics } from "@/types/conversation-report";
+import type {
+  ConsensusItem,
+  ConsensusMetrics,
+} from "@/types/conversation-report";
 
 type SortMode = "agreement" | "divisive";
 
@@ -128,14 +131,18 @@ function ConsensusMatrixContent({
         </div>
         <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
           {(() => {
-            const needsSmallerFont = metrics.uniqueVoters >= 100 || metrics.totalParticipants >= 100;
+            const needsSmallerFont =
+              metrics.uniqueVoters >= 100 || metrics.totalParticipants >= 100;
             const numClass = needsSmallerFont
               ? "text-h2 md:text-display-sm"
               : "text-display-sm md:text-display-md";
             return (
               <div className="text-slate-900 mb-1 tabular-nums">
                 <span className={numClass}>{metrics.uniqueVoters}</span>
-                <span className="text-slate-500 text-label md:text-body"> of </span>
+                <span className="text-slate-500 text-label md:text-body">
+                  {" "}
+                  of{" "}
+                </span>
                 <span className={numClass}>{metrics.totalParticipants}</span>
               </div>
             );
@@ -191,13 +198,8 @@ function ConsensusMatrixContent({
 
         <div className="space-y-3">
           {chartData.map((row) => (
-            <div
-              key={row.id}
-              className="relative flex items-start gap-3 group"
-            >
-              <div
-                className="w-[45%] shrink-0 text-pill text-text-secondary line-clamp-3"
-              >
+            <div key={row.id} className="relative flex items-start gap-3 group">
+              <div className="w-[45%] shrink-0 text-pill text-text-secondary line-clamp-3">
                 {row.label}
               </div>
 
@@ -208,7 +210,8 @@ function ConsensusMatrixContent({
                   const agreeWidth = row.agreeVotes * scale;
                   const passWidth = row.passVotes * scale;
                   const disagreeWidth = row.disagreeVotes * scale;
-                  const notVotedWidth = 100 - agreeWidth - passWidth - disagreeWidth;
+                  const notVotedWidth =
+                    100 - agreeWidth - passWidth - disagreeWidth;
 
                   return (
                     <div className="relative h-5 rounded-md overflow-hidden flex">

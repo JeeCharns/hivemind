@@ -55,7 +55,11 @@ interface UseConversationAnalysisRealtimeOptions {
   debounceMs?: number;
 }
 
-export type RealtimeStatus = "connecting" | "connected" | "error" | "disconnected";
+export type RealtimeStatus =
+  | "connecting"
+  | "connected"
+  | "error"
+  | "disconnected";
 
 export interface UseConversationAnalysisRealtimeResult {
   status: RealtimeStatus;
@@ -66,7 +70,10 @@ export interface UseConversationAnalysisRealtimeResult {
  * Debounce helper
  * Delays function execution until after delay has passed since last call
  */
-function debounce<T extends (...args: unknown[]) => void>(func: T, delay: number): T {
+function debounce<T extends (...args: unknown[]) => void>(
+  func: T,
+  delay: number
+): T {
   let timeoutId: ReturnType<typeof setTimeout>;
   return ((...args: Parameters<T>) => {
     clearTimeout(timeoutId);
@@ -172,13 +179,16 @@ export function useConversationAnalysisRealtime({
           filter: `id=eq.${conversationId}`,
         },
         (payload) => {
-          const newStatus = (payload.new as { analysis_status?: string })?.analysis_status;
+          const newStatus = (payload.new as { analysis_status?: string })
+            ?.analysis_status;
           console.log("[Analysis] Realtime: conversation updated");
           console.log("[Analysis] → analysis_status:", newStatus);
           if (newStatus === "embedding") {
             console.log("[Analysis] → Step 1/3: Generating embeddings...");
           } else if (newStatus === "analyzing") {
-            console.log("[Analysis] → Step 2/3: Clustering and generating themes...");
+            console.log(
+              "[Analysis] → Step 2/3: Clustering and generating themes..."
+            );
           } else if (newStatus === "ready") {
             console.log("[Analysis] → Step 3/3: Analysis complete!");
           } else if (newStatus === "error") {
@@ -208,11 +218,15 @@ export function useConversationAnalysisRealtime({
         console.log("[Analysis] Realtime subscription:", status);
 
         if (status === "SUBSCRIBED") {
-          console.log("[Analysis] ✓ Live updates enabled - listening for changes...");
+          console.log(
+            "[Analysis] ✓ Live updates enabled - listening for changes..."
+          );
           setStatus("connected");
           setError(undefined);
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.log("[Analysis] ✗ Realtime connection failed, falling back to polling");
+          console.log(
+            "[Analysis] ✗ Realtime connection failed, falling back to polling"
+          );
           setStatus("error");
           setError(`Realtime connection ${status.toLowerCase()}`);
         } else if (status === "CLOSED") {
@@ -232,7 +246,13 @@ export function useConversationAnalysisRealtime({
         channelRef.current = null;
       }
     };
-  }, [conversationId, enabled, debouncedRefresh, onStatusUpdate, onProgressUpdate]);
+  }, [
+    conversationId,
+    enabled,
+    debouncedRefresh,
+    onStatusUpdate,
+    onProgressUpdate,
+  ]);
 
   const effectiveStatus = enabled ? status : "disconnected";
   const effectiveError = enabled && status === "error" ? error : undefined;

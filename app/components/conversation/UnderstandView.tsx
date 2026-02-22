@@ -124,7 +124,9 @@ export default function UnderstandView({
   // Show progress overlay during starting or analysing states
   // Falls back to analysisInProgress for backward compatibility
   const showProgressOverlay =
-    uiState === "starting" || uiState === "analysing" || (uiState === "idle" && analysisInProgress);
+    uiState === "starting" ||
+    uiState === "analysing" ||
+    (uiState === "idle" && analysisInProgress);
   const {
     conversationId,
     responses,
@@ -154,10 +156,7 @@ export default function UnderstandView({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const {
-    items,
-    vote,
-  } = useConversationFeedback({
+  const { items, vote } = useConversationFeedback({
     conversationId,
     initialItems: feedbackItems,
   });
@@ -166,7 +165,14 @@ export default function UnderstandView({
 
   // Build cluster summaries for "All themes" view
   const clusterSummaries = useMemo(
-    () => buildClusterSummaries(responses, themes, items, clusterBuckets, unconsolidatedResponseIds),
+    () =>
+      buildClusterSummaries(
+        responses,
+        themes,
+        items,
+        clusterBuckets,
+        unconsolidatedResponseIds
+      ),
     [responses, themes, items, clusterBuckets, unconsolidatedResponseIds]
   );
 
@@ -460,11 +466,14 @@ export default function UnderstandView({
 
                 {/* Step-based progress display */}
                 <AnalysisProgressSteps
-                  progressStage={analysisProgress?.progressStage as AnalysisProgressStage | undefined}
+                  progressStage={
+                    analysisProgress?.progressStage as
+                      | AnalysisProgressStage
+                      | undefined
+                  }
                   customMessage={analysisProgress?.progressMessage}
                   size="sm"
                 />
-
               </div>
             </div>
           )}
@@ -700,9 +709,7 @@ export default function UnderstandView({
         {/* Right column: Response list - maintains readable width */}
         <div className="bg-white space-y-4 p-4 md:p-6 lg:p-8 rounded-2xl shadow-sm border border-slate-100 md:h-full md:overflow-y-auto">
           {/* Skeleton loading for loading_results state */}
-          {showSkeletons && (
-            <ClusterListSkeleton count={4} />
-          )}
+          {showSkeletons && <ClusterListSkeleton count={4} />}
           {/* Analysis in progress indicator for starting/analysing states */}
           {showProgressOverlay && (
             <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-700">
@@ -775,159 +782,163 @@ export default function UnderstandView({
               )}
 
               <div
-                className={selectedTheme === "all" ? "space-y-8" : "space-y-8 pt-4"}
+                className={
+                  selectedTheme === "all" ? "space-y-8" : "space-y-8 pt-4"
+                }
               >
-            {filteredItems.length === 0 ? (
-              <div className="text-body text-slate-600">
-                No responses yet. Upload on Listen to get started.
-              </div>
-            ) : selectedTheme === "all" ? (
-              /* Cluster summary cards for "All themes" view */
-              <div className="space-y-6">
-                {clusterSummaries.map((summary) => {
-                  const themeColor =
-                    summary.clusterIndex !== null
-                      ? getThemeColor(summary.clusterIndex)
-                      : "#94a3b8"; // slate for unclustered
+                {filteredItems.length === 0 ? (
+                  <div className="text-body text-slate-600">
+                    No responses yet. Upload on Listen to get started.
+                  </div>
+                ) : selectedTheme === "all" ? (
+                  /* Cluster summary cards for "All themes" view */
+                  <div className="space-y-6">
+                    {clusterSummaries.map((summary) => {
+                      const themeColor =
+                        summary.clusterIndex !== null
+                          ? getThemeColor(summary.clusterIndex)
+                          : "#94a3b8"; // slate for unclustered
 
-                  return (
-                    <button
-                      key={summary.key}
-                      type="button"
-                      className={`w-full text-left bg-white pl-3 space-y-2 transition-all cursor-pointer group ${
-                        hoveredCluster === summary.clusterIndex
-                          ? "border-l-4"
-                          : "border-l-2 hover:border-l-4"
-                      }`}
-                      style={{ borderLeftColor: themeColor }}
-                      onClick={() => setSelectedTheme(summary.filterValue)}
-                      onMouseEnter={() => setHoveredCluster(summary.clusterIndex)}
-                      onMouseLeave={() => setHoveredCluster(null)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div
-                          className="text-label uppercase tracking-[0.04em]"
-                          style={{ color: themeColor }}
-                        >
-                          {summary.title}
-                        </div>
-                        <span className="text-xs text-slate-400 underline group-hover:text-slate-600 transition-colors">
-                          Show {summary.responseCount} response
-                          {summary.responseCount !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      {summary.bucketNames.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {summary.bucketNames.map((name, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700 border border-slate-200"
-                            >
-                              {name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : summary.description ? (
-                        <p className="text-body text-slate-800 leading-relaxed">
-                          {summary.description}
-                        </p>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              /* Regular response list for filtered views */
-              <>
-                {/* Render cluster buckets (LLM-driven consolidation) */}
-                {filteredBuckets.map((bucket) => (
-                  <ClusterBucketCard
-                    key={bucket.bucketId}
-                    bucket={bucket}
-                    conversationId={conversationId}
-                    themeColor={getThemeColor(bucket.clusterIndex)}
-                    onVote={vote}
-                    conversationType={conversationType}
-                    feedbackById={feedbackById}
-                  />
-                ))}
-
-                {/* Render ungrouped/unconsolidated responses */}
-                {ungroupedItems.map((resp) => (
-                  <div key={resp.id} className="rounded-2xl space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 text-label rounded-full border ${
-                          resp.tag
-                            ? getTagColors(resp.tag)
-                            : "bg-slate-100 text-slate-600 border-slate-200"
-                        }`}
-                      >
-                        {resp.tag ?? "response"}
-                      </span>
-                      <span className="text-info text-slate-500">
-                        {resp.counts.agree} agree · {resp.counts.pass} pass ·{" "}
-                        {resp.counts.disagree} disagree
-                      </span>
-                    </div>
-
-                    <p className="text-body text-slate-800 leading-relaxed line-clamp-3">
-                      {resp.responseText}
-                    </p>
-
-                    {conversationType === "understand" && (
-                      <div className="flex gap-2">
-                        {(["agree", "pass", "disagree"] as Feedback[]).map(
-                          (fb) => {
-                            const active = resp.current === fb;
-                            const hasVoted = resp.current !== null;
-                            const isDisabled = hasVoted && !active;
-
-                            const activeStyles =
-                              fb === "agree"
-                                ? "!bg-emerald-100 !text-emerald-800 !border-emerald-300 hover:!bg-emerald-100"
-                                : fb === "disagree"
-                                  ? "!bg-orange-100 !text-orange-800 !border-orange-300 hover:!bg-orange-100"
-                                  : "!bg-slate-200 !text-slate-800 !border-slate-300 hover:!bg-slate-200";
-                            const inactiveStyles =
-                              "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
-                            const disabledStyles =
-                              "!bg-slate-100 !text-slate-400 !border-slate-200 !cursor-not-allowed";
-
-                            return (
-                              <Button
-                                key={fb}
-                                variant="secondary"
-                                size="sm"
-                                disabled={isDisabled}
-                                onClick={() => vote(resp.id, fb)}
-                                className={`flex-1 transition-colors ${
-                                  active
-                                    ? activeStyles
-                                    : isDisabled
-                                      ? disabledStyles
-                                      : inactiveStyles
-                                }`}
-                              >
-                                {fb === "agree" && "Agree"}
-                                {fb === "pass" && "Pass"}
-                                {fb === "disagree" && "Disagree"}
-                              </Button>
-                            );
+                      return (
+                        <button
+                          key={summary.key}
+                          type="button"
+                          className={`w-full text-left bg-white pl-3 space-y-2 transition-all cursor-pointer group ${
+                            hoveredCluster === summary.clusterIndex
+                              ? "border-l-4"
+                              : "border-l-2 hover:border-l-4"
+                          }`}
+                          style={{ borderLeftColor: themeColor }}
+                          onClick={() => setSelectedTheme(summary.filterValue)}
+                          onMouseEnter={() =>
+                            setHoveredCluster(summary.clusterIndex)
                           }
+                          onMouseLeave={() => setHoveredCluster(null)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div
+                              className="text-label uppercase tracking-[0.04em]"
+                              style={{ color: themeColor }}
+                            >
+                              {summary.title}
+                            </div>
+                            <span className="text-xs text-slate-400 underline group-hover:text-slate-600 transition-colors">
+                              Show {summary.responseCount} response
+                              {summary.responseCount !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          {summary.bucketNames.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {summary.bucketNames.map((name, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700 border border-slate-200"
+                                >
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : summary.description ? (
+                            <p className="text-body text-slate-800 leading-relaxed">
+                              {summary.description}
+                            </p>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Regular response list for filtered views */
+                  <>
+                    {/* Render cluster buckets (LLM-driven consolidation) */}
+                    {filteredBuckets.map((bucket) => (
+                      <ClusterBucketCard
+                        key={bucket.bucketId}
+                        bucket={bucket}
+                        conversationId={conversationId}
+                        themeColor={getThemeColor(bucket.clusterIndex)}
+                        onVote={vote}
+                        conversationType={conversationType}
+                        feedbackById={feedbackById}
+                      />
+                    ))}
+
+                    {/* Render ungrouped/unconsolidated responses */}
+                    {ungroupedItems.map((resp) => (
+                      <div key={resp.id} className="rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 text-label rounded-full border ${
+                              resp.tag
+                                ? getTagColors(resp.tag)
+                                : "bg-slate-100 text-slate-600 border-slate-200"
+                            }`}
+                          >
+                            {resp.tag ?? "response"}
+                          </span>
+                          <span className="text-info text-slate-500">
+                            {resp.counts.agree} agree · {resp.counts.pass} pass
+                            · {resp.counts.disagree} disagree
+                          </span>
+                        </div>
+
+                        <p className="text-body text-slate-800 leading-relaxed line-clamp-3">
+                          {resp.responseText}
+                        </p>
+
+                        {conversationType === "understand" && (
+                          <div className="flex gap-2">
+                            {(["agree", "pass", "disagree"] as Feedback[]).map(
+                              (fb) => {
+                                const active = resp.current === fb;
+                                const hasVoted = resp.current !== null;
+                                const isDisabled = hasVoted && !active;
+
+                                const activeStyles =
+                                  fb === "agree"
+                                    ? "!bg-emerald-100 !text-emerald-800 !border-emerald-300 hover:!bg-emerald-100"
+                                    : fb === "disagree"
+                                      ? "!bg-orange-100 !text-orange-800 !border-orange-300 hover:!bg-orange-100"
+                                      : "!bg-slate-200 !text-slate-800 !border-slate-300 hover:!bg-slate-200";
+                                const inactiveStyles =
+                                  "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50";
+                                const disabledStyles =
+                                  "!bg-slate-100 !text-slate-400 !border-slate-200 !cursor-not-allowed";
+
+                                return (
+                                  <Button
+                                    key={fb}
+                                    variant="secondary"
+                                    size="sm"
+                                    disabled={isDisabled}
+                                    onClick={() => vote(resp.id, fb)}
+                                    className={`flex-1 transition-colors ${
+                                      active
+                                        ? activeStyles
+                                        : isDisabled
+                                          ? disabledStyles
+                                          : inactiveStyles
+                                    }`}
+                                  >
+                                    {fb === "agree" && "Agree"}
+                                    {fb === "pass" && "Pass"}
+                                    {fb === "disagree" && "Disagree"}
+                                  </Button>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+
+                        {conversationType === "decide" && (
+                          <p className="text-info text-slate-500 italic mt-1">
+                            Feedback disabled for decision sessions
+                          </p>
                         )}
                       </div>
-                    )}
-
-                    {conversationType === "decide" && (
-                      <p className="text-info text-slate-500 italic mt-1">
-                        Feedback disabled for decision sessions
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </>
-            )}
+                    ))}
+                  </>
+                )}
               </div>
             </>
           )}

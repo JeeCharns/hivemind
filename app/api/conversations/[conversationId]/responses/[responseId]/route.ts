@@ -52,7 +52,10 @@ export async function PATCH(
     }
 
     if (response.user_id !== session.user.id) {
-      return jsonError("Unauthorised: You can only edit your own responses", 403);
+      return jsonError(
+        "Unauthorised: You can only edit your own responses",
+        403
+      );
     }
 
     // 3. Validate input
@@ -79,7 +82,9 @@ export async function PATCH(
     // 5. Fetch the updated response
     const { data: updated, error: fetchUpdatedError } = await supabase
       .from("conversation_responses")
-      .select("id, response_text, tag, created_at, user_id, is_anonymous, profiles:user_id(display_name, avatar_path)")
+      .select(
+        "id, response_text, tag, created_at, user_id, is_anonymous, profiles:user_id(display_name, avatar_path)"
+      )
       .eq("id", numericId)
       .maybeSingle();
 
@@ -103,8 +108,8 @@ export async function PATCH(
         tag: updated.tag,
         createdAt: updated.created_at,
         user: {
-          name: isAnonymous ? "Anonymous" : (profile?.display_name || "Member"),
-          avatarUrl: isAnonymous ? null : (profile?.avatar_path || null),
+          name: isAnonymous ? "Anonymous" : profile?.display_name || "Member",
+          avatarUrl: isAnonymous ? null : profile?.avatar_path || null,
         },
         isMine: true,
       },
@@ -149,7 +154,10 @@ export async function DELETE(
     }
 
     if (response.user_id !== session.user.id) {
-      return jsonError("Unauthorised: You can only delete your own responses", 403);
+      return jsonError(
+        "Unauthorised: You can only delete your own responses",
+        403
+      );
     }
 
     // 3. Delete response (cascades to likes via FK)

@@ -119,7 +119,11 @@ export function useConversationFeedback({
           setItems((prev) =>
             prev.map((i) =>
               i.id === responseId
-                ? { ...i, counts: result.counts!, current: isToggleOff ? null : feedback }
+                ? {
+                    ...i,
+                    counts: result.counts!,
+                    current: isToggleOff ? null : feedback,
+                  }
                 : i
             )
           );
@@ -129,7 +133,9 @@ export function useConversationFeedback({
         setItems((prev) =>
           prev.map((i) => (i.id === responseId ? previousItem : i))
         );
-        setError(err instanceof Error ? err.message : "Failed to submit feedback");
+        setError(
+          err instanceof Error ? err.message : "Failed to submit feedback"
+        );
       } finally {
         setLoadingId(null);
       }

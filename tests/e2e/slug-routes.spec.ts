@@ -17,7 +17,9 @@ test.describe("Slug routes", () => {
 
   test("Hive page loads by slug", async ({ page }) => {
     await page.goto(`${baseURL}/hives/${hiveSlug}`);
-    await expect(page.getByRole("heading", { name: /your collective/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /your collective/i })
+    ).toBeVisible();
   });
 
   test("Conversation result page loads by slug", async ({ page }) => {

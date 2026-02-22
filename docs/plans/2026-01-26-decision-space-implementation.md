@@ -13,6 +13,7 @@
 ## Task 1: Database Migration - Core Tables
 
 **Files:**
+
 - Create: `supabase/migrations/024_decision_space_tables.sql`
 - Modify: `supabase/README.md`
 
@@ -316,6 +317,7 @@ WITH CHECK (auth.role() = 'service_role');
 **Step 2: Update supabase/README.md**
 
 Add to migration list:
+
 ```markdown
 | 024 | Decision Space tables | Proposals, rounds, votes, results for decision sessions |
 ```
@@ -339,6 +341,7 @@ tables with RLS policies and vote_on_decision_proposal RPC function."
 ## Task 2: TypeScript Types
 
 **Files:**
+
 - Create: `types/decision-space.ts`
 - Modify: `types/index.ts` (if exists, add export)
 
@@ -357,9 +360,12 @@ tables with RLS policies and vote_on_decision_proposal RPC function."
 // ENUMS / UNIONS
 // ============================================
 
-export type DecisionRoundStatus = 'voting_open' | 'voting_closed' | 'results_generated';
+export type DecisionRoundStatus =
+  | "voting_open"
+  | "voting_closed"
+  | "results_generated";
 
-export type DecisionVisibility = 'hidden' | 'aggregate' | 'transparent';
+export type DecisionVisibility = "hidden" | "aggregate" | "transparent";
 
 // ============================================
 // DATABASE ROWS
@@ -548,6 +554,7 @@ git commit -m "feat: add decision space TypeScript types"
 ## Task 3: Zod Validation Schemas
 
 **Files:**
+
 - Create: `lib/decision-space/schemas.ts`
 
 **Step 1: Write the schemas**
@@ -565,7 +572,11 @@ import { z } from "zod";
 // ENUMS
 // ============================================
 
-export const decisionVisibilitySchema = z.enum(["hidden", "aggregate", "transparent"]);
+export const decisionVisibilitySchema = z.enum([
+  "hidden",
+  "aggregate",
+  "transparent",
+]);
 
 // ============================================
 // CREATE DECISION SESSION
@@ -590,7 +601,9 @@ export const createDecisionSessionSchema = z.object({
   deadline: z.string().datetime().optional(),
 });
 
-export type CreateDecisionSessionInput = z.infer<typeof createDecisionSessionSchema>;
+export type CreateDecisionSessionInput = z.infer<
+  typeof createDecisionSessionSchema
+>;
 
 // ============================================
 // VOTING
@@ -599,9 +612,12 @@ export type CreateDecisionSessionInput = z.infer<typeof createDecisionSessionSch
 export const voteOnProposalSchema = z.object({
   roundId: z.string().uuid(),
   proposalId: z.string().uuid(),
-  delta: z.number().int().refine((v) => v === 1 || v === -1, {
-    message: "Delta must be 1 or -1",
-  }),
+  delta: z
+    .number()
+    .int()
+    .refine((v) => v === 1 || v === -1, {
+      message: "Delta must be 1 or -1",
+    }),
 });
 
 export type VoteOnProposalInput = z.infer<typeof voteOnProposalSchema>;
@@ -616,14 +632,18 @@ export const closeRoundSchema = z.object({
 
 export type CloseRoundInput = z.infer<typeof closeRoundSchema>;
 
-export const startNewRoundSchema = z.object({
-  conversationId: z.string().uuid(),
-  keepProposals: z.boolean(),
-  selectedStatements: z.array(selectedStatementSchema).optional(),
-}).refine(
-  (data) => data.keepProposals || (data.selectedStatements && data.selectedStatements.length > 0),
-  { message: "selectedStatements required when keepProposals is false" }
-);
+export const startNewRoundSchema = z
+  .object({
+    conversationId: z.string().uuid(),
+    keepProposals: z.boolean(),
+    selectedStatements: z.array(selectedStatementSchema).optional(),
+  })
+  .refine(
+    (data) =>
+      data.keepProposals ||
+      (data.selectedStatements && data.selectedStatements.length > 0),
+    { message: "selectedStatements required when keepProposals is false" }
+  );
 
 export type StartNewRoundInput = z.infer<typeof startNewRoundSchema>;
 
@@ -635,7 +655,9 @@ export const getDecisionSetupDataSchema = z.object({
   sourceConversationId: z.string().uuid(),
 });
 
-export type GetDecisionSetupDataInput = z.infer<typeof getDecisionSetupDataSchema>;
+export type GetDecisionSetupDataInput = z.infer<
+  typeof getDecisionSetupDataSchema
+>;
 ```
 
 **Step 2: Verify schemas compile**
@@ -655,6 +677,7 @@ git commit -m "feat: add decision space Zod validation schemas"
 ## Task 4: Service - Fetch Setup Data (Clusters & Statements)
 
 **Files:**
+
 - Create: `lib/decision-space/server/getDecisionSetupData.ts`
 
 **Step 1: Write test file**
@@ -698,8 +721,18 @@ describe("getDecisionSetupData", () => {
           eq: jest.fn().mockReturnThis(),
           order: jest.fn().mockResolvedValue({
             data: [
-              { cluster_index: 0, name: "Climate", description: "Climate topics", size: 10 },
-              { cluster_index: 1, name: "Economy", description: "Economic topics", size: 8 },
+              {
+                cluster_index: 0,
+                name: "Climate",
+                description: "Climate topics",
+                size: 10,
+              },
+              {
+                cluster_index: 1,
+                name: "Economy",
+                description: "Economic topics",
+                size: 8,
+              },
             ],
             error: null,
           }),
@@ -818,7 +851,9 @@ export async function getDecisionSetupData(
   }
 
   if (sourceConv.analysis_status !== "ready") {
-    throw new Error("Analysis must be complete before creating decision session");
+    throw new Error(
+      "Analysis must be complete before creating decision session"
+    );
   }
 
   // 2. Verify user has access to this hive
@@ -838,13 +873,15 @@ export async function getDecisionSetupData(
   // 4. Fetch consolidated statements (buckets) with consensus data
   const { data: buckets, error: bucketsError } = await supabase
     .from("conversation_cluster_buckets")
-    .select(`
+    .select(
+      `
       id,
       cluster_index,
       bucket_name,
       consolidated_statement,
       response_count
-    `)
+    `
+    )
     .eq("conversation_id", sourceConversationId)
     .order("cluster_index", { ascending: true })
     .order("bucket_index", { ascending: true });
@@ -857,7 +894,8 @@ export async function getDecisionSetupData(
   // Get the representative response for each bucket and its feedback
   const bucketIds = buckets?.map((b) => b.id) || [];
 
-  let consensusMap: Map<string, { agreePercent: number; totalVotes: number }> = new Map();
+  let consensusMap: Map<string, { agreePercent: number; totalVotes: number }> =
+    new Map();
 
   if (bucketIds.length > 0) {
     // Get first member response for each bucket
@@ -886,9 +924,15 @@ export async function getDecisionSetupData(
 
       // Calculate consensus per bucket
       if (feedback) {
-        const responseToFeedback = new Map<number, { agree: number; total: number }>();
+        const responseToFeedback = new Map<
+          number,
+          { agree: number; total: number }
+        >();
         for (const f of feedback) {
-          const existing = responseToFeedback.get(f.response_id) || { agree: 0, total: 0 };
+          const existing = responseToFeedback.get(f.response_id) || {
+            agree: 0,
+            total: 0,
+          };
           existing.total++;
           if (f.feedback === "agree") {
             existing.agree++;
@@ -924,7 +968,9 @@ export async function getDecisionSetupData(
     const consensusValues = clusterConsensus.get(theme.cluster_index) || [];
     const avgConsensus =
       consensusValues.length > 0
-        ? Math.round(consensusValues.reduce((a, b) => a + b, 0) / consensusValues.length)
+        ? Math.round(
+            consensusValues.reduce((a, b) => a + b, 0) / consensusValues.length
+          )
         : 0;
 
     return {
@@ -940,14 +986,18 @@ export async function getDecisionSetupData(
   });
 
   // 7. Build statement selection items
-  const clusterNames = new Map(themes?.map((t) => [t.cluster_index, t.name]) || []);
+  const clusterNames = new Map(
+    themes?.map((t) => [t.cluster_index, t.name]) || []
+  );
 
   const statements: StatementSelectionItem[] = (buckets || []).map((bucket) => {
     const consensus = consensusMap.get(bucket.id);
     return {
       bucketId: bucket.id,
       clusterIndex: bucket.cluster_index,
-      clusterName: clusterNames.get(bucket.cluster_index) || `Cluster ${bucket.cluster_index}`,
+      clusterName:
+        clusterNames.get(bucket.cluster_index) ||
+        `Cluster ${bucket.cluster_index}`,
       statementText: bucket.consolidated_statement,
       agreePercent: consensus?.agreePercent ?? null,
       totalVotes: consensus?.totalVotes ?? 0,
@@ -985,6 +1035,7 @@ for decision space setup wizard."
 ## Task 5: Service - Create Decision Session
 
 **Files:**
+
 - Create: `lib/decision-space/server/createDecisionSession.ts`
 - Create: `lib/decision-space/server/__tests__/createDecisionSession.test.ts`
 
@@ -1015,7 +1066,12 @@ describe("createDecisionSession", () => {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
           maybeSingle: jest.fn().mockResolvedValue({
-            data: { id: "source-conv", hive_id: "hive-1", type: "understand", analysis_status: "ready" },
+            data: {
+              id: "source-conv",
+              hive_id: "hive-1",
+              type: "understand",
+              analysis_status: "ready",
+            },
             error: null,
           }),
           insert: jest.fn().mockReturnThis(),
@@ -1059,7 +1115,12 @@ describe("createDecisionSession", () => {
       title: "Test Decision",
       selectedClusters: [0],
       selectedStatements: [
-        { bucketId: "bucket-1", clusterIndex: 0, statementText: "Statement 1", agreePercent: 80 },
+        {
+          bucketId: "bucket-1",
+          clusterIndex: 0,
+          statementText: "Statement 1",
+          agreePercent: 80,
+        },
       ],
       consensusThreshold: 70,
       visibility: "hidden",
@@ -1086,7 +1147,12 @@ describe("createDecisionSession", () => {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
           maybeSingle: jest.fn().mockResolvedValue({
-            data: { id: "source-conv", hive_id: "hive-1", type: "understand", analysis_status: "ready" },
+            data: {
+              id: "source-conv",
+              hive_id: "hive-1",
+              type: "understand",
+              analysis_status: "ready",
+            },
             error: null,
           }),
         };
@@ -1101,7 +1167,12 @@ describe("createDecisionSession", () => {
         title: "Test",
         selectedClusters: [0],
         selectedStatements: [
-          { bucketId: "b1", clusterIndex: 0, statementText: "S1", agreePercent: 80 },
+          {
+            bucketId: "b1",
+            clusterIndex: 0,
+            statementText: "S1",
+            agreePercent: 80,
+          },
         ],
         consensusThreshold: 70,
         visibility: "hidden",
@@ -1205,7 +1276,10 @@ export async function createDecisionSession(
     .single();
 
   if (convError || !conversation) {
-    console.error("[createDecisionSession] Failed to create conversation:", convError);
+    console.error(
+      "[createDecisionSession] Failed to create conversation:",
+      convError
+    );
     throw new Error("Failed to create decision session");
   }
 
@@ -1224,7 +1298,10 @@ export async function createDecisionSession(
     .insert(proposals);
 
   if (proposalsError) {
-    console.error("[createDecisionSession] Failed to create proposals:", proposalsError);
+    console.error(
+      "[createDecisionSession] Failed to create proposals:",
+      proposalsError
+    );
     // Attempt cleanup
     await supabase.from("conversations").delete().eq("id", conversation.id);
     throw new Error("Failed to create proposals");
@@ -1244,7 +1321,10 @@ export async function createDecisionSession(
     .single();
 
   if (roundError || !round) {
-    console.error("[createDecisionSession] Failed to create round:", roundError);
+    console.error(
+      "[createDecisionSession] Failed to create round:",
+      roundError
+    );
     // Attempt cleanup
     await supabase.from("conversations").delete().eq("id", conversation.id);
     throw new Error("Failed to create voting round");
@@ -1277,6 +1357,7 @@ Creates decision conversation with snapshotted proposals and first voting round.
 ## Task 6: Service - Vote on Proposal
 
 **Files:**
+
 - Create: `lib/decision-space/server/voteOnDecisionProposal.ts`
 - Create: `lib/decision-space/server/__tests__/voteOnDecisionProposal.test.ts`
 
@@ -1321,7 +1402,11 @@ describe("voteOnDecisionProposal", () => {
 
   it("returns error when budget exceeded", async () => {
     mockSupabase.rpc.mockResolvedValue({
-      data: { success: false, error_code: "BUDGET_EXCEEDED", remaining_credits: 3 },
+      data: {
+        success: false,
+        error_code: "BUDGET_EXCEEDED",
+        remaining_credits: 3,
+      },
       error: null,
     });
 
@@ -1363,7 +1448,10 @@ Expected: FAIL
 // lib/decision-space/server/voteOnDecisionProposal.ts
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { VoteOnProposalInput, VoteOnProposalResult } from "@/types/decision-space";
+import type {
+  VoteOnProposalInput,
+  VoteOnProposalResult,
+} from "@/types/decision-space";
 
 /**
  * Vote on a decision proposal using quadratic voting
@@ -1420,6 +1508,7 @@ Wraps vote_on_decision_proposal RPC with typed interface."
 ## Task 7: Service - Close Round & Generate Results
 
 **Files:**
+
 - Create: `lib/decision-space/server/closeDecisionRound.ts`
 - Create: `lib/decision-space/server/generateDecisionResults.ts`
 
@@ -1447,14 +1536,16 @@ export async function closeDecisionRound(
   // 1. Fetch round and verify ownership
   const { data: round, error: roundError } = await supabase
     .from("decision_rounds")
-    .select(`
+    .select(
+      `
       id,
       conversation_id,
       status,
       conversations!inner (
         hive_id
       )
-    `)
+    `
+    )
     .eq("id", roundId)
     .maybeSingle();
 
@@ -1576,7 +1667,9 @@ export async function generateDecisionResults(
       totalVotes: voteTotals.get(p.id) || 0,
       votePercent:
         totalVotesAllProposals > 0
-          ? Math.round(((voteTotals.get(p.id) || 0) / totalVotesAllProposals) * 100)
+          ? Math.round(
+              ((voteTotals.get(p.id) || 0) / totalVotesAllProposals) * 100
+            )
           : 0,
       rank: 0, // Will be set after sorting
     }))
@@ -1608,7 +1701,9 @@ export async function generateDecisionResults(
 
   // 7. Add change from previous
   if (previousRankings) {
-    const prevRankMap = new Map(previousRankings.map((r) => [r.proposalId, r.rank]));
+    const prevRankMap = new Map(
+      previousRankings.map((r) => [r.proposalId, r.rank])
+    );
     for (const ranking of rankings) {
       const prevRank = prevRankMap.get(ranking.proposalId);
       if (prevRank !== undefined) {
@@ -1624,7 +1719,8 @@ export async function generateDecisionResults(
     .eq("id", round.conversation_id)
     .single();
 
-  let sourceConsensusData: { statementText: string; agreePercent: number }[] = [];
+  let sourceConsensusData: { statementText: string; agreePercent: number }[] =
+    [];
   if (conversation?.source_conversation_id) {
     const { data: sourceBuckets } = await supabase
       .from("conversation_cluster_buckets")
@@ -1649,14 +1745,19 @@ export async function generateDecisionResults(
   });
 
   // 10. Save results
-  const { error: insertError } = await supabase.from("decision_results").insert({
-    round_id: roundId,
-    proposal_rankings: rankings,
-    ai_analysis: aiAnalysis,
-  });
+  const { error: insertError } = await supabase
+    .from("decision_results")
+    .insert({
+      round_id: roundId,
+      proposal_rankings: rankings,
+      ai_analysis: aiAnalysis,
+    });
 
   if (insertError) {
-    console.error("[generateDecisionResults] Failed to save results:", insertError);
+    console.error(
+      "[generateDecisionResults] Failed to save results:",
+      insertError
+    );
     throw new Error("Failed to save results");
   }
 }
@@ -1676,6 +1777,7 @@ Closes voting rounds and generates ranked results with AI analysis."
 ## Task 8: OpenAI - Generate Decision Analysis
 
 **Files:**
+
 - Create: `lib/analysis/openai/generateDecisionAnalysis.ts`
 
 **Step 1: Write the generator**
@@ -1724,20 +1826,44 @@ Total voters: ${totalVoters}
 ### Top Outcomes (by vote count):
 ${topResults.map((r) => `${r.rank}. "${r.statementText}" - ${r.totalVotes} votes (${r.votePercent}%)${r.changeFromPrevious !== undefined ? ` [${r.changeFromPrevious > 0 ? "+" : ""}${r.changeFromPrevious} from previous round]` : ""}`).join("\n")}
 
-${minorityResults.length > 0 ? `### Notable Minority Positions (10%+ votes but not top 3):
-${minorityResults.map((r) => `- "${r.statementText}" - ${r.totalVotes} votes (${r.votePercent}%)`).join("\n")}` : ""}
+${
+  minorityResults.length > 0
+    ? `### Notable Minority Positions (10%+ votes but not top 3):
+${minorityResults.map((r) => `- "${r.statementText}" - ${r.totalVotes} votes (${r.votePercent}%)`).join("\n")}`
+    : ""
+}
 
-${sourceConsensusData.length > 0 ? `### Original Consensus Data (from understand session):
-${sourceConsensusData.slice(0, 10).map((s) => `- "${s.statementText.substring(0, 100)}..." - ${s.agreePercent}% agreement`).join("\n")}` : ""}
+${
+  sourceConsensusData.length > 0
+    ? `### Original Consensus Data (from understand session):
+${sourceConsensusData
+  .slice(0, 10)
+  .map(
+    (s) =>
+      `- "${s.statementText.substring(0, 100)}..." - ${s.agreePercent}% agreement`
+  )
+  .join("\n")}`
+    : ""
+}
 
-${previousRankings ? `### Comparison to Previous Round:
-${rankings.slice(0, 5).map((r) => {
-  const change = r.changeFromPrevious;
-  if (change === undefined) return "";
-  if (change > 0) return `- "${r.statementText.substring(0, 50)}..." moved UP ${change} position(s)`;
-  if (change < 0) return `- "${r.statementText.substring(0, 50)}..." moved DOWN ${Math.abs(change)} position(s)`;
-  return `- "${r.statementText.substring(0, 50)}..." stayed at same position`;
-}).filter(Boolean).join("\n")}` : ""}
+${
+  previousRankings
+    ? `### Comparison to Previous Round:
+${rankings
+  .slice(0, 5)
+  .map((r) => {
+    const change = r.changeFromPrevious;
+    if (change === undefined) return "";
+    if (change > 0)
+      return `- "${r.statementText.substring(0, 50)}..." moved UP ${change} position(s)`;
+    if (change < 0)
+      return `- "${r.statementText.substring(0, 50)}..." moved DOWN ${Math.abs(change)} position(s)`;
+    return `- "${r.statementText.substring(0, 50)}..." stayed at same position`;
+  })
+  .filter(Boolean)
+  .join("\n")}`
+    : ""
+}
 
 ---
 
@@ -1789,6 +1915,7 @@ git commit -m "feat: add generateDecisionAnalysis for AI-powered result summarie
 ## Task 9: API Routes
 
 **Files:**
+
 - Create: `app/api/decision-space/setup/route.ts`
 - Create: `app/api/decision-space/route.ts`
 - Create: `app/api/decision-space/[conversationId]/vote/route.ts`
@@ -1814,13 +1941,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sourceConversationId = searchParams.get("sourceConversationId");
 
-    const parseResult = getDecisionSetupDataSchema.safeParse({ sourceConversationId });
+    const parseResult = getDecisionSetupDataSchema.safeParse({
+      sourceConversationId,
+    });
     if (!parseResult.success) {
-      return jsonError("sourceConversationId is required", 400, "VALIDATION_ERROR");
+      return jsonError(
+        "sourceConversationId is required",
+        400,
+        "VALIDATION_ERROR"
+      );
     }
 
     const supabase = await supabaseServerClient();
-    const data = await getDecisionSetupData(supabase, userId, parseResult.data.sourceConversationId);
+    const data = await getDecisionSetupData(
+      supabase,
+      userId,
+      parseResult.data.sourceConversationId
+    );
 
     return NextResponse.json(data);
   } catch (err) {
@@ -1856,14 +1993,22 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await supabaseServerClient();
-    const result = await createDecisionSession(supabase, userId, parseResult.data);
+    const result = await createDecisionSession(
+      supabase,
+      userId,
+      parseResult.data
+    );
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     console.error("[POST /api/decision-space]", err);
     const message = err instanceof Error ? err.message : "Internal error";
     const status = message.includes("admin") ? 403 : 500;
-    return jsonError(message, status, status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR");
+    return jsonError(
+      message,
+      status,
+      status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR"
+    );
   }
 }
 ```
@@ -1893,7 +2038,11 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await supabaseServerClient();
-    const result = await voteOnDecisionProposal(supabase, userId, parseResult.data);
+    const result = await voteOnDecisionProposal(
+      supabase,
+      userId,
+      parseResult.data
+    );
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -1936,7 +2085,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.error("[POST /api/decision-space/.../close]", err);
     const message = err instanceof Error ? err.message : "Internal error";
     const status = message.includes("admin") ? 403 : 500;
-    return jsonError(message, status, status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR");
+    return jsonError(
+      message,
+      status,
+      status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR"
+    );
   }
 }
 ```
@@ -1958,6 +2111,7 @@ git commit -m "feat: add decision space API routes
 ## Task 10: React Hook - Decision Setup Wizard
 
 **Files:**
+
 - Create: `lib/decision-space/react/useDecisionSetupWizard.ts`
 
 **Step 1: Write the hook**
@@ -1987,7 +2141,12 @@ export interface UseDecisionSetupWizardReturn {
   error: string | null;
 
   // Step 1: Source selection
-  sourceConversations: { id: string; title: string; clusterCount: number; date: string }[];
+  sourceConversations: {
+    id: string;
+    title: string;
+    clusterCount: number;
+    date: string;
+  }[];
   selectedSourceId: string | null;
   setSelectedSourceId: (id: string | null) => void;
 
@@ -2106,7 +2265,10 @@ export function useDecisionSetupWizard({
       })
       .catch((err) => {
         if (cancelled) return;
-        console.error("[useDecisionSetupWizard] Failed to fetch setup data:", err);
+        console.error(
+          "[useDecisionSetupWizard] Failed to fetch setup data:",
+          err
+        );
         setError("Failed to load clusters and statements");
       })
       .finally(() => {
@@ -2123,8 +2285,11 @@ export function useDecisionSetupWizard({
     setStatements((prev) =>
       prev.map((s) => ({
         ...s,
-        recommended: s.agreePercent !== null && s.agreePercent >= consensusThreshold,
-        selected: s.selected || (s.agreePercent !== null && s.agreePercent >= consensusThreshold),
+        recommended:
+          s.agreePercent !== null && s.agreePercent >= consensusThreshold,
+        selected:
+          s.selected ||
+          (s.agreePercent !== null && s.agreePercent >= consensusThreshold),
       }))
     );
   }, [consensusThreshold]);
@@ -2253,7 +2418,9 @@ export function useDecisionSetupWizard({
 
       const result = await response.json();
       const hiveKey = hiveSlug || hiveId;
-      router.push(`/hives/${hiveKey}/conversations/${result.conversationId}/decide`);
+      router.push(
+        `/hives/${hiveKey}/conversations/${result.conversationId}/decide`
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create session");
     } finally {
@@ -2316,15 +2483,18 @@ git commit -m "feat: add useDecisionSetupWizard hook for 4-step setup flow"
 ## Task 11: UI Component - Decision Setup Wizard
 
 **Files:**
+
 - Create: `app/components/decision-setup-wizard.tsx`
 
 This task creates the 4-step wizard UI using the hook from Task 10. The component renders:
+
 - Step 1: Source session dropdown
 - Step 2: Cluster selection cards with checkboxes
 - Step 3: Statement selection with threshold slider
 - Step 4: Title, description, visibility, deadline settings
 
 Due to length, implement following the patterns in `new-session-wizard.tsx`:
+
 - Use Tailwind for all styling
 - Use the hook for all state/logic
 - Keep rendering thin
@@ -2342,12 +2512,14 @@ git commit -m "feat: add DecisionSetupWizard UI component"
 ## Task 12: Decision Session Tabs UI
 
 **Files:**
+
 - Create: `app/(main)/hives/[hiveId]/conversations/[conversationId]/decide/page.tsx`
 - Create: `app/components/conversation/DecisionListenTab.tsx`
 - Create: `app/components/conversation/DecisionVoteTab.tsx`
 - Create: `app/components/conversation/DecisionResultsTab.tsx`
 
 These components implement the 3-tab interface:
+
 - **Listen Tab**: Clusters with collapsible statements, expandable to show original responses
 - **Vote Tab**: Quadratic voting interface with budget display
 - **Results Tab**: Two-column layout with rankings and AI analysis
@@ -2375,6 +2547,7 @@ git commit -m "feat: add DecisionResultsTab with rankings and AI analysis"
 ## Task 13: Documentation Updates
 
 **Files:**
+
 - Modify: `docs/feature-map.md`
 - Modify: `lib/conversations/README.md`
 - Modify: `supabase/README.md`
@@ -2382,22 +2555,26 @@ git commit -m "feat: add DecisionResultsTab with rankings and AI analysis"
 **Step 1: Update feature-map.md**
 
 Add decision space section:
+
 ```markdown
 ## Decision Space
 
 ### Setup Flow
+
 - Entry: `app/components/decision-setup-wizard.tsx`
 - Hook: `lib/decision-space/react/useDecisionSetupWizard.ts`
 - API: `GET /api/decision-space/setup`, `POST /api/decision-space`
 - Service: `lib/decision-space/server/createDecisionSession.ts`
 
 ### Voting
+
 - UI: `app/components/conversation/DecisionVoteTab.tsx`
 - API: `POST /api/decision-space/[id]/vote`
 - Service: `lib/decision-space/server/voteOnDecisionProposal.ts`
 - RPC: `vote_on_decision_proposal` (budget-enforced quadratic voting)
 
 ### Results
+
 - UI: `app/components/conversation/DecisionResultsTab.tsx`
 - API: `POST /api/decision-space/[id]/rounds/[roundId]/close`
 - Service: `lib/decision-space/server/closeDecisionRound.ts`
@@ -2424,9 +2601,11 @@ git commit -m "docs: add decision space documentation"
 ## Task 14: Integration Tests
 
 **Files:**
+
 - Create: `lib/decision-space/server/__tests__/integration.test.ts`
 
 Write integration tests covering:
+
 1. Full setup flow: fetch data → create session → verify proposals created
 2. Voting flow: cast votes → verify budget enforcement
 3. Close round flow: close → verify results generated
@@ -2472,20 +2651,20 @@ git commit -m "feat: complete decision space implementation"
 
 This plan implements Decision Space in 15 tasks:
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1 | Database migration | `024_decision_space_tables.sql` |
-| 2 | TypeScript types | `types/decision-space.ts` |
-| 3 | Zod schemas | `lib/decision-space/schemas.ts` |
-| 4 | Setup data service | `getDecisionSetupData.ts` |
-| 5 | Create session service | `createDecisionSession.ts` |
-| 6 | Vote service | `voteOnDecisionProposal.ts` |
-| 7 | Close round services | `closeDecisionRound.ts`, `generateDecisionResults.ts` |
-| 8 | AI analysis | `generateDecisionAnalysis.ts` |
-| 9 | API routes | `app/api/decision-space/` |
-| 10 | Setup wizard hook | `useDecisionSetupWizard.ts` |
-| 11 | Setup wizard UI | `decision-setup-wizard.tsx` |
-| 12 | Session tabs UI | `DecisionListenTab`, `DecisionVoteTab`, `DecisionResultsTab` |
-| 13 | Documentation | `feature-map.md`, READMEs |
-| 14 | Integration tests | `integration.test.ts` |
-| 15 | Final verification | All checks pass |
+| Task | Description            | Files                                                        |
+| ---- | ---------------------- | ------------------------------------------------------------ |
+| 1    | Database migration     | `024_decision_space_tables.sql`                              |
+| 2    | TypeScript types       | `types/decision-space.ts`                                    |
+| 3    | Zod schemas            | `lib/decision-space/schemas.ts`                              |
+| 4    | Setup data service     | `getDecisionSetupData.ts`                                    |
+| 5    | Create session service | `createDecisionSession.ts`                                   |
+| 6    | Vote service           | `voteOnDecisionProposal.ts`                                  |
+| 7    | Close round services   | `closeDecisionRound.ts`, `generateDecisionResults.ts`        |
+| 8    | AI analysis            | `generateDecisionAnalysis.ts`                                |
+| 9    | API routes             | `app/api/decision-space/`                                    |
+| 10   | Setup wizard hook      | `useDecisionSetupWizard.ts`                                  |
+| 11   | Setup wizard UI        | `decision-setup-wizard.tsx`                                  |
+| 12   | Session tabs UI        | `DecisionListenTab`, `DecisionVoteTab`, `DecisionResultsTab` |
+| 13   | Documentation          | `feature-map.md`, READMEs                                    |
+| 14   | Integration tests      | `integration.test.ts`                                        |
+| 15   | Final verification     | All checks pass                                              |

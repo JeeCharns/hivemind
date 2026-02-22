@@ -79,9 +79,10 @@ describe("useNewSessionWizard", () => {
     });
 
     it("should advance to step 2 without creating conversation", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
       mockCreate.mockResolvedValue({ id: "conv-123" });
 
       const { result } = renderHook(() => useNewSessionWizard(defaultProps));
@@ -104,9 +105,10 @@ describe("useNewSessionWizard", () => {
     });
 
     it("should handle creation errors in onSkipImport", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
       // Create a proper Error with message property
       const error = Object.assign(new Error("Unauthorized"), {
         name: "ConversationApiError",
@@ -140,9 +142,10 @@ describe("useNewSessionWizard", () => {
     });
 
     it("should trim whitespace from title and description when creating conversation", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
       mockCreate.mockResolvedValue({ id: "conv-123" });
 
       const { result } = renderHook(() => useNewSessionWizard(defaultProps));
@@ -203,7 +206,9 @@ describe("useNewSessionWizard", () => {
       });
 
       expect(result.current.file).toBeNull();
-      expect(result.current.uploadError).toContain("File size must be less than");
+      expect(result.current.uploadError).toContain(
+        "File size must be less than"
+      );
     });
 
     it("should accept valid CSV file", () => {
@@ -222,9 +227,10 @@ describe("useNewSessionWizard", () => {
     });
 
     it("should skip import and navigate (creating conversation first)", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
       mockCreate.mockResolvedValue({ id: "conv-123" });
 
       const { result } = renderHook(() => useNewSessionWizard(defaultProps));
@@ -260,12 +266,14 @@ describe("useNewSessionWizard", () => {
     });
 
     it("should upload file and navigate (creating conversation first)", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
-      const mockUpload = conversationApi.uploadConversationCsv as jest.MockedFunction<
-        typeof conversationApi.uploadConversationCsv
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
+      const mockUpload =
+        conversationApi.uploadConversationCsv as jest.MockedFunction<
+          typeof conversationApi.uploadConversationCsv
+        >;
 
       mockCreate.mockResolvedValue({ id: "conv-123" });
       mockUpload.mockResolvedValue({ importedCount: 5 });
@@ -302,12 +310,14 @@ describe("useNewSessionWizard", () => {
     });
 
     it("should handle upload errors", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
-      const mockUpload = conversationApi.uploadConversationCsv as jest.MockedFunction<
-        typeof conversationApi.uploadConversationCsv
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
+      const mockUpload =
+        conversationApi.uploadConversationCsv as jest.MockedFunction<
+          typeof conversationApi.uploadConversationCsv
+        >;
 
       mockCreate.mockResolvedValue({ id: "conv-123" });
       // Create a proper Error with message property
@@ -341,20 +351,22 @@ describe("useNewSessionWizard", () => {
         () => {
           expect(result.current.uploadError).toBeTruthy();
           // The error is caught and falls back to generic message since instanceof check fails in tests
-          expect(result.current.uploadError).toContain("Failed to create session or upload file");
+          expect(result.current.uploadError).toContain(
+            "Failed to create session or upload file"
+          );
           expect(result.current.uploadStatus).toBe("error");
         },
         { timeout: 2000 }
       );
     });
-
   });
 
   describe("Navigation", () => {
     it("should use hiveSlug in URL when available", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
       mockCreate.mockResolvedValue({ id: "conv-123" });
 
       const { result } = renderHook(() =>
@@ -383,9 +395,10 @@ describe("useNewSessionWizard", () => {
     });
 
     it("should fall back to hiveId when slug is null", async () => {
-      const mockCreate = conversationApi.createConversation as jest.MockedFunction<
-        typeof conversationApi.createConversation
-      >;
+      const mockCreate =
+        conversationApi.createConversation as jest.MockedFunction<
+          typeof conversationApi.createConversation
+        >;
       mockCreate.mockResolvedValue({ id: "conv-123" });
 
       const { result } = renderHook(() =>

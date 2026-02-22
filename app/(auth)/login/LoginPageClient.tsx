@@ -326,10 +326,7 @@ function getOtpError(err: unknown): {
   }
 
   // Handle invalid/expired OTP errors
-  if (
-    code === "otp_expired" ||
-    message.toLowerCase().includes("expired")
-  ) {
+  if (code === "otp_expired" || message.toLowerCase().includes("expired")) {
     return {
       message: "Code expired. Please request a new one.",
       isRateLimit: false,

@@ -40,7 +40,8 @@ export async function getProfileStatus(
   }
 
   // If profile exists but display_name is missing/empty, user needs setup
-  const needsSetup = !profile.display_name || profile.display_name.trim() === "";
+  const needsSetup =
+    !profile.display_name || profile.display_name.trim() === "";
 
   return {
     hasProfile: true,

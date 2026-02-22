@@ -67,7 +67,10 @@ export default async function InvitePage({ params }: InvitePageProps) {
 
   if (!session) {
     // Not authenticated - redirect to login (cookie is set by login page via API)
-    const loginUrl = new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
+    const loginUrl = new URL(
+      "/login",
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    );
     loginUrl.searchParams.set("intent", "join");
     loginUrl.searchParams.set("invite", token);
     loginUrl.searchParams.set("hiveName", hiveName);

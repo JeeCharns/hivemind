@@ -48,7 +48,8 @@ export async function getMembersWithSignedUrls(
   // 2. Fetch members with user details
   const { data: members, error } = await supabase
     .from("hive_members")
-    .select(`
+    .select(
+      `
       user_id,
       role,
       profiles:user_id (
@@ -56,7 +57,8 @@ export async function getMembersWithSignedUrls(
         display_name,
         avatar_path
       )
-    `)
+    `
+    )
     .eq("hive_id", hiveId);
 
   if (error) {
@@ -86,7 +88,10 @@ export async function getMembersWithSignedUrls(
             signedAvatarUrl = data.signedUrl;
           }
         } catch (err) {
-          console.warn(`Failed to sign avatar URL for user ${member.user_id}:`, err);
+          console.warn(
+            `Failed to sign avatar URL for user ${member.user_id}:`,
+            err
+          );
         }
       } else if (avatarPath?.startsWith("http")) {
         // Already a full URL (e.g., OAuth provider avatar)

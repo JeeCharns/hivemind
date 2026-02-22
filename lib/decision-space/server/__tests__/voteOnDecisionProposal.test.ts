@@ -41,7 +41,11 @@ describe("voteOnDecisionProposal", () => {
 
   it("returns error when budget exceeded", async () => {
     mockSupabase.rpc.mockResolvedValue({
-      data: { success: false, error_code: "BUDGET_EXCEEDED", remaining_credits: 3 },
+      data: {
+        success: false,
+        error_code: "BUDGET_EXCEEDED",
+        remaining_credits: 3,
+      },
       error: null,
     });
 

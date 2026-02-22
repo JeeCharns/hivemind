@@ -29,10 +29,10 @@ Supabase uses PgBouncer for connection pooling. **This is required for handling 
 ### Capacity by Plan
 
 | Plan | Direct Connections | Pooled Connections |
-|------|-------------------|-------------------|
-| Free | 15 | 50 |
-| Pro | 60 | 200 |
-| Team | 120 | 400 |
+| ---- | ------------------ | ------------------ |
+| Free | 15                 | 50                 |
+| Pro  | 60                 | 200                |
+| Team | 120                | 400                |
 
 For 200+ concurrent users, **Pro plan or higher is required**.
 
@@ -74,6 +74,7 @@ INTERNAL_API_KEY=generate-a-secure-random-key
 If SMTP is not configured, in-app notifications still work but emails are skipped.
 
 **Database triggers:** Notification triggers are created by migration `039_create_notifications.sql`. These automatically create in-app notifications when:
+
 - New conversation starts in a hive
 - Conversation analysis completes
 - Report is generated

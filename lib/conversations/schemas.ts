@@ -52,7 +52,9 @@ export const triggerAnalysisRequestSchema = z.object({
   strategy: z.enum(["auto", "incremental", "full"]).optional().default("auto"),
 });
 
-export type TriggerAnalysisRequest = z.infer<typeof triggerAnalysisRequestSchema>;
+export type TriggerAnalysisRequest = z.infer<
+  typeof triggerAnalysisRequestSchema
+>;
 
 /**
  * Schema for analysis trigger response
@@ -60,14 +62,16 @@ export type TriggerAnalysisRequest = z.infer<typeof triggerAnalysisRequestSchema
 export const triggerAnalysisResponseSchema = z.object({
   status: z.enum(["queued", "already_running", "already_complete"]),
   strategy: z.enum(["incremental", "full"]).optional(),
-  reason: z.enum([
-    "fresh",
-    "stale",
-    "in_progress",
-    "below_threshold",
-    "wrong_type",
-    "missing_prereqs",
-  ]).optional(),
+  reason: z
+    .enum([
+      "fresh",
+      "stale",
+      "in_progress",
+      "below_threshold",
+      "wrong_type",
+      "missing_prereqs",
+    ])
+    .optional(),
   currentResponseCount: z.number().int().nonnegative().optional(),
   analysisResponseCount: z.number().int().nonnegative().nullable().optional(),
   newResponsesSinceAnalysis: z.number().int().nonnegative().optional(),
@@ -83,14 +87,22 @@ export type TriggerAnalysisResponse = z.infer<
  * Schema for creating a new response
  * Empty/whitespace-only tags are transformed to null
  */
-export const createResponseSchema = z.object({
-  text: z.string().min(1).max(500),
-  tag: z.enum(LISTEN_TAGS as [ListenTag, ...ListenTag[]]).nullable().optional(),
-  anonymous: z.boolean().optional(),
-}).transform((data) => ({
-  ...data,
-  tag: data.tag && typeof data.tag === 'string' && data.tag.trim() ? data.tag : null,
-}));
+export const createResponseSchema = z
+  .object({
+    text: z.string().min(1).max(500),
+    tag: z
+      .enum(LISTEN_TAGS as [ListenTag, ...ListenTag[]])
+      .nullable()
+      .optional(),
+    anonymous: z.boolean().optional(),
+  })
+  .transform((data) => ({
+    ...data,
+    tag:
+      data.tag && typeof data.tag === "string" && data.tag.trim()
+        ? data.tag
+        : null,
+  }));
 
 export type CreateResponseInput = z.infer<typeof createResponseSchema>;
 
@@ -108,14 +120,18 @@ export type AnalysisStatusResponse = z.infer<typeof analysisStatusSchema>;
  * Schema for analysis status endpoint response
  */
 export const getAnalysisStatusResponseSchema = z.object({
-  analysisStatus: z.enum(["not_started", "embedding", "analyzing", "ready", "error"]).nullable(),
+  analysisStatus: z
+    .enum(["not_started", "embedding", "analyzing", "ready", "error"])
+    .nullable(),
   analysisError: z.string().nullable(),
   analysisUpdatedAt: z.string().nullable(),
   responseCount: z.number().int().nonnegative(),
   threshold: z.number().int().positive(),
 });
 
-export type GetAnalysisStatusResponse = z.infer<typeof getAnalysisStatusResponseSchema>;
+export type GetAnalysisStatusResponse = z.infer<
+  typeof getAnalysisStatusResponseSchema
+>;
 
 /**
  * Standard API error response

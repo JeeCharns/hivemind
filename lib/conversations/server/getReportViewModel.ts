@@ -142,7 +142,9 @@ export async function getReportViewModel(
     // Fetch cluster buckets with their member response IDs
     supabase
       .from("conversation_cluster_buckets")
-      .select("id, consolidated_statement, conversation_cluster_bucket_members(response_id)")
+      .select(
+        "id, consolidated_statement, conversation_cluster_bucket_members(response_id)"
+      )
       .eq("conversation_id", conversationId),
 
     // Fetch unconsolidated responses with their text
@@ -178,8 +180,10 @@ export async function getReportViewModel(
   const reportRows = (versionsResult.data || []) as ReportRow[];
   const responseCount = responseCountResult.count || 0;
   const totalInteractions = feedbackCountResult.count || 0;
-  const clusterBuckets = (clusterBucketsResult.data || []) as ClusterBucketRow[];
-  const unconsolidatedRows = (unconsolidatedResult.data || []) as UnconsolidatedResponseRow[];
+  const clusterBuckets = (clusterBucketsResult.data ||
+    []) as ClusterBucketRow[];
+  const unconsolidatedRows = (unconsolidatedResult.data ||
+    []) as UnconsolidatedResponseRow[];
 
   // 5. Build versions list
   const versions: ReportVersion[] = reportRows.map((row) => ({
@@ -265,7 +269,10 @@ export async function getReportViewModel(
   // Total participants = unique users who participated (submitted responses OR voted)
   const uniqueRespondentIds = new Set(responses.map((r) => r.user_id));
   const uniqueVoterIds = new Set(feedbackRows.map((r) => r.user_id));
-  const uniqueParticipantIds = new Set([...uniqueRespondentIds, ...uniqueVoterIds]);
+  const uniqueParticipantIds = new Set([
+    ...uniqueRespondentIds,
+    ...uniqueVoterIds,
+  ]);
   const totalParticipants = uniqueParticipantIds.size;
 
   // Unique voters = unique users who voted on at least one statement

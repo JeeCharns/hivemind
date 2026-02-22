@@ -1,9 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ActivitySidebar, ReactionsSidebar } from '@/components/social';
-import { useHivePresence } from '@/lib/social/hooks';
-import type { ActivityEvent, Reaction, ReactionEmoji } from '@/lib/social/types';
+import { useState } from "react";
+import { ActivitySidebar, ReactionsSidebar } from "@/components/social";
+import { useHivePresence } from "@/lib/social/hooks";
+import type {
+  ActivityEvent,
+  Reaction,
+  ReactionEmoji,
+} from "@/lib/social/types";
 
 interface MobileSocialSheetProps {
   hiveId: string;
@@ -15,7 +19,7 @@ interface MobileSocialSheetProps {
   onAddReaction: (emoji: ReactionEmoji, message?: string) => Promise<void>;
 }
 
-type Tab = 'activity' | 'chat';
+type Tab = "activity" | "chat";
 
 export function MobileSocialSheet({
   hiveId,
@@ -27,7 +31,7 @@ export function MobileSocialSheet({
   onAddReaction,
 }: MobileSocialSheetProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('activity');
+  const [activeTab, setActiveTab] = useState<Tab>("activity");
 
   // Track presence to get viewer count
   const { activeUsers } = useHivePresence({
@@ -57,7 +61,7 @@ export function MobileSocialSheet({
             className="absolute inset-0 bg-black/50"
             onClick={() => setIsOpen(false)}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') {
+              if (e.key === "Escape") {
                 setIsOpen(false);
               }
             }}
@@ -75,32 +79,32 @@ export function MobileSocialSheet({
 
             {/* Tabs */}
             <div className="flex border-b border-gray-200">
-              {(['activity', 'chat'] as Tab[]).map((tab) => (
+              {(["activity", "chat"] as Tab[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 px-4 py-3 text-sm font-medium ${
                     activeTab === tab
-                      ? 'border-b-2 border-amber-500 text-amber-600'
-                      : 'text-gray-500'
+                      ? "border-b-2 border-amber-500 text-amber-600"
+                      : "text-gray-500"
                   }`}
                 >
-                  {tab === 'activity' && 'Activity'}
-                  {tab === 'chat' && 'Chat'}
+                  {tab === "activity" && "Activity"}
+                  {tab === "chat" && "Chat"}
                 </button>
               ))}
             </div>
 
             {/* Content */}
             <div className="p-4">
-              {activeTab === 'activity' && (
+              {activeTab === "activity" && (
                 <ActivitySidebar
                   hiveId={hiveId}
                   initialActivity={initialActivity}
                 />
               )}
-              {activeTab === 'chat' && (
+              {activeTab === "chat" && (
                 <ReactionsSidebar
                   hiveId={hiveId}
                   userId={userId}

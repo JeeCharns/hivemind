@@ -23,12 +23,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   console.log("[GET /api/decision-space/proposals/.../responses] Starting...");
   try {
     const session = await getServerSession();
-    console.log("[GET /api/decision-space/proposals/.../responses] Session:", session ? "found" : "null");
+    console.log(
+      "[GET /api/decision-space/proposals/.../responses] Session:",
+      session ? "found" : "null"
+    );
     if (!session) {
       return jsonError("Unauthorized", 401, "UNAUTHORIZED");
     }
     const { proposalId } = await params;
-    console.log("[GET /api/decision-space/proposals/.../responses] proposalId:", proposalId);
+    console.log(
+      "[GET /api/decision-space/proposals/.../responses] proposalId:",
+      proposalId
+    );
 
     const supabase = supabaseAdminClient();
 
@@ -40,7 +46,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (proposalError) {
-      console.error("[GET /api/decision-space/proposals/.../responses] Proposal error:", proposalError);
+      console.error(
+        "[GET /api/decision-space/proposals/.../responses] Proposal error:",
+        proposalError
+      );
       return jsonError("Proposal not found", 404, "NOT_FOUND");
     }
 
@@ -60,11 +69,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .eq("bucket_id", proposal.source_bucket_id);
 
     if (membersError) {
-      console.error("[GET /api/decision-space/proposals/.../responses] Members error:", membersError);
-      return jsonError(`Failed to fetch bucket members: ${membersError.message}`, 500, "INTERNAL_ERROR");
+      console.error(
+        "[GET /api/decision-space/proposals/.../responses] Members error:",
+        membersError
+      );
+      return jsonError(
+        `Failed to fetch bucket members: ${membersError.message}`,
+        500,
+        "INTERNAL_ERROR"
+      );
     }
 
-    console.log("[GET /api/decision-space/proposals/.../responses] Members found:", members?.length ?? 0);
+    console.log(
+      "[GET /api/decision-space/proposals/.../responses] Members found:",
+      members?.length ?? 0
+    );
 
     if (!members || members.length === 0) {
       return NextResponse.json({ responses: [] });
@@ -72,7 +91,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // 3. Fetch the responses by IDs
     const responseIds = members.map((m) => m.response_id);
-    console.log("[GET /api/decision-space/proposals/.../responses] Fetching response IDs:", responseIds);
+    console.log(
+      "[GET /api/decision-space/proposals/.../responses] Fetching response IDs:",
+      responseIds
+    );
 
     const { data: responseData, error: responsesError } = await supabase
       .from("conversation_responses")
@@ -80,11 +102,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .in("id", responseIds);
 
     if (responsesError) {
-      console.error("[GET /api/decision-space/proposals/.../responses] Responses error:", responsesError);
-      return jsonError(`Failed to fetch responses: ${responsesError.message}`, 500, "INTERNAL_ERROR");
+      console.error(
+        "[GET /api/decision-space/proposals/.../responses] Responses error:",
+        responsesError
+      );
+      return jsonError(
+        `Failed to fetch responses: ${responsesError.message}`,
+        500,
+        "INTERNAL_ERROR"
+      );
     }
 
-    console.log("[GET /api/decision-space/proposals/.../responses] Responses found:", responseData?.length ?? 0);
+    console.log(
+      "[GET /api/decision-space/proposals/.../responses] Responses found:",
+      responseData?.length ?? 0
+    );
 
     // 4. Format responses
     const responses: OriginalResponse[] = (responseData || []).map((r) => ({

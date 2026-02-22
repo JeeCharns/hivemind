@@ -35,7 +35,10 @@ export default function HiveShareInvitePanel({
   const [accessMode, setAccessMode] = useState<AccessMode>("anyone");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: "success" | "error";
+  } | null>(null);
 
   // Invite emails state
   const [emailsText, setEmailsText] = useState("");
@@ -59,7 +62,9 @@ export default function HiveShareInvitePanel({
       setAccessMode(data.accessMode);
     } catch (err) {
       console.error("[HiveShareInvitePanel] Error fetching share link:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch share link");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch share link"
+      );
     } finally {
       setLoading(false);
     }
@@ -103,7 +108,9 @@ export default function HiveShareInvitePanel({
       setToast({ message: "Access mode updated", variant: "success" });
     } catch (err) {
       console.error("[HiveShareInvitePanel] Error updating access mode:", err);
-      setError(err instanceof Error ? err.message : "Failed to update access mode");
+      setError(
+        err instanceof Error ? err.message : "Failed to update access mode"
+      );
     }
   };
 
@@ -142,12 +149,17 @@ export default function HiveShareInvitePanel({
         throw new Error(data?.error ?? "Failed to send invites");
       }
 
-      setToast({ message: `${emails.length} invite(s) sent`, variant: "success" });
+      setToast({
+        message: `${emails.length} invite(s) sent`,
+        variant: "success",
+      });
       setEmailsText("");
       onInvitesUpdated?.();
     } catch (err) {
       console.error("[HiveShareInvitePanel] Error sending invites:", err);
-      setInviteError(err instanceof Error ? err.message : "Failed to send invites");
+      setInviteError(
+        err instanceof Error ? err.message : "Failed to send invites"
+      );
     } finally {
       setInviting(false);
     }
@@ -240,9 +252,9 @@ export default function HiveShareInvitePanel({
       {!linkOnly && accessMode === "invited_only" && isAdmin && (
         <div className="flex flex-col gap-3 p-4 bg-slate-50 border border-slate-200 rounded-md">
           <p className="text-sm text-slate-600">
-            You still need to copy and share the link. These people will need
-            to click it and create an account using the invited email to be
-            added to the hive.
+            You still need to copy and share the link. These people will need to
+            click it and create an account using the invited email to be added
+            to the hive.
           </p>
 
           <Input

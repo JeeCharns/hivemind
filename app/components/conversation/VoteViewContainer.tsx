@@ -25,14 +25,11 @@ export default function VoteViewContainer({
   const router = useRouter();
 
   const handleVote = async (proposalId: string, delta: 1 | -1) => {
-    const response = await fetch(
-      `/api/conversations/${conversationId}/votes`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ responseId: proposalId, delta }),
-      }
-    );
+    const response = await fetch(`/api/conversations/${conversationId}/votes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ responseId: proposalId, delta }),
+    });
 
     if (!response.ok) {
       const error = await response.json();

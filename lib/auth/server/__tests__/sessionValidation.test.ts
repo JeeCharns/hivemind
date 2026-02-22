@@ -1,4 +1,7 @@
-import { getValidatedAuthState, type ValidationReason } from "../sessionValidation";
+import {
+  getValidatedAuthState,
+  type ValidationReason,
+} from "../sessionValidation";
 
 /**
  * Helper to create a test JWT
@@ -25,7 +28,10 @@ function createTestJwt(
 /**
  * Helper to create a Supabase auth cookie
  */
-function createAuthCookie(accessToken: string, name = "sb-test-auth-token"): Array<{
+function createAuthCookie(
+  accessToken: string,
+  name = "sb-test-auth-token"
+): Array<{
   name: string;
   value: string;
 }> {
@@ -240,7 +246,10 @@ describe("sessionValidation", () => {
         sub: "user-old",
         exp: nowSeconds - 3600,
       });
-      const expiredCookies = createAuthCookie(expiredJwt, "sb-expired-auth-token");
+      const expiredCookies = createAuthCookie(
+        expiredJwt,
+        "sb-expired-auth-token"
+      );
 
       // Test with valid cookie - should authenticate
       const validResult = getValidatedAuthState(validCookies);

@@ -94,7 +94,10 @@ export function useHivePresence({
         if (subscriptionStatus === "SUBSCRIBED") {
           setStatus("connected");
           // Debug: log what we're tracking
-          console.log("[useHivePresence] Tracking presence:", { displayName, avatarUrl });
+          console.log("[useHivePresence] Tracking presence:", {
+            displayName,
+            avatarUrl,
+          });
           // Track our own presence
           await channel.track({
             displayName,

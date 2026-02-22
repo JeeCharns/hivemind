@@ -105,7 +105,9 @@ export function useConversationFeed({
         // Optimistically prepend to feed
         setFeed((prev) => [newResponse, ...prev]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to submit response");
+        setError(
+          err instanceof Error ? err.message : "Failed to submit response"
+        );
         throw err; // Re-throw for component to handle
       } finally {
         setIsSubmitting(false);
@@ -191,11 +193,7 @@ export function useConversationFeed({
   const updateResponseLikeCount = useCallback(
     (responseId: string, likeCount: number) => {
       setFeed((prev) =>
-        prev.map((r) =>
-          r.id === responseId
-            ? { ...r, likeCount }
-            : r
-        )
+        prev.map((r) => (r.id === responseId ? { ...r, likeCount } : r))
       );
     },
     []

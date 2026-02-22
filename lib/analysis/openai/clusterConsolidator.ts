@@ -47,11 +47,12 @@ export interface ClusterConsolidationParams {
   maxResponsesPerCall: number; // Limit to manage token usage
 }
 
-export const DEFAULT_CLUSTER_CONSOLIDATION_PARAMS: ClusterConsolidationParams = {
-  model: "gpt-4o-mini",
-  promptVersion: "v2.3",
-  maxResponsesPerCall: 50, // Balance between coverage and token limits
-};
+export const DEFAULT_CLUSTER_CONSOLIDATION_PARAMS: ClusterConsolidationParams =
+  {
+    model: "gpt-4o-mini",
+    promptVersion: "v2.3",
+    maxResponsesPerCall: 50, // Balance between coverage and token limits
+  };
 
 /**
  * Consolidate all responses within a cluster into semantic buckets
@@ -98,7 +99,10 @@ export async function consolidateCluster(
 
   // Debug: log sample of IDs being sent
   console.log(
-    `[consolidateCluster] Cluster ${clusterIndex}: processing ${responsesToProcess.length} responses, sample IDs: ${responsesToProcess.slice(0, 3).map((r) => r.id).join(", ")}`
+    `[consolidateCluster] Cluster ${clusterIndex}: processing ${responsesToProcess.length} responses, sample IDs: ${responsesToProcess
+      .slice(0, 3)
+      .map((r) => r.id)
+      .join(", ")}`
   );
 
   const prompt = buildConsolidationPrompt(responsesToProcess);
@@ -395,8 +399,7 @@ export async function consolidateClusters(
     0
   );
   const totalConsolidated = consolidationResults.reduce(
-    (sum, r) =>
-      sum + r.buckets.reduce((s, b) => s + b.responseIds.length, 0),
+    (sum, r) => sum + r.buckets.reduce((s, b) => s + b.responseIds.length, 0),
     0
   );
   const totalUnconsolidated = consolidationResults.reduce(

@@ -11,6 +11,7 @@ Test files have been created with comprehensive coverage per the spec:
 5. ⚠️ **saveClusterModels.test.ts** - Needs refactoring to use new mock helpers
 
 **Current Test Results**: 53 passing, 16 failing out of 69 total (77% pass rate)
+
 - Remaining failures are in tests that still use old mocking pattern
 - triggerConversationAnalysis tests: 27/27 passing (100%)
   - simple.test.ts: 10/10 ✅
@@ -41,20 +42,24 @@ supabase.single.mockResolvedValueOnce({ data, error }); // breaks chaining
 See [triggerConversationAnalysis.simple.test.ts](./triggerConversationAnalysis.simple.test.ts) for reference implementation.
 
 **mockDataQuery(supabase, data, useSingle = true)**
+
 - Mocks queries that return `{ data, error }`
 - Supports both `.single()` and `.maybeSingle()` termination
 - Example: `mockDataQuery(supabase, conversation)` for conversation fetch
 
 **mockCountQuery(supabase, count)**
+
 - Mocks queries that return `{ count, error }`
 - Used for counting records
 - Example: `mockCountQuery(supabase, 25)` for response count
 
 **mockInsert(supabase, error = null)**
+
 - Mocks insert operations
 - Example: `mockInsert(supabase, { code: "23505" })` for unique constraint violation
 
 **mockUpdate(supabase, error = null)**
+
 - Mocks update operations with `.eq()` chaining
 - Example: `mockUpdate(supabase)` for successful update
 
@@ -102,7 +107,9 @@ The `runConversationAnalysisIncremental.test.ts` file uses complex custom `mockI
 ## Test Structure
 
 ### triggerConversationAnalysis.test.ts
+
 Tests cover:
+
 - ✅ Freshness detection (fresh, stale, in-progress)
 - ✅ Strategy decision logic (incremental vs full)
 - ✅ Authorization and validation
@@ -110,7 +117,9 @@ Tests cover:
 - ✅ Response metadata
 
 ### runConversationAnalysisIncremental.test.ts
+
 Tests cover:
+
 - ✅ New response filtering (timestamp-based, null cluster)
 - ✅ Cluster assignment (nearest centroid, normalization)
 - ✅ 2D placement (within spread radius)
@@ -119,7 +128,9 @@ Tests cover:
 - ✅ Error handling
 
 ### saveClusterModels.test.ts
+
 Tests cover:
+
 - ✅ Cluster model persistence after analysis
 - ✅ Centroid computation (embedding space, 2D space)
 - ✅ Spread radius calculation
@@ -146,6 +157,7 @@ npm test -- --watch lib/conversations/server/__tests__/
 ## Documentation
 
 All test files include:
+
 - File header describing what's being tested
 - Clear test organization with `describe` blocks
 - Descriptive test names following "should X when Y" pattern

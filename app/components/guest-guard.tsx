@@ -15,10 +15,7 @@ interface GuestGuardProps {
  * to unauthenticated users (login, register pages)
  * Redirects authenticated users to the dashboard or their last visited page
  */
-export default function GuestGuard({
-  children,
-  redirectTo,
-}: GuestGuardProps) {
+export default function GuestGuard({ children, redirectTo }: GuestGuardProps) {
   const router = useRouter();
   const { user, loading } = useSession();
 

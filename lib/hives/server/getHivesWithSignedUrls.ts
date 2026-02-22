@@ -41,10 +41,16 @@ export async function getHivesWithSignedUrls(
           if (!error && data?.signedUrl) {
             signedLogoUrl = data.signedUrl;
           } else {
-            console.warn(`Failed to generate signed URL for hive ${hive.id}:`, error);
+            console.warn(
+              `Failed to generate signed URL for hive ${hive.id}:`,
+              error
+            );
           }
         } catch (err) {
-          console.error(`Error generating signed URL for hive ${hive.id}:`, err);
+          console.error(
+            `Error generating signed URL for hive ${hive.id}:`,
+            err
+          );
         }
       }
 
