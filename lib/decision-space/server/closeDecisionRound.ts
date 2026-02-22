@@ -19,14 +19,16 @@ export async function closeDecisionRound(
   // 1. Fetch round and verify ownership
   const { data: round, error: roundError } = await supabase
     .from("decision_rounds")
-    .select(`
+    .select(
+      `
       id,
       conversation_id,
       status,
       conversations!inner (
         hive_id
       )
-    `)
+    `
+    )
     .eq("id", roundId)
     .maybeSingle();
 

@@ -58,7 +58,7 @@ export const OUTLIER_MIN_CLUSTER_SIZE = 6;
  * Cap outliers at this percentage to prevent entire cluster being marked as misc
  * Example: 0.20 = at most 20% of cluster can be outliers
  */
-export const OUTLIER_MAX_RATIO = 0.20;
+export const OUTLIER_MAX_RATIO = 0.2;
 
 /**
  * Minimum cluster count for small datasets (n <= 40)

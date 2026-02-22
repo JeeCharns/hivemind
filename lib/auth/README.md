@@ -10,7 +10,7 @@ Wrap your app with `AuthProvider` in the root layout:
 
 ```tsx
 // app/layout.tsx
-import { AuthProvider } from '@/lib/auth';
+import { AuthProvider } from "@/lib/auth";
 
 export default function RootLayout({ children }) {
   return (
@@ -27,7 +27,7 @@ export default function RootLayout({ children }) {
 
 ```tsx
 // app/dashboard/page.tsx
-import { AuthGuard } from '@/lib/auth';
+import { AuthGuard } from "@/lib/auth";
 
 export default function DashboardPage() {
   return (
@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
 ```tsx
 // app/api/data/route.ts
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from "@/lib/auth";
 
 export async function GET() {
   const session = await requireAuth(); // Redirects if not authenticated
@@ -53,7 +53,7 @@ export async function GET() {
 ### 4. Read Session State
 
 ```tsx
-import { useSession } from '@/lib/auth';
+import { useSession } from "@/lib/auth";
 
 function Profile() {
   const { user, isAuthenticated, isLoading } = useSession();
@@ -78,17 +78,17 @@ The primary login method uses 6-digit OTP codes sent via email:
 5. Session stored in cookies, user redirected to destination
 
 ```tsx
-import { useAuth } from '@/app/(auth)/hooks/useAuth';
+import { useAuth } from "@/app/(auth)/hooks/useAuth";
 
 function LoginFlow() {
   const { sendOtp, verifyOtp, loading } = useAuth();
-  const [step, setStep] = useState<'email' | 'otp'>('email');
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState<"email" | "otp">("email");
+  const [email, setEmail] = useState("");
 
   const handleSendOtp = async (email: string) => {
     await sendOtp(email);
     setEmail(email);
-    setStep('otp');
+    setStep("otp");
   };
 
   const handleVerifyOtp = async (code: string) => {
@@ -120,15 +120,15 @@ Read-only hook for accessing session state. Safe to use anywhere.
 
 ```tsx
 const {
-  status,        // "loading" | "authenticated" | "unauthenticated"
-  session,       // Session | null
-  user,          // SessionUser | null
-  activeHiveId,  // string | null
-  roles,         // string[]
-  error,         // Error | null
-  isLoading,     // boolean
+  status, // "loading" | "authenticated" | "unauthenticated"
+  session, // Session | null
+  user, // SessionUser | null
+  activeHiveId, // string | null
+  roles, // string[]
+  error, // Error | null
+  isLoading, // boolean
   isAuthenticated, // boolean
-  refresh,       // () => Promise<void>
+  refresh, // () => Promise<void>
 } = useSession();
 ```
 
@@ -138,9 +138,9 @@ Hook for protected pages. Automatically redirects unauthenticated users.
 
 ```tsx
 useRequireAuth({
-  redirectTo: "/login",           // Where to redirect
-  allowWhileLoading: false,       // Allow rendering while loading
-  preserveReturnUrl: true,        // Store current URL for post-login redirect
+  redirectTo: "/login", // Where to redirect
+  allowWhileLoading: false, // Allow rendering while loading
+  preserveReturnUrl: true, // Store current URL for post-login redirect
 });
 ```
 
@@ -152,9 +152,9 @@ Client-side route protection. Redirects unauthenticated users to login.
 
 ```tsx
 <AuthGuard
-  redirectTo="/login"             // Redirect destination
-  fallback={<Spinner />}          // Show while loading
-  preserveReturnUrl={true}        // Preserve current URL
+  redirectTo="/login" // Redirect destination
+  fallback={<Spinner />} // Show while loading
+  preserveReturnUrl={true} // Preserve current URL
 >
   <ProtectedContent />
 </AuthGuard>
@@ -166,8 +166,8 @@ Guest-only routes. Redirects authenticated users away.
 
 ```tsx
 <GuestGuard
-  redirectTo="/hives"            // Redirect destination for authenticated users
-  fallback={<Spinner />}         // Show while loading
+  redirectTo="/hives" // Redirect destination for authenticated users
+  fallback={<Spinner />} // Show while loading
 >
   <LoginForm />
 </GuestGuard>
@@ -180,7 +180,7 @@ Guest-only routes. Redirects authenticated users away.
 Server-side auth guard. Throws redirect if not authenticated.
 
 ```tsx
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from "@/lib/auth";
 
 export default async function Page() {
   const session = await requireAuth();
@@ -193,7 +193,7 @@ export default async function Page() {
 Get session without redirecting. Returns null if not authenticated.
 
 ```tsx
-import { getServerSession } from '@/lib/auth';
+import { getServerSession } from "@/lib/auth";
 
 export default async function Page() {
   const session = await getServerSession();
@@ -213,7 +213,7 @@ export default async function Page() {
 Notify other tabs to refresh their session. Call after login/logout.
 
 ```tsx
-import { notifySessionChange } from '@/lib/auth';
+import { notifySessionChange } from "@/lib/auth";
 
 async function handleLogin() {
   await loginUser();
@@ -261,33 +261,41 @@ async function handleLogin() {
 ### SOLID Principles Applied
 
 **Single Responsibility**
+
 - SessionStore: State management only
 - SessionClient: Data fetching only
 - AuthProvider: React integration only
 
 **Open/Closed**
+
 - Extend with new auth methods without modifying core
 - Add new guards without changing store
 
 **Liskov Substitution**
+
 - Any ISessionClient can replace SessionClient
 - Mockable for testing
 
 **Interface Segregation**
+
 - Separate read (useSession) from write (refresh)
 - Minimal interfaces
 
 **Dependency Inversion**
+
 - Store depends on ISessionClient interface
 - Easy to mock and test
 
 ## Security Features
 
 ### ✅ HttpOnly Cookies
+
 Session tokens stored in HttpOnly cookies (managed by Supabase), not accessible to JavaScript.
 
 ### ✅ Open Redirect Prevention
+
 All return URLs validated to prevent open redirects:
+
 ```typescript
 // Only allows same-origin paths starting with /
 if (!url.startsWith("/")) return null;
@@ -296,12 +304,15 @@ if (url.includes("://")) return null;
 ```
 
 ### ✅ Server-Side Enforcement
+
 API routes always check auth server-side, regardless of client state.
 
 ### ✅ CSRF Protection
+
 SameSite cookies + Supabase built-in CSRF protection.
 
 ### ✅ Request Deduplication
+
 Prevents concurrent session fetches and race conditions.
 
 ## Performance Optimizations
@@ -317,10 +328,10 @@ Prevents concurrent session fetches and race conditions.
 ### Unit Tests
 
 ```typescript
-import { SessionStore } from './state/sessionStore';
-import { MockSessionClient } from './test-utils';
+import { SessionStore } from "./state/sessionStore";
+import { MockSessionClient } from "./test-utils";
 
-test('refreshes session and notifies observers', async () => {
+test("refreshes session and notifies observers", async () => {
   const client = new MockSessionClient();
   const store = new SessionStore(client);
 
@@ -330,17 +341,17 @@ test('refreshes session and notifies observers', async () => {
   await store.refresh();
 
   expect(observer).toHaveBeenCalled();
-  expect(store.getState().status).toBe('authenticated');
+  expect(store.getState().status).toBe("authenticated");
 });
 ```
 
 ### Integration Tests
 
 ```typescript
-import { render, screen } from '@testing-library/react';
-import { AuthProvider, useSession } from '@/lib/auth';
+import { render, screen } from "@testing-library/react";
+import { AuthProvider, useSession } from "@/lib/auth";
 
-test('provides session to children', async () => {
+test("provides session to children", async () => {
   // Mock /api/auth/session
   // Render with AuthProvider
   // Verify session propagates
@@ -393,12 +404,14 @@ BroadcastChannel not supported in all browsers. Fallback to `visibilitychange` e
 ### From Old System
 
 **Before:**
+
 ```tsx
 const { user } = useCurrentUser();
 if (!user) router.push("/login");
 ```
 
 **After:**
+
 ```tsx
 <AuthGuard>
   <Content />
@@ -406,6 +419,7 @@ if (!user) router.push("/login");
 ```
 
 **Benefits:**
+
 - ✅ Centralized auth logic
 - ✅ No duplicate fetches
 - ✅ Consistent redirects
@@ -417,7 +431,7 @@ if (!user) router.push("/login");
 ### Protected Dashboard
 
 ```tsx
-import { AuthGuard, useSession } from '@/lib/auth';
+import { AuthGuard, useSession } from "@/lib/auth";
 
 export default function Dashboard() {
   return (
@@ -436,7 +450,7 @@ function DashboardContent() {
 ### Login Page
 
 ```tsx
-import { GuestGuard } from '@/lib/auth';
+import { GuestGuard } from "@/lib/auth";
 
 export default function LoginPage() {
   return (
@@ -450,19 +464,13 @@ export default function LoginPage() {
 ### Conditional Rendering
 
 ```tsx
-import { useSession } from '@/lib/auth';
+import { useSession } from "@/lib/auth";
 
 function Navbar() {
   const { user, isAuthenticated } = useSession();
 
   return (
-    <nav>
-      {isAuthenticated ? (
-        <UserMenu user={user} />
-      ) : (
-        <LoginButton />
-      )}
-    </nav>
+    <nav>{isAuthenticated ? <UserMenu user={user} /> : <LoginButton />}</nav>
   );
 }
 ```
@@ -470,8 +478,8 @@ function Navbar() {
 ### API Route
 
 ```tsx
-import { requireAuth } from '@/lib/auth';
-import { NextResponse } from 'next/server';
+import { requireAuth } from "@/lib/auth";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const session = await requireAuth();

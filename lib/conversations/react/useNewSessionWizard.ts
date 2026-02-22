@@ -52,7 +52,10 @@ export interface UseNewSessionWizardReturn {
   onFinish: () => Promise<void>;
 
   // Decision session handlers
-  setSelectedReport: (conversationId: string | null, version?: number | null) => void;
+  setSelectedReport: (
+    conversationId: string | null,
+    version?: number | null
+  ) => void;
 }
 
 const MAX_FILE_SIZE_MB = 10;
@@ -91,9 +94,9 @@ export function useNewSessionWizard({
   // Decision session state
   const [selectedReportConversationId, setSelectedReportConversationId] =
     useState<string | null>(null);
-  const [selectedReportVersion, setSelectedReportVersion] = useState<number | null>(
-    null
-  );
+  const [selectedReportVersion, setSelectedReportVersion] = useState<
+    number | null
+  >(null);
 
   // Reset wizard when modal opens/closes
   useEffect(() => {
@@ -248,8 +251,14 @@ export function useNewSessionWizard({
         type,
         title: title.trim(),
         description: description.trim() || undefined,
-        sourceConversationId: type === "decide" ? selectedReportConversationId ?? undefined : undefined,
-        sourceReportVersion: type === "decide" && selectedReportVersion ? selectedReportVersion : undefined,
+        sourceConversationId:
+          type === "decide"
+            ? (selectedReportConversationId ?? undefined)
+            : undefined,
+        sourceReportVersion:
+          type === "decide" && selectedReportVersion
+            ? selectedReportVersion
+            : undefined,
       });
 
       navigateToConversation(result.id);
@@ -262,7 +271,16 @@ export function useNewSessionWizard({
     } finally {
       setLoading(false);
     }
-  }, [conversationId, navigateToConversation, hiveId, type, title, description, selectedReportConversationId, selectedReportVersion]);
+  }, [
+    conversationId,
+    navigateToConversation,
+    hiveId,
+    type,
+    title,
+    description,
+    selectedReportConversationId,
+    selectedReportVersion,
+  ]);
 
   /**
    * Set selected report for decision sessions
@@ -293,8 +311,14 @@ export function useNewSessionWizard({
           type,
           title: title.trim(),
           description: description.trim() || undefined,
-          sourceConversationId: type === "decide" ? selectedReportConversationId ?? undefined : undefined,
-          sourceReportVersion: type === "decide" && selectedReportVersion ? selectedReportVersion : undefined,
+          sourceConversationId:
+            type === "decide"
+              ? (selectedReportConversationId ?? undefined)
+              : undefined,
+          sourceReportVersion:
+            type === "decide" && selectedReportVersion
+              ? selectedReportVersion
+              : undefined,
         });
         finalConversationId = result.id;
         setConversationId(finalConversationId);
@@ -318,7 +342,9 @@ export function useNewSessionWizard({
       navigateToConversation(finalConversationId);
     } catch (err) {
       const message =
-        err instanceof ConversationApiError ? err.message : "Failed to create session or upload file";
+        err instanceof ConversationApiError
+          ? err.message
+          : "Failed to create session or upload file";
       if (isUploadError) {
         setUploadStatus("error");
         setUploadError(message);
@@ -328,7 +354,17 @@ export function useNewSessionWizard({
     } finally {
       setLoading(false);
     }
-  }, [conversationId, file, navigateToConversation, hiveId, type, title, description, selectedReportConversationId, selectedReportVersion]);
+  }, [
+    conversationId,
+    file,
+    navigateToConversation,
+    hiveId,
+    type,
+    title,
+    description,
+    selectedReportConversationId,
+    selectedReportVersion,
+  ]);
 
   return {
     // State

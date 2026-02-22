@@ -1,11 +1,18 @@
 /** @jest-environment node */
 import { GET } from "@/app/api/auth/invite-context/route";
-import { getInviteCookie, clearInviteCookie } from "@/lib/auth/server/inviteCookie";
+import {
+  getInviteCookie,
+  clearInviteCookie,
+} from "@/lib/auth/server/inviteCookie";
 
 jest.mock("@/lib/auth/server/inviteCookie");
 
-const mockGetInviteCookie = getInviteCookie as jest.MockedFunction<typeof getInviteCookie>;
-const mockClearInviteCookie = clearInviteCookie as jest.MockedFunction<typeof clearInviteCookie>;
+const mockGetInviteCookie = getInviteCookie as jest.MockedFunction<
+  typeof getInviteCookie
+>;
+const mockClearInviteCookie = clearInviteCookie as jest.MockedFunction<
+  typeof clearInviteCookie
+>;
 
 describe("GET /api/auth/invite-context", () => {
   beforeEach(() => {

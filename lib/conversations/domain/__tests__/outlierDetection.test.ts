@@ -28,7 +28,9 @@ describe("computeMedian", () => {
   });
 
   it("throws on empty array", () => {
-    expect(() => computeMedian([])).toThrow("Cannot compute median of empty array");
+    expect(() => computeMedian([])).toThrow(
+      "Cannot compute median of empty array"
+    );
   });
 });
 
@@ -36,7 +38,7 @@ describe("computeMAD", () => {
   it("computes MAD for normal distribution", () => {
     const values = [1, 2, 3, 4, 5];
     const median = computeMedian(values); // 3
-    const deviations = values.map(v => Math.abs(v - median)); // [2, 1, 0, 1, 2]
+    const deviations = values.map((v) => Math.abs(v - median)); // [2, 1, 0, 1, 2]
     const expectedMAD = computeMedian(deviations); // 1
     expect(computeMAD(values)).toBe(expectedMAD);
   });
@@ -62,11 +64,11 @@ describe("computeMADZScores", () => {
     const zScores = computeMADZScores(distances);
 
     // z = SCALE_FACTOR * |distance - median| / MAD
-    expect(zScores[0]).toBeCloseTo(SCALE_FACTOR * 2 / 1); // |1 - 3| / 1
-    expect(zScores[1]).toBeCloseTo(SCALE_FACTOR * 1 / 1); // |2 - 3| / 1
-    expect(zScores[2]).toBeCloseTo(SCALE_FACTOR * 0 / 1); // |3 - 3| / 1
-    expect(zScores[3]).toBeCloseTo(SCALE_FACTOR * 1 / 1); // |4 - 3| / 1
-    expect(zScores[4]).toBeCloseTo(SCALE_FACTOR * 2 / 1); // |5 - 3| / 1
+    expect(zScores[0]).toBeCloseTo((SCALE_FACTOR * 2) / 1); // |1 - 3| / 1
+    expect(zScores[1]).toBeCloseTo((SCALE_FACTOR * 1) / 1); // |2 - 3| / 1
+    expect(zScores[2]).toBeCloseTo((SCALE_FACTOR * 0) / 1); // |3 - 3| / 1
+    expect(zScores[3]).toBeCloseTo((SCALE_FACTOR * 1) / 1); // |4 - 3| / 1
+    expect(zScores[4]).toBeCloseTo((SCALE_FACTOR * 2) / 1); // |5 - 3| / 1
   });
 
   it("returns zeros when MAD is 0", () => {
@@ -84,10 +86,13 @@ describe("detectOutliers", () => {
   it("detects outliers above threshold", () => {
     // Create data with clear outliers
     const distances = [1, 1.1, 0.9, 1.05, 0.95, 10]; // Last value is outlier
-    const outliers = detectOutliers(distances, { threshold: 3.5, minClusterSize: 5 });
+    const outliers = detectOutliers(distances, {
+      threshold: 3.5,
+      minClusterSize: 5,
+    });
 
     expect(outliers[5]).toBe(true); // Outlier
-    expect(outliers.slice(0, 5).every(o => !o)).toBe(true); // Rest are not outliers
+    expect(outliers.slice(0, 5).every((o) => !o)).toBe(true); // Rest are not outliers
   });
 
   it("respects minClusterSize threshold", () => {
@@ -104,10 +109,10 @@ describe("detectOutliers", () => {
     const outliers = detectOutliers(distances, {
       threshold: 1.0, // Low threshold to mark many as outliers
       minClusterSize: 5,
-      maxOutlierRatio: 0.20, // Cap at 20%
+      maxOutlierRatio: 0.2, // Cap at 20%
     });
 
-    const outlierCount = outliers.filter(o => o).length;
+    const outlierCount = outliers.filter((o) => o).length;
     expect(outlierCount).toBeLessThanOrEqual(2); // 20% of 10 = 2
   });
 
@@ -119,19 +124,21 @@ describe("detectOutliers", () => {
     const outliers = detectOutliers(distances, {
       threshold: 0.1, // Very low threshold
       minClusterSize: 5,
-      maxOutlierRatio: 0.10, // Cap at 10% of 25 = 2 outliers
+      maxOutlierRatio: 0.1, // Cap at 10% of 25 = 2 outliers
     });
 
-    const outlierCount = outliers.filter(o => o).length;
+    const outlierCount = outliers.filter((o) => o).length;
 
     // Should cap at 10% of 25 points = 2 outliers
     expect(outlierCount).toBeLessThanOrEqual(3);
 
     // If we get outliers, the highest distance values should be marked
-    const outlierIndices = outliers.map((o, i) => o ? i : -1).filter(i => i >= 0);
+    const outlierIndices = outliers
+      .map((o, i) => (o ? i : -1))
+      .filter((i) => i >= 0);
     if (outlierIndices.length > 0) {
       // Outliers should come from the high-distance values (indices 20-24)
-      expect(outlierIndices.every(i => i >= 20)).toBe(true);
+      expect(outlierIndices.every((i) => i >= 20)).toBe(true);
     }
   });
 
@@ -139,7 +146,7 @@ describe("detectOutliers", () => {
     const distances = [1, 1.05, 0.95, 1.1, 0.9]; // Tight cluster
     const outliers = detectOutliers(distances, { threshold: 5.0 });
 
-    expect(outliers.every(o => !o)).toBe(true);
+    expect(outliers.every((o) => !o)).toBe(true);
   });
 });
 
@@ -213,7 +220,9 @@ describe("detectOutliersPerCluster", () => {
   it("throws when array lengths don't match", () => {
     expect(() => {
       detectOutliersPerCluster([0, 1], [1, 2, 3]);
-    }).toThrow("clusterAssignments and distancesToCentroid must have same length");
+    }).toThrow(
+      "clusterAssignments and distancesToCentroid must have same length"
+    );
   });
 
   it("applies maxOutlierRatio per cluster", () => {
@@ -225,7 +234,7 @@ describe("detectOutliersPerCluster", () => {
       distancesToCentroid,
       {
         threshold: 1.0, // Low threshold
-        maxOutlierRatio: 0.20, // Max 20%
+        maxOutlierRatio: 0.2, // Max 20%
         minClusterSize: 5,
       }
     );

@@ -30,7 +30,10 @@ export async function GET() {
       await joinWelcomeHive(supabase, session.user.id);
     } catch (err) {
       // Log but don't block profile status check
-      console.error("[GET /api/profile/status] Failed to join Welcome Hive:", err);
+      console.error(
+        "[GET /api/profile/status] Failed to join Welcome Hive:",
+        err
+      );
     }
 
     const status = await getProfileStatus(supabase, session.user.id);

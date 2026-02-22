@@ -5,6 +5,7 @@ This document describes the Supabase Realtime configuration required for push-ba
 ## Overview
 
 The Understand feature uses Supabase Realtime to push analysis updates to the browser instead of relying solely on polling. This provides:
+
 - Immediate UI updates when analysis completes
 - Reduced server load (status polling runs as a low-frequency safety net)
 - Better user experience with live status updates
@@ -149,10 +150,12 @@ Location: [lib/conversations/react/useConversationAnalysisRealtime.ts](../lib/co
    - Triggers refresh when themes are generated
 
 **Debouncing:**
+
 - Default 500ms debounce to collapse burst updates
 - Theme inserts + status update often happen together
 
 **Polling safety net:**
+
 - `useAnalysisStatus` runs while analysis is in progress to prevent silent stalls
 - Polling interval: 5 seconds when realtime is unavailable, 15 seconds when connected (lightweight status check)
 
@@ -161,6 +164,7 @@ Location: [lib/conversations/react/useConversationAnalysisRealtime.ts](../lib/co
 Location: [app/components/conversation/UnderstandViewContainer.tsx](../app/components/conversation/UnderstandViewContainer.tsx)
 
 **Behavior:**
+
 - Subscribes to realtime when `responseCount >= 20` and analysis in progress
 - Shows connection status indicator ("● Live updates enabled")
 - Uses a status polling safety net (faster when realtime errors, slower when connected)
@@ -189,6 +193,7 @@ Location: [app/components/conversation/UnderstandViewContainer.tsx](../app/compo
 **No events arriving:**
 
 1. Check replication is enabled:
+
    ```sql
    SELECT * FROM pg_publication_tables
    WHERE pubname = 'supabase_realtime'
@@ -196,6 +201,7 @@ Location: [app/components/conversation/UnderstandViewContainer.tsx](../app/compo
    ```
 
 2. Check RLS policies exist:
+
    ```sql
    SELECT tablename, policyname, cmd
    FROM pg_policies
@@ -218,6 +224,7 @@ Location: [app/components/conversation/UnderstandViewContainer.tsx](../app/compo
 ### Debouncing
 
 The hook debounces refresh calls by 500ms. This means:
+
 - Multiple theme inserts + 1 status update = 1 API call
 - Worker writes complete quickly (< 500ms between writes) = collapsed into single refresh
 
@@ -230,11 +237,13 @@ The hook debounces refresh calls by 500ms. This means:
 ### Scaling
 
 Realtime connections scale with:
+
 - Number of concurrent users on Understand tab
 - Each user = 1 WebSocket connection
 - Supabase handles connection pooling
 
 For high-traffic scenarios:
+
 - Consider limiting subscriptions to active analysis only
 - Unsubscribe when analysis completes (already implemented)
 - Monitor Supabase realtime usage in dashboard
@@ -261,11 +270,13 @@ For high-traffic scenarios:
 ### Issue: "Realtime unavailable" message in UI
 
 **Causes:**
+
 - Replication not enabled for tables
 - RLS policies blocking SELECT
 - Network/firewall blocking WebSocket
 
 **Resolution:**
+
 1. Verify replication enabled (see Configuration section)
 2. Test RLS policies with manual queries
 3. Check browser console for specific errors
@@ -274,11 +285,13 @@ For high-traffic scenarios:
 ### Issue: UI not updating despite events
 
 **Causes:**
+
 - Debounce too long (events collapsed)
 - API fetch failing (check network tab)
 - State not updating (React issue)
 
 **Resolution:**
+
 1. Reduce `debounceMs` to 250ms for testing
 2. Check API response in network tab
 3. Add console.log in `fetchUnderstandData` to verify calls
@@ -286,10 +299,12 @@ For high-traffic scenarios:
 ### Issue: Too many API calls
 
 **Causes:**
+
 - Debounce too short
 - Events firing for every response update
 
 **Resolution:**
+
 1. Increase `debounceMs` to 750ms or 1000ms
 2. Remove `conversation_responses` subscription (often too chatty)
 3. Only subscribe to `conversations` + `conversation_themes`
@@ -301,6 +316,7 @@ For high-traffic scenarios:
 Realtime respects RLS. If a user shouldn't see a row, they won't receive events.
 
 **Testing RLS:**
+
 ```sql
 -- As user NOT in hive
 SET LOCAL ROLE authenticated;
@@ -324,11 +340,11 @@ The Listen tab uses a **Supabase Broadcast channel** for real-time response upda
 
 ### Why Broadcast Instead of postgres_changes?
 
-| Aspect | postgres_changes | Broadcast |
-|--------|------------------|-----------|
-| Payload | Raw table columns only | Complete LiveResponse with user data |
-| Client action | Must refetch to get full data | Append directly, no API call |
-| At 200 users | 40,000 API calls per submission | 1 API call (submitter only) |
+| Aspect        | postgres_changes                | Broadcast                            |
+| ------------- | ------------------------------- | ------------------------------------ |
+| Payload       | Raw table columns only          | Complete LiveResponse with user data |
+| Client action | Must refetch to get full data   | Append directly, no API call         |
+| At 200 users  | 40,000 API calls per submission | 1 API call (submitter only)          |
 
 ### Architecture
 
@@ -339,6 +355,7 @@ User submits → API inserts → API broadcasts complete LiveResponse → Client
 ### Implementation
 
 **Server-side broadcast:**
+
 - Location: [lib/conversations/server/broadcastResponse.ts](../lib/conversations/server/broadcastResponse.ts)
 - Called from: `POST /api/conversations/[conversationId]/responses` after successful insert
 - Channel name: `feed:{conversationId}`
@@ -346,12 +363,14 @@ User submits → API inserts → API broadcasts complete LiveResponse → Client
 - Fire-and-forget: errors logged but don't fail the API
 
 **Client-side subscription:**
+
 - Location: [lib/conversations/react/useConversationFeedRealtime.ts](../lib/conversations/react/useConversationFeedRealtime.ts)
 - Subscribes to broadcast channel for new responses
 - Subscribes to postgres_changes for like updates (debounced)
 - Reports connection status for UI indicator
 
 **Background sync:**
+
 - 30-second interval when tab visible
 - Ensures eventual consistency for missed broadcasts
 - Uses `silentRefresh()` (no loading state)
@@ -361,6 +380,7 @@ User submits → API inserts → API broadcasts complete LiveResponse → Client
 **No database configuration required** - Broadcast channels don't use postgres replication or RLS.
 
 **Environment variables required:**
+
 - `NEXT_PUBLIC_SUPABASE_URL` - For client subscription
 - `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`) - For server-side broadcast
 
@@ -374,11 +394,13 @@ User submits → API inserts → API broadcasts complete LiveResponse → Client
 ### Troubleshooting
 
 **Responses not appearing in real-time:**
+
 1. Check browser console for WebSocket errors
 2. Verify `SUPABASE_SECRET_KEY` is set in server environment
 3. Background sync at 30s ensures eventual consistency
 
 **Duplicate responses:**
+
 - `appendResponse()` deduplicates by ID
 - Submitter has optimistic update, broadcast is ignored
 

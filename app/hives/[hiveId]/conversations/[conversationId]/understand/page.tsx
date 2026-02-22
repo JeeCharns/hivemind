@@ -56,13 +56,19 @@ export default async function UnderstandPage({ params }: UnderstandPageProps) {
   const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hive.id);
 
   // 5. Build complete view model (includes staleness metadata)
-  console.log("[UnderstandPage] Calling getUnderstandViewModel for:", conversation.id);
+  console.log(
+    "[UnderstandPage] Calling getUnderstandViewModel for:",
+    conversation.id
+  );
   const viewModel = await getUnderstandViewModel(
     supabase,
     conversation.id,
     session.user.id
   );
-  console.log("[UnderstandPage] viewModel.clusterBuckets count:", viewModel.clusterBuckets?.length ?? 0);
+  console.log(
+    "[UnderstandPage] viewModel.clusterBuckets count:",
+    viewModel.clusterBuckets?.length ?? 0
+  );
 
   // 6. Render client container with view model
   return (

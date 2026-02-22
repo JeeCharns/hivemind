@@ -1,20 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import {
-  getValidatedAuthState,
-  logAuthValidation,
-} from "./sessionValidation";
+import { getValidatedAuthState, logAuthValidation } from "./sessionValidation";
 
 /**
  * Protected route prefixes
  * Any route starting with these requires authentication
  */
-const PROTECTED_PREFIXES = [
-  "/hives",
-  "/settings",
-  "/profile",
-  "/admin",
-];
+const PROTECTED_PREFIXES = ["/hives", "/settings", "/profile", "/admin"];
 
 /**
  * Public routes that should redirect if authenticated
@@ -57,7 +49,11 @@ export async function authMiddleware(request: NextRequest) {
 
   // Redirect unauthenticated users from protected routes
   if (isProtectedRoute && !isAuthenticated) {
-    logAuthValidation(pathname, authState, "redirect to /login (protected route)");
+    logAuthValidation(
+      pathname,
+      authState,
+      "redirect to /login (protected route)"
+    );
     const url = new URL("/login", request.url);
     // Preserve intended destination (only for protected routes)
     if (pathname !== "/login" && isValidReturnUrl(pathname)) {

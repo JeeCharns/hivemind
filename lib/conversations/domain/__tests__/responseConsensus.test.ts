@@ -54,7 +54,10 @@ describe("computeConsolidatedConsensusItems", () => {
       },
     ];
 
-    const unconsolidatedResponses: { responseId: string; responseText: string }[] = [];
+    const unconsolidatedResponses: {
+      responseId: string;
+      responseText: string;
+    }[] = [];
 
     // Votes on r2 and r3 should NOT be counted - only r1 (the representative)
     const feedbackRows = [
@@ -208,4 +211,3 @@ describe("computeConsolidatedConsensusItems", () => {
     expect(items[2].totalVotes).toBe(0);
   });
 });
-

@@ -126,7 +126,9 @@ export function useConversationReport({
         setTotalInteractions(result.totalInteractions);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate report");
+      setError(
+        err instanceof Error ? err.message : "Failed to generate report"
+      );
     } finally {
       setLoading(false);
     }

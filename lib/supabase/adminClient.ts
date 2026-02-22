@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 export function supabaseAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !supabaseSecretKey) {
@@ -24,4 +25,3 @@ export function supabaseAdminClient() {
     },
   });
 }
-

@@ -29,6 +29,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.error("[POST /api/decision-space/.../close]", err);
     const message = err instanceof Error ? err.message : "Internal error";
     const status = message.includes("admin") ? 403 : 500;
-    return jsonError(message, status, status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR");
+    return jsonError(
+      message,
+      status,
+      status === 403 ? "FORBIDDEN" : "INTERNAL_ERROR"
+    );
   }
 }

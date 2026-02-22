@@ -34,7 +34,9 @@ describe("storage validation", () => {
     });
 
     it("should return error for non-image file type", () => {
-      const file = new File(["content"], "test.pdf", { type: "application/pdf" });
+      const file = new File(["content"], "test.pdf", {
+        type: "application/pdf",
+      });
       Object.defineProperty(file, "size", { value: 1024 }); // 1KB
 
       const result = validateImageFile(file);

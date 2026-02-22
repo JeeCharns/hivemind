@@ -123,7 +123,8 @@ export default function JoinHiveSearch({
     [router]
   );
 
-  const showNoResult = term.trim().length > 0 && results.length === 0 && !loading;
+  const showNoResult =
+    term.trim().length > 0 && results.length === 0 && !loading;
 
   return (
     <div className="w-full space-y-4">
@@ -163,7 +164,9 @@ export default function JoinHiveSearch({
             >
               <span className="flex-1 text-left">{result.name}</span>
               {showMembershipStatus && result.alreadyMember && (
-                <span className="text-xs text-slate-500 ml-2">Already a member</span>
+                <span className="text-xs text-slate-500 ml-2">
+                  Already a member
+                </span>
               )}
             </Button>
           ))}

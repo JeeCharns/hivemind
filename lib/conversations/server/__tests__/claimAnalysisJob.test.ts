@@ -37,4 +37,3 @@ describe("claimAnalysisJob", () => {
     expect(result).toEqual({ claimed: false, reason: "not_queued_or_locked" });
   });
 });
-

@@ -14,7 +14,12 @@
 
 import { useState, useCallback } from "react";
 import { CaretDown, SpinnerGap } from "@phosphor-icons/react";
-import type { ClusterBucket, Feedback, FeedbackItem, BucketResponse } from "@/types/conversation-understand";
+import type {
+  ClusterBucket,
+  Feedback,
+  FeedbackItem,
+  BucketResponse,
+} from "@/types/conversation-understand";
 import { getTagColors } from "@/lib/conversations/domain/tags";
 import { useBucketResponses } from "@/lib/conversations/react/useBucketResponses";
 import Button from "@/app/components/button";
@@ -41,7 +46,13 @@ export default function ClusterBucketCard({
   feedbackById,
 }: ClusterBucketCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { bucketId, bucketName, consolidatedStatement, responseIds, responseCount } = bucket;
+  const {
+    bucketId,
+    bucketName,
+    consolidatedStatement,
+    responseIds,
+    responseCount,
+  } = bucket;
 
   // Lazy-load responses when expanded
   const {
@@ -66,7 +77,12 @@ export default function ClusterBucketCard({
     setIsExpanded((prev) => {
       const willExpand = !prev;
       // Load responses when expanding for the first time
-      if (willExpand && !hasLoadedOnce && responseIds.length > 0 && !isLoadingResponses) {
+      if (
+        willExpand &&
+        !hasLoadedOnce &&
+        responseIds.length > 0 &&
+        !isLoadingResponses
+      ) {
         loadResponses();
       }
       return willExpand;
@@ -79,17 +95,24 @@ export default function ClusterBucketCard({
   // Use the first response ID as the representative for voting
   // Note: We use responseIds (always available) for voting, not loaded responses
   const representativeId = responseIds[0];
-  const representativeFeedback = representativeId && feedbackById
-    ? feedbackById.get(representativeId)
-    : null;
+  const representativeFeedback =
+    representativeId && feedbackById
+      ? feedbackById.get(representativeId)
+      : null;
 
   // Get feedback counts only for the representative response (first response in the bucket)
   // Votes are cast on the representative, not aggregated from all original responses
-  const representativeCounts = representativeId && feedbackById
-    ? feedbackById.get(representativeId)?.counts ?? { agree: 0, pass: 0, disagree: 0 }
-    : { agree: 0, pass: 0, disagree: 0 };
+  const representativeCounts =
+    representativeId && feedbackById
+      ? (feedbackById.get(representativeId)?.counts ?? {
+          agree: 0,
+          pass: 0,
+          disagree: 0,
+        })
+      : { agree: 0, pass: 0, disagree: 0 };
 
-  const showVoting = conversationType === "understand" && onVote && representativeId;
+  const showVoting =
+    conversationType === "understand" && onVote && representativeId;
 
   return (
     <div className="rounded-2xl space-y-3">
@@ -101,9 +124,13 @@ export default function ClusterBucketCard({
         >
           {bucketName}
         </span>
-        {representativeCounts.agree + representativeCounts.pass + representativeCounts.disagree > 0 && (
+        {representativeCounts.agree +
+          representativeCounts.pass +
+          representativeCounts.disagree >
+          0 && (
           <span className="text-info text-slate-500">
-            {representativeCounts.agree} agree · {representativeCounts.pass} pass · {representativeCounts.disagree} disagree
+            {representativeCounts.agree} agree · {representativeCounts.pass}{" "}
+            pass · {representativeCounts.disagree} disagree
           </span>
         )}
       </div>

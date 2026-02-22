@@ -4,4 +4,3 @@ export type ApiErrorShape = {
 };
 
 export type ApiSuccessShape<T> = T;
-

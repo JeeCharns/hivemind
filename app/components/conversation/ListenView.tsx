@@ -482,128 +482,128 @@ export default function ListenView({
             const firstInitial = userName.charAt(0).toUpperCase();
 
             return (
-            <div key={resp.id} className="rounded-lg flex gap-3">
-              {/* Avatar */}
-              <div className="shrink-0">
-                {resp.user?.avatarUrl ? (
-                  <img
-                    src={resp.user.avatarUrl}
-                    alt={userName}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-label font-medium">
-                    {firstInitial}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {resp.tag && (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-label border ${getTagColors(
-                        resp.tag
-                      )}`}
-                    >
-                      {TAG_LABELS[resp.tag] || resp.tag}
-                    </span>
-                  )}
-                  <span className="text-subtitle text-slate-800">
-                    {userName}
-                  </span>
-                  <span className="text-info text-slate-400">
-                    {formatRelativeTimestamp(resp.createdAt)}
-                  </span>
-                </div>
-                {/* Inline edit mode or display text */}
-                {editingId === resp.id ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={editText}
-                      onChange={(e) =>
-                        setEditText(e.target.value.slice(0, MAX_LEN))
-                      }
-                      maxLength={MAX_LEN}
-                      className="w-full border border-slate-200 rounded-lg p-2 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
-                      rows={2}
-                      autoFocus
+              <div key={resp.id} className="rounded-lg flex gap-3">
+                {/* Avatar */}
+                <div className="shrink-0">
+                  {resp.user?.avatarUrl ? (
+                    <img
+                      src={resp.user.avatarUrl}
+                      alt={userName}
+                      className="w-8 h-8 rounded-full object-cover"
                     />
-                    <div className="flex items-center gap-2">
-                      <span className="text-info text-slate-500">
-                        {MAX_LEN - editText.length} characters left
-                      </span>
-                      <div className="flex-1" />
-                      {editError && (
-                        <span className="text-info text-red-600">
-                          {editError}
-                        </span>
-                      )}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={cancelEdit}
-                        disabled={isSavingEdit}
-                        className="gap-1"
-                      >
-                        <X size={14} />
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => saveEdit(resp.id)}
-                        disabled={isSavingEdit || !editText.trim()}
-                        className="gap-1"
-                      >
-                        <Check size={14} />
-                        {isSavingEdit ? "Saving..." : "Save"}
-                      </Button>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-label font-medium">
+                      {firstInitial}
                     </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {resp.tag && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-label border ${getTagColors(
+                          resp.tag
+                        )}`}
+                      >
+                        {TAG_LABELS[resp.tag] || resp.tag}
+                      </span>
+                    )}
+                    <span className="text-subtitle text-slate-800">
+                      {userName}
+                    </span>
+                    <span className="text-info text-slate-400">
+                      {formatRelativeTimestamp(resp.createdAt)}
+                    </span>
                   </div>
-                ) : (
-                  <p className="text-body text-slate-800">{resp.text}</p>
-                )}
+                  {/* Inline edit mode or display text */}
+                  {editingId === resp.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editText}
+                        onChange={(e) =>
+                          setEditText(e.target.value.slice(0, MAX_LEN))
+                        }
+                        maxLength={MAX_LEN}
+                        className="w-full border border-slate-200 rounded-lg p-2 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                        rows={2}
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-info text-slate-500">
+                          {MAX_LEN - editText.length} characters left
+                        </span>
+                        <div className="flex-1" />
+                        {editError && (
+                          <span className="text-info text-red-600">
+                            {editError}
+                          </span>
+                        )}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={cancelEdit}
+                          disabled={isSavingEdit}
+                          className="gap-1"
+                        >
+                          <X size={14} />
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => saveEdit(resp.id)}
+                          disabled={isSavingEdit || !editText.trim()}
+                          className="gap-1"
+                        >
+                          <Check size={14} />
+                          {isSavingEdit ? "Saving..." : "Save"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-body text-slate-800">{resp.text}</p>
+                  )}
+                </div>
+                <div className="flex items-start gap-1 shrink-0">
+                  {/* Edit/delete buttons for own responses */}
+                  {resp.isMine && editingId !== resp.id && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(resp.id, resp.text)}
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                        title="Edit"
+                      >
+                        <PencilSimple size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteId(resp.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                        title="Delete"
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => toggleLike(resp.id)}
+                    className={`flex items-center gap-1 text-subtitle px-2 py-1 rounded-md ${
+                      resp.likedByMe
+                        ? "border-green-200 bg-green-50 text-green-700"
+                        : "border-slate-200 text-slate-500 hover:border-indigo-200"
+                    }`}
+                  >
+                    <ThumbsUp
+                      size={16}
+                      weight={resp.likedByMe ? "fill" : "regular"}
+                    />
+                    <span>{resp.likeCount}</span>
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-start gap-1 shrink-0">
-                {/* Edit/delete buttons for own responses */}
-                {resp.isMine && editingId !== resp.id && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(resp.id, resp.text)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
-                      title="Edit"
-                    >
-                      <PencilSimple size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteId(resp.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
-                      title="Delete"
-                    >
-                      <Trash size={16} />
-                    </button>
-                  </>
-                )}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => toggleLike(resp.id)}
-                  className={`flex items-center gap-1 text-subtitle px-2 py-1 rounded-md ${
-                    resp.likedByMe
-                      ? "border-green-200 bg-green-50 text-green-700"
-                      : "border-slate-200 text-slate-500 hover:border-indigo-200"
-                  }`}
-                >
-                  <ThumbsUp
-                    size={16}
-                    weight={resp.likedByMe ? "fill" : "regular"}
-                  />
-                  <span>{resp.likeCount}</span>
-                </Button>
-              </div>
-            </div>
-          );
+            );
           })}
         </div>
       )}

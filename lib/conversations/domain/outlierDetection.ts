@@ -83,7 +83,7 @@ export function computeMADZScores(distances: number[]): number[] {
 
   // Modified z-score formula
   const SCALE_FACTOR = 0.6745;
-  return distances.map((d) => SCALE_FACTOR * Math.abs(d - median) / mad);
+  return distances.map((d) => (SCALE_FACTOR * Math.abs(d - median)) / mad);
 }
 
 /**
@@ -112,7 +112,7 @@ export function detectOutliers(
   const {
     threshold = 3.5,
     minClusterSize = 6,
-    maxOutlierRatio = 0.20,
+    maxOutlierRatio = 0.2,
   } = options;
 
   // Skip if cluster too small
@@ -165,7 +165,9 @@ export function detectOutliersPerCluster(
   options: OutlierDetectionOptions = {}
 ): Map<number, Set<number>> {
   if (clusterAssignments.length !== distancesToCentroid.length) {
-    throw new Error("clusterAssignments and distancesToCentroid must have same length");
+    throw new Error(
+      "clusterAssignments and distancesToCentroid must have same length"
+    );
   }
 
   const outlierMap = new Map<number, Set<number>>();

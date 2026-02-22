@@ -57,7 +57,10 @@ async function parseCsvFile(
   let records: Array<Record<string, string>>;
   try {
     const normalizeHeader = (header: string) => {
-      const normalized = header.replace(/^\uFEFF/, "").trim().toLowerCase();
+      const normalized = header
+        .replace(/^\uFEFF/, "")
+        .trim()
+        .toLowerCase();
       if (normalized === "responses") return "response";
       return normalized;
     };
@@ -137,7 +140,11 @@ export async function importResponsesFromCsv(
       // Parse is_anonymous from CSV, defaulting to true for imported survey data
       let isAnonymous = true;
       if (record.anonymous !== undefined || record.is_anonymous !== undefined) {
-        const anonymousValue = (record.anonymous || record.is_anonymous || "").toLowerCase();
+        const anonymousValue = (
+          record.anonymous ||
+          record.is_anonymous ||
+          ""
+        ).toLowerCase();
         isAnonymous = !["false", "0", "no"].includes(anonymousValue);
       }
 

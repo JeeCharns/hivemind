@@ -9,7 +9,10 @@
  */
 
 import { runConversationAnalysisIncremental } from "../runConversationAnalysisIncremental";
-import { createOpenAIClient, generateEmbeddings } from "@/lib/analysis/openai/embeddingsClient";
+import {
+  createOpenAIClient,
+  generateEmbeddings,
+} from "@/lib/analysis/openai/embeddingsClient";
 import { createMockSupabaseQuery } from "./testUtils";
 
 jest.mock("@/lib/analysis/openai/embeddingsClient", () => ({
@@ -49,7 +52,10 @@ describe("runConversationAnalysisIncremental", () => {
     (generateEmbeddings as jest.Mock).mockResolvedValue([[1, 0, 0]]);
 
     queueSingle("conversations", {
-      data: { analysis_updated_at: baselineTimestamp, analysis_response_count: 20 },
+      data: {
+        analysis_updated_at: baselineTimestamp,
+        analysis_response_count: 20,
+      },
       error: null,
     });
 
@@ -175,7 +181,10 @@ describe("runConversationAnalysisIncremental", () => {
     const { supabase, queueSingle, queueResult } = createMockSupabaseQuery();
 
     queueSingle("conversations", {
-      data: { analysis_updated_at: baselineTimestamp, analysis_response_count: 20 },
+      data: {
+        analysis_updated_at: baselineTimestamp,
+        analysis_response_count: 20,
+      },
       error: null,
     });
 
@@ -207,7 +216,10 @@ describe("runConversationAnalysisIncremental", () => {
     ]);
 
     queueSingle("conversations", {
-      data: { analysis_updated_at: baselineTimestamp, analysis_response_count: 20 },
+      data: {
+        analysis_updated_at: baselineTimestamp,
+        analysis_response_count: 20,
+      },
       error: null,
     });
 
@@ -281,7 +293,10 @@ describe("runConversationAnalysisIncremental", () => {
     (generateEmbeddings as jest.Mock).mockResolvedValue([[1, 0, 0]]);
 
     queueSingle("conversations", {
-      data: { analysis_updated_at: baselineTimestamp, analysis_response_count: 20 },
+      data: {
+        analysis_updated_at: baselineTimestamp,
+        analysis_response_count: 20,
+      },
       error: null,
     });
 
@@ -345,9 +360,7 @@ describe("runConversationAnalysisIncremental", () => {
 
     const xUmap = getNumber(responseUpdate, "x_umap");
     const yUmap = getNumber(responseUpdate, "y_umap");
-    const distance = Math.sqrt(
-      (xUmap - 5) ** 2 + (yUmap - 5) ** 2
-    );
+    const distance = Math.sqrt((xUmap - 5) ** 2 + (yUmap - 5) ** 2);
     expect(distance).toBeLessThanOrEqual(2);
   });
 
@@ -358,7 +371,10 @@ describe("runConversationAnalysisIncremental", () => {
     (generateEmbeddings as jest.Mock).mockResolvedValue([[1, 0, 0]]);
 
     queueSingle("conversations", {
-      data: { analysis_updated_at: baselineTimestamp, analysis_response_count: 20 },
+      data: {
+        analysis_updated_at: baselineTimestamp,
+        analysis_response_count: 20,
+      },
       error: null,
     });
 
@@ -438,7 +454,10 @@ describe("runConversationAnalysisIncremental", () => {
     (generateEmbeddings as jest.Mock).mockResolvedValue([[1, 0, 0]]);
 
     queueSingle("conversations", {
-      data: { analysis_updated_at: baselineTimestamp, analysis_response_count: 20 },
+      data: {
+        analysis_updated_at: baselineTimestamp,
+        analysis_response_count: 20,
+      },
       error: null,
     });
 

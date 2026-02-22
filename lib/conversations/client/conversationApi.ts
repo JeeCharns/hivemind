@@ -70,13 +70,10 @@ export async function uploadConversationCsv(
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(
-    `/api/conversations/${conversationId}/upload`,
-    {
-      method: "POST",
-      body: formData,
-    }
-  );
+  const response = await fetch(`/api/conversations/${conversationId}/upload`, {
+    method: "POST",
+    body: formData,
+  });
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -100,12 +97,9 @@ export async function uploadConversationCsv(
 export async function startConversationAnalysis(
   conversationId: string
 ): Promise<TriggerConversationAnalysisResponse> {
-  const response = await fetch(
-    `/api/conversations/${conversationId}/analyze`,
-    {
-      method: "POST",
-    }
-  );
+  const response = await fetch(`/api/conversations/${conversationId}/analyze`, {
+    method: "POST",
+  });
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);

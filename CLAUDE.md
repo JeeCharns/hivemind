@@ -129,11 +129,12 @@ Before finishing, ensure the right gates were run:
 
 This guide provides a comprehensive approach to ensuring your application is maintainable, scalable, testable, and secure. By following these principles, your code will be easier to manage, extend, and debug as your application grows.
 
-### 1.  Modularity & Single Responsibility Principle (SRP)
+### 1. Modularity & Single Responsibility Principle (SRP)
 
 **Goal:** Break the application into small, self-contained components or functions, each responsible for a single task.
 
 #### Implementation Considerations
+
 :
 **Separate Concerns:**
 
@@ -151,20 +152,27 @@ Reusable Functions: Refactor large functions into smaller, focused functions or 
 
 ```ts
 // Refactor large functions into smaller pieces:
-const processData = (data: any) => { /_ process data _/ };
-const validateData = (data: any) => { /_ validate data _/ };
-const saveData = (data: any) => { /_ save data _/ };
+const processData = (data: any) => {
+  /_ process data _/;
+};
+const validateData = (data: any) => {
+  /_ validate data _/;
+};
+const saveData = (data: any) => {
+  /_ save data _/;
+};
 ```
 
 **Testing for SRP:**
 
 Unit Tests: Write unit tests that target small functions or components. Ensure each unit can be independently tested. Isolate the logic from external dependencies like API calls to make the unit test reliable.
 
-### 2.  SOLID Principles
+### 2. SOLID Principles
 
 **Goal:** Use the SOLID principles to design systems that are easier to maintain, extend, and test.
 
 #### Implementation Considerations
+
 :
 **Single Responsibility Principle (SRP):**
 
@@ -178,11 +186,15 @@ Code should be open for extension, but closed for modification. For example, whe
 
 ```ts
 class AuthProvider {
-authenticate() { /_ authentication logic _/ }
+  authenticate() {
+    /_ authentication logic _/;
+  }
 }
 
 class GoogleAuthProvider extends AuthProvider {
-authenticate() { /_ Google auth logic _/ }
+  authenticate() {
+    /_ Google auth logic _/;
+  }
 }
 ```
 
@@ -202,22 +214,23 @@ High-level modules should not depend on low-level modules. Both should depend on
 
 ```ts
 interface IDataFetcher {
-fetchData(endpoint: string): Promise<any>;
+  fetchData(endpoint: string): Promise<any>;
 }
 
 class RestFetcher implements IDataFetcher {
-async fetchData(endpoint: string) {
-const response = await fetch(endpoint);
-return response.json();
-}
+  async fetchData(endpoint: string) {
+    const response = await fetch(endpoint);
+    return response.json();
+  }
 }
 ```
 
-### 3.  Design Patterns
+### 3. Design Patterns
 
 **Goal:** Use proven design patterns to structure the code efficiently and maintainably.
 
 #### Implementation Considerations
+
 :
 **Factory Pattern:** Use this pattern to create objects in a consistent way, abstracting the object creation logic.
 
@@ -225,12 +238,12 @@ return response.json();
 
 ```ts
 class UserFactory {
-createUser(role: string): User {
-if (role === "admin") {
-return new AdminUser();
-}
-return new RegularUser();
-}
+  createUser(role: string): User {
+    if (role === "admin") {
+      return new AdminUser();
+    }
+    return new RegularUser();
+  }
 }
 ```
 
@@ -242,20 +255,21 @@ Strategy Pattern: Define interchangeable algorithms for runtime selection. For i
 
 ```ts
 class DataFetcher {
-fetchData() {
-if (this.strategy === 'REST') {
-return new RestFetcher().fetchData();
-}
-return new GraphQLFetcher().fetchData();
-}
+  fetchData() {
+    if (this.strategy === "REST") {
+      return new RestFetcher().fetchData();
+    }
+    return new GraphQLFetcher().fetchData();
+  }
 }
 ```
 
-### 4.  Abstraction
+### 4. Abstraction
 
 **Goal:** Simplify complex implementations behind clear, understandable interfaces.
 
 #### Implementation Considerations
+
 :
 **Abstract Complex Logic:** Hide complex logic behind services, like StorageService for handling file uploads.
 
@@ -263,9 +277,9 @@ return new GraphQLFetcher().fetchData();
 
 ```ts
 class StorageService {
-uploadFile(file: File): Promise<string> {
-// abstract file upload logic
-}
+  uploadFile(file: File): Promise<string> {
+    // abstract file upload logic
+  }
 }
 ```
 
@@ -275,13 +289,13 @@ Use Interfaces: Define interfaces for dependencies to ensure flexibility. For ex
 
 ```ts
 interface UserRepository {
-getUser(id: string): Promise<User>;
+  getUser(id: string): Promise<User>;
 }
 
 class ApiUserRepository implements UserRepository {
-async getUser(id: string) {
-// fetch user from API
-}
+  async getUser(id: string) {
+    // fetch user from API
+  }
 }
 ```
 
@@ -296,11 +310,12 @@ return <div>{/_ render organizations _/}</div>;
 };
 ```
 
-### 5.  Error Handling
+### 5. Error Handling
 
 **Goal:** Handle errors gracefully and ensure users get meaningful feedback.
 
 #### Implementation Considerations
+
 :
 **Try-Catch Blocks:** Use try-catch blocks for error-prone asynchronous code and provide fallback logic.
 
@@ -308,11 +323,11 @@ return <div>{/_ render organizations _/}</div>;
 
 ```ts
 try {
-const data = await fetchData();
+  const data = await fetchData();
 } catch (err) {
-if (err instanceof NetworkError) {
-console.error("Network error:", err.message);
-}
+  if (err instanceof NetworkError) {
+    console.error("Network error:", err.message);
+  }
 }
 ```
 
@@ -322,22 +337,23 @@ Error Boundaries: In React, use ErrorBoundaries to catch errors in components an
 
 ```ts
 class ErrorBoundary extends React.Component {
-componentDidCatch(error, info) {
-logErrorToMyService(error, info);
-}
-render() {
-return this.props.children;
-}
+  componentDidCatch(error, info) {
+    logErrorToMyService(error, info);
+  }
+  render() {
+    return this.props.children;
+  }
 }
 ```
 
 Logging: Implement logging (e.g., using Sentry or LogRocket) to track errors and debug effectively.
 
-### 6.  Scalability & Performance
+### 6. Scalability & Performance
 
 **Goal:** Build an application that performs well even as it scales.
 
 #### Implementation Considerations
+
 :
 **Async Programming:** Use async/await to handle asynchronous code non-blocking. For parallel tasks, use Promise.all.
 
@@ -353,11 +369,12 @@ Lazy Loading: Defer loading of non-essential components or data for improved per
 
 Database Optimization: Index frequently queried fields and optimize queries to improve performance.
 
-### 7.  Code Testability
+### 7. Code Testability
 
 **Goal:** Ensure the code is easy to test to guarantee reliable performance.
 
 #### Implementation Considerations
+
 :
 **Mock Dependencies:** Use dependency injection to allow easy mocking of services or APIs during testing.
 
@@ -367,11 +384,12 @@ Integration Tests: Test how components interact with each other.
 
 End-to-End Tests: Simulate real user interactions to ensure the application functions correctly.
 
-### 8.  Security Best Practices
+### 8. Security Best Practices
 
 **Goal:** Ensure security is integrated from the start.
 
 #### Implementation Considerations
+
 :
 **Sanitize Input:** Always validate user input and sanitize data to prevent injection attacks.
 
@@ -387,11 +405,12 @@ CSRF Prevention: Use anti-CSRF tokens to prevent cross-site request forgery.
 
 Security Headers: Set headers like CSP, X-Frame-Options, and X-XSS-Protection to improve security.
 
-### 9.  Process and Tools
+### 9. Process and Tools
 
 **Goal:** Ensure consistent code quality and streamline the development process.
 
 #### Implementation Considerations
+
 :
 **Linters & Formatters:** Use ESLint to enforce coding standards and Prettier for consistent formatting.
 

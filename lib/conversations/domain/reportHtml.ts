@@ -47,7 +47,10 @@ export function reportContentToHtml(content: ReportContent): string {
  */
 export function sanitizeHtml(html: string): string {
   // Remove script tags and their contents
-  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+  return html.replace(
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    ""
+  );
 }
 
 /**
@@ -76,7 +79,10 @@ export function escapeHtml(text: string): string {
  * @param html - HTML content to download
  * @param filename - Name for the downloaded file
  */
-export function downloadHtmlBlob(html: string, filename: string = "executive-summary.html"): void {
+export function downloadHtmlBlob(
+  html: string,
+  filename: string = "executive-summary.html"
+): void {
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

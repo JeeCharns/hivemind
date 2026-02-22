@@ -28,7 +28,13 @@ export interface UseDecisionSetupWizardReturn {
   error: string | null;
 
   // Step 1: Source selection
-  sourceConversations: { id: string; title: string; statementCount: number; votingCoverage: number; date: string }[];
+  sourceConversations: {
+    id: string;
+    title: string;
+    statementCount: number;
+    votingCoverage: number;
+    date: string;
+  }[];
   selectedSourceId: string | null;
   setSelectedSourceId: (id: string | null) => void;
 
@@ -78,7 +84,13 @@ export function useDecisionSetupWizard({
   // Step 1: Source selection
   const [sourcesLoading, setSourcesLoading] = useState(true);
   const [sourceConversations, setSourceConversations] = useState<
-    { id: string; title: string; statementCount: number; votingCoverage: number; date: string }[]
+    {
+      id: string;
+      title: string;
+      statementCount: number;
+      votingCoverage: number;
+      date: string;
+    }[]
   >([]);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
 
@@ -87,7 +99,9 @@ export function useDecisionSetupWizard({
 
   // Step 3: Statement selection
   const [statements, setStatements] = useState<StatementSelectionItem[]>([]);
-  const [consensusThreshold, setConsensusThreshold] = useState(DEFAULT_CONSENSUS_THRESHOLD);
+  const [consensusThreshold, setConsensusThreshold] = useState(
+    DEFAULT_CONSENSUS_THRESHOLD
+  );
 
   // Step 4: Settings
   const [title, setTitle] = useState("");
@@ -166,14 +180,21 @@ export function useDecisionSetupWizard({
         setStatements(
           fetchedStatements.map((s: StatementSelectionItem) => ({
             ...s,
-            recommended: s.agreePercent !== null && s.agreePercent >= DEFAULT_CONSENSUS_THRESHOLD,
-            selected: s.agreePercent !== null && s.agreePercent >= DEFAULT_CONSENSUS_THRESHOLD,
+            recommended:
+              s.agreePercent !== null &&
+              s.agreePercent >= DEFAULT_CONSENSUS_THRESHOLD,
+            selected:
+              s.agreePercent !== null &&
+              s.agreePercent >= DEFAULT_CONSENSUS_THRESHOLD,
           }))
         );
       })
       .catch((err) => {
         if (cancelled) return;
-        console.error("[useDecisionSetupWizard] Failed to fetch setup data:", err);
+        console.error(
+          "[useDecisionSetupWizard] Failed to fetch setup data:",
+          err
+        );
         setError("Failed to load clusters and statements");
       })
       .finally(() => {
@@ -190,8 +211,11 @@ export function useDecisionSetupWizard({
     setStatements((prev) =>
       prev.map((s) => ({
         ...s,
-        recommended: s.agreePercent !== null && s.agreePercent >= consensusThreshold,
-        selected: s.selected || (s.agreePercent !== null && s.agreePercent >= consensusThreshold),
+        recommended:
+          s.agreePercent !== null && s.agreePercent >= consensusThreshold,
+        selected:
+          s.selected ||
+          (s.agreePercent !== null && s.agreePercent >= consensusThreshold),
       }))
     );
   }, [consensusThreshold]);
@@ -322,7 +346,9 @@ export function useDecisionSetupWizard({
 
       const result = await response.json();
       const hiveKey = hiveSlug || hiveId;
-      router.push(`/hives/${hiveKey}/conversations/${result.conversationId}/decide`);
+      router.push(
+        `/hives/${hiveKey}/conversations/${result.conversationId}/decide`
+      );
     } catch (err) {
       console.error("[useDecisionSetupWizard] Failed to finish:", err);
       setError(err instanceof Error ? err.message : "Failed to create session");

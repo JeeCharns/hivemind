@@ -12,7 +12,9 @@ interface HiveLayoutWrapperProps {
  * Client-side wrapper for hive layouts
  * Provides authentication protection for all hive pages
  */
-export default function HiveLayoutWrapper({ children }: HiveLayoutWrapperProps) {
+export default function HiveLayoutWrapper({
+  children,
+}: HiveLayoutWrapperProps) {
   return (
     <AuthGuard
       fallback={

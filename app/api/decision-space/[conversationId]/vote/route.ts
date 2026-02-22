@@ -25,7 +25,11 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await supabaseServerClient();
-    const result = await voteOnDecisionProposal(supabase, userId, parseResult.data);
+    const result = await voteOnDecisionProposal(
+      supabase,
+      userId,
+      parseResult.data
+    );
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });

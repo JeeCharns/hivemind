@@ -53,12 +53,21 @@ describe("maybeEnqueueAutoAnalysis", () => {
   it("should skip if conversation type is not 'understand'", async () => {
     // Arrange
     mockConversationsMaybeSingle.mockResolvedValueOnce({
-      data: { id: "conv-1", type: "decide", analysis_status: null, analysis_response_count: null },
+      data: {
+        id: "conv-1",
+        type: "decide",
+        analysis_status: null,
+        analysis_response_count: null,
+      },
       error: null,
     });
 
     // Act
-    const result = await maybeEnqueueAutoAnalysis(mockSupabase, "conv-1", "user-1");
+    const result = await maybeEnqueueAutoAnalysis(
+      mockSupabase,
+      "conv-1",
+      "user-1"
+    );
 
     // Assert
     expect(result.triggered).toBe(false);
@@ -69,7 +78,12 @@ describe("maybeEnqueueAutoAnalysis", () => {
   it("should skip if response count is below threshold", async () => {
     // Arrange
     mockConversationsMaybeSingle.mockResolvedValueOnce({
-      data: { id: "conv-1", type: "understand", analysis_status: null, analysis_response_count: null },
+      data: {
+        id: "conv-1",
+        type: "understand",
+        analysis_status: null,
+        analysis_response_count: null,
+      },
       error: null,
     });
 
@@ -80,7 +94,12 @@ describe("maybeEnqueueAutoAnalysis", () => {
     });
 
     // Act
-    const result = await maybeEnqueueAutoAnalysis(mockSupabase, "conv-1", "user-1", { threshold: 20 });
+    const result = await maybeEnqueueAutoAnalysis(
+      mockSupabase,
+      "conv-1",
+      "user-1",
+      { threshold: 20 }
+    );
 
     // Assert
     expect(result.triggered).toBe(false);
@@ -91,7 +110,12 @@ describe("maybeEnqueueAutoAnalysis", () => {
   it("should skip if analysis is already fresh", async () => {
     // Arrange
     mockConversationsMaybeSingle.mockResolvedValueOnce({
-      data: { id: "conv-1", type: "understand", analysis_status: "ready", analysis_response_count: 25 },
+      data: {
+        id: "conv-1",
+        type: "understand",
+        analysis_status: "ready",
+        analysis_response_count: 25,
+      },
       error: null,
     });
 
@@ -102,7 +126,11 @@ describe("maybeEnqueueAutoAnalysis", () => {
     });
 
     // Act
-    const result = await maybeEnqueueAutoAnalysis(mockSupabase, "conv-1", "user-1");
+    const result = await maybeEnqueueAutoAnalysis(
+      mockSupabase,
+      "conv-1",
+      "user-1"
+    );
 
     // Assert
     expect(result.triggered).toBe(false);
@@ -113,7 +141,12 @@ describe("maybeEnqueueAutoAnalysis", () => {
   it("should trigger analysis when threshold is met", async () => {
     // Arrange
     mockConversationsMaybeSingle.mockResolvedValueOnce({
-      data: { id: "conv-1", type: "understand", analysis_status: null, analysis_response_count: null },
+      data: {
+        id: "conv-1",
+        type: "understand",
+        analysis_status: null,
+        analysis_response_count: null,
+      },
       error: null,
     });
 
@@ -130,7 +163,12 @@ describe("maybeEnqueueAutoAnalysis", () => {
     mockEnqueueConversationAnalysis.mockResolvedValueOnce({ status: "queued" });
 
     // Act
-    const result = await maybeEnqueueAutoAnalysis(mockSupabase, "conv-1", "user-1", { threshold: 20 });
+    const result = await maybeEnqueueAutoAnalysis(
+      mockSupabase,
+      "conv-1",
+      "user-1",
+      { threshold: 20 }
+    );
 
     // Assert
     expect(result.triggered).toBe(true);

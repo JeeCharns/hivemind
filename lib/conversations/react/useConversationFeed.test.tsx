@@ -21,7 +21,10 @@ import type {
 class MockResponsesClient implements IConversationResponsesClient {
   private responses: LiveResponse[] = [];
   public listCalls: string[] = [];
-  public createCalls: Array<{ conversationId: string; input: SubmitResponseInput }> = [];
+  public createCalls: Array<{
+    conversationId: string;
+    input: SubmitResponseInput;
+  }> = [];
 
   setResponses(responses: LiveResponse[]) {
     this.responses = responses;
@@ -42,7 +45,10 @@ class MockResponsesClient implements IConversationResponsesClient {
       text: input.text,
       tag: input.tag,
       createdAt: new Date().toISOString(),
-      user: { name: input.anonymous ? "Anonymous" : "Test User", avatarUrl: null },
+      user: {
+        name: input.anonymous ? "Anonymous" : "Test User",
+        avatarUrl: null,
+      },
       likeCount: 0,
       likedByMe: false,
       isMine: false,

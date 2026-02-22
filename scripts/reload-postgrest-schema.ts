@@ -56,7 +56,9 @@ async function main() {
       console.log("\n1. Run this SQL in Supabase SQL editor:");
       console.log("   SELECT pg_notify('pgrst', 'reload schema');");
       console.log("\n2. Or restart your Supabase project from the dashboard.");
-      console.log("\n3. The schema cache also reloads automatically every few minutes.");
+      console.log(
+        "\n3. The schema cache also reloads automatically every few minutes."
+      );
       process.exit(1);
     }
   }

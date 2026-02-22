@@ -83,7 +83,9 @@ export function GuestGuard({
     // If there's a "next" parameter but we're unauthenticated, we already captured it
     // Just show the login form
     if (hasNextParam && !isLoading && !isAuthenticated) {
-      console.log("[GuestGuard] Has next param but unauthenticated, showing login form");
+      console.log(
+        "[GuestGuard] Has next param but unauthenticated, showing login form"
+      );
       sessionStorage.removeItem("returnUrl");
       return;
     }
@@ -92,7 +94,11 @@ export function GuestGuard({
       console.log("[GuestGuard] User authenticated, redirecting...");
       // Check for return URL first
       const returnUrl = sessionStorage.getItem("returnUrl");
-      if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
+      if (
+        returnUrl &&
+        returnUrl.startsWith("/") &&
+        !returnUrl.startsWith("//")
+      ) {
         console.log("[GuestGuard] Redirecting to returnUrl:", returnUrl);
         sessionStorage.removeItem("returnUrl");
         router.push(returnUrl);
@@ -100,15 +106,31 @@ export function GuestGuard({
       }
 
       // Otherwise redirect to default
-      console.log("[GuestGuard] Redirecting to default:", redirectTo || "/hives");
+      console.log(
+        "[GuestGuard] Redirecting to default:",
+        redirectTo || "/hives"
+      );
       router.push(redirectTo || "/hives");
     }
-  }, [mounted, isAuthenticated, isLoading, justLoggedOut, hasNextParam, router, redirectTo]);
+  }, [
+    mounted,
+    isAuthenticated,
+    isLoading,
+    justLoggedOut,
+    hasNextParam,
+    router,
+    redirectTo,
+  ]);
 
   // Show fallback while loading or redirecting (but not if we just logged out or have a next param)
   // When hasNextParam is true, we're likely in a post-logout redirect scenario where middleware
   // redirected an unauthenticated request to /login?next=... - we should show the login form
-  if ((isLoading || isAuthenticated) && fallback && !justLoggedOut && !hasNextParam) {
+  if (
+    (isLoading || isAuthenticated) &&
+    fallback &&
+    !justLoggedOut &&
+    !hasNextParam
+  ) {
     return <>{fallback}</>;
   }
 

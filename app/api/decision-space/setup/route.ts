@@ -20,13 +20,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sourceConversationId = searchParams.get("sourceConversationId");
 
-    const parseResult = getDecisionSetupDataSchema.safeParse({ sourceConversationId });
+    const parseResult = getDecisionSetupDataSchema.safeParse({
+      sourceConversationId,
+    });
     if (!parseResult.success) {
-      return jsonError("sourceConversationId is required", 400, "VALIDATION_ERROR");
+      return jsonError(
+        "sourceConversationId is required",
+        400,
+        "VALIDATION_ERROR"
+      );
     }
 
     const supabase = await supabaseServerClient();
-    const data = await getDecisionSetupData(supabase, userId, parseResult.data.sourceConversationId);
+    const data = await getDecisionSetupData(
+      supabase,
+      userId,
+      parseResult.data.sourceConversationId
+    );
 
     return NextResponse.json(data);
   } catch (err) {

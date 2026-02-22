@@ -69,12 +69,15 @@ export class SessionClient implements ISessionClient {
       (userValue as { user_metadata?: { name?: unknown } }).user_metadata?.name;
 
     const activeHiveIdValue = (data as { activeHiveId?: unknown }).activeHiveId;
-    const activeHiveId = typeof activeHiveIdValue === "string" ? activeHiveIdValue : undefined;
+    const activeHiveId =
+      typeof activeHiveIdValue === "string" ? activeHiveIdValue : undefined;
 
     const rolesValue = (data as { roles?: unknown }).roles;
-    const roles = Array.isArray(rolesValue) && rolesValue.every((r) => typeof r === "string")
-      ? (rolesValue as string[])
-      : [];
+    const roles =
+      Array.isArray(rolesValue) &&
+      rolesValue.every((r) => typeof r === "string")
+        ? (rolesValue as string[])
+        : [];
 
     return {
       user: {

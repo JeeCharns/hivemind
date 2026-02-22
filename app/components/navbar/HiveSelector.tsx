@@ -39,13 +39,18 @@ function useHiveLogoUrls(hives: HiveOption[]) {
       }
     };
     resolve();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [hives]);
 
   return logoUrls;
 }
 
-export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps) {
+export default function HiveSelector({
+  hives,
+  currentHiveId,
+}: HiveSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -65,7 +70,8 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
     return () => window.removeEventListener("click", handleClickAway);
   }, [menuOpen]);
 
-  const currentHive = hives.find((h) => h.id === currentHiveId) || hives[0] || null;
+  const currentHive =
+    hives.find((h) => h.id === currentHiveId) || hives[0] || null;
   const displayName = currentHive?.name || "Select hive";
 
   const handleSelect = (hive: HiveOption) => {
@@ -94,7 +100,11 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
         onClick={() => setMenuOpen(!menuOpen)}
         className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-50 transition text-body"
       >
-        <HiveLogo src={currentHive ? logoUrls[currentHive.id] ?? null : null} name={displayName} size={32} />
+        <HiveLogo
+          src={currentHive ? (logoUrls[currentHive.id] ?? null) : null}
+          name={displayName}
+          size={32}
+        />
         <span className="text-subtitle text-slate-800">{displayName}</span>
         <svg
           className={`w-4 h-4 text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`}
@@ -102,7 +112,12 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -123,8 +138,14 @@ export default function HiveSelector({ hives, currentHiveId }: HiveSelectorProps
                     isSelected ? "bg-indigo-50" : ""
                   }`}
                 >
-                  <HiveLogo src={logoUrls[hive.id] ?? null} name={hive.name} size={32} />
-                  <span className={`text-body ${isSelected ? "text-subtitle text-indigo-600" : "text-slate-700"}`}>
+                  <HiveLogo
+                    src={logoUrls[hive.id] ?? null}
+                    name={hive.name}
+                    size={32}
+                  />
+                  <span
+                    className={`text-body ${isSelected ? "text-subtitle text-indigo-600" : "text-slate-700"}`}
+                  >
                     {hive.name}
                   </span>
                 </button>

@@ -13,6 +13,7 @@
 ### Task 1: Create ConfirmationModal Component
 
 **Files:**
+
 - Create: `app/components/ConfirmationModal.tsx`
 - Create: `app/components/__tests__/ConfirmationModal.test.tsx`
 
@@ -219,6 +220,7 @@ git commit -m "feat: add reusable ConfirmationModal component"
 ### Task 2: Create leaveHiveAction Server Action
 
 **Files:**
+
 - Modify: `app/hives/[hiveId]/members/actions.ts` (add after line 176)
 
 **Step 1: Write the failing test**
@@ -240,7 +242,9 @@ Add after line 176 in `app/hives/[hiveId]/members/actions.ts`:
  *
  * @param hiveId - Hive UUID
  */
-export async function leaveHiveAction(hiveId: string): Promise<MemberActionResult> {
+export async function leaveHiveAction(
+  hiveId: string
+): Promise<MemberActionResult> {
   try {
     // 1. Validate inputs
     if (!hiveId) {
@@ -269,7 +273,10 @@ export async function leaveHiveAction(hiveId: string): Promise<MemberActionResul
     const validation = canRemoveMember(members, userId);
 
     if (!validation.canRemove) {
-      return { success: false, error: validation.reason || "Cannot leave hive" };
+      return {
+        success: false,
+        error: validation.reason || "Cannot leave hive",
+      };
     }
 
     // 5. Remove the member
@@ -316,6 +323,7 @@ git commit -m "feat: add leaveHiveAction server action"
 ### Task 3: Create LeaveHiveButton Component
 
 **Files:**
+
 - Create: `app/components/navbar/LeaveHiveButton.tsx`
 - Create: `app/components/navbar/__tests__/LeaveHiveButton.test.tsx`
 
@@ -505,6 +513,7 @@ git commit -m "feat: add LeaveHiveButton with confirmation modal"
 ### Task 4: Integrate LeaveHiveButton into PageSelector
 
 **Files:**
+
 - Modify: `app/components/navbar/PageSelector.tsx`
 
 **Step 1: Update PageSelector to include LeaveHiveButton**
@@ -512,21 +521,25 @@ git commit -m "feat: add LeaveHiveButton with confirmation modal"
 Modify `app/components/navbar/PageSelector.tsx`:
 
 1. Add import at top (after line 13):
+
 ```typescript
 import LeaveHiveButton from "./LeaveHiveButton";
 ```
 
 2. Add `hiveName` to props interface (after line 19):
+
 ```typescript
   hiveName?: string;
 ```
 
 3. Update function signature (line 29):
+
 ```typescript
 export default function PageSelector({ hiveId, hiveSlug, hiveName, currentPage, isAdmin = false }: PageSelectorProps) {
 ```
 
 4. Add LeaveHiveButton inside the dropdown menu, after the pages map (after line 98, before the closing `</div>`):
+
 ```typescript
           {/* Divider */}
           <div className="my-2 border-t border-slate-200" />
@@ -562,6 +575,7 @@ git commit -m "feat: integrate LeaveHiveButton into PageSelector dropdown"
 ### Task 5: Pass hiveName to PageSelector from Navbar
 
 **Files:**
+
 - Modify: Parent component that renders PageSelector (likely `Navbar.tsx` or similar)
 
 **Step 1: Find the parent component**
@@ -594,6 +608,7 @@ git commit -m "feat: pass hiveName to PageSelector for leave hive modal"
 ### Task 6: Update Documentation
 
 **Files:**
+
 - Modify: `docs/feature-map.md` (add leave hive flow)
 
 **Step 1: Add leave hive to feature map**
@@ -602,6 +617,7 @@ Add under the appropriate section:
 
 ```markdown
 ### Leave Hive
+
 - **Trigger**: Click "leave hive" in PageSelector dropdown
 - **Modal**: `app/components/ConfirmationModal.tsx`
 - **Button**: `app/components/navbar/LeaveHiveButton.tsx`
@@ -622,6 +638,7 @@ git commit -m "docs: add leave hive flow to feature map"
 ### Task 7: Manual Testing
 
 **Steps:**
+
 1. Log in and navigate to a hive where you're a member (not the only admin)
 2. Click the page dropdown (shows "home", "members", etc.)
 3. Verify "leave hive" button appears at bottom with red text
@@ -631,6 +648,7 @@ git commit -m "docs: add leave hive flow to feature map"
 7. Verify you're no longer a member of that hive
 
 **Edge case testing:**
+
 1. As the only admin, try to leave - should see error message
 2. Verify error message matches: "Cannot remove the only admin..."
 
@@ -638,12 +656,12 @@ git commit -m "docs: add leave hive flow to feature map"
 
 ## Summary
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1 | ConfirmationModal component | `app/components/ConfirmationModal.tsx` |
-| 2 | leaveHiveAction server action | `app/hives/[hiveId]/members/actions.ts` |
-| 3 | LeaveHiveButton component | `app/components/navbar/LeaveHiveButton.tsx` |
-| 4 | Integrate into PageSelector | `app/components/navbar/PageSelector.tsx` |
-| 5 | Pass hiveName from parent | Navbar parent component |
-| 6 | Update documentation | `docs/feature-map.md` |
-| 7 | Manual testing | N/A |
+| Task | Description                   | Files                                       |
+| ---- | ----------------------------- | ------------------------------------------- |
+| 1    | ConfirmationModal component   | `app/components/ConfirmationModal.tsx`      |
+| 2    | leaveHiveAction server action | `app/hives/[hiveId]/members/actions.ts`     |
+| 3    | LeaveHiveButton component     | `app/components/navbar/LeaveHiveButton.tsx` |
+| 4    | Integrate into PageSelector   | `app/components/navbar/PageSelector.tsx`    |
+| 5    | Pass hiveName from parent     | Navbar parent component                     |
+| 6    | Update documentation          | `docs/feature-map.md`                       |
+| 7    | Manual testing                | N/A                                         |

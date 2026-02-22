@@ -8,7 +8,11 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useConversationFeedback } from "./useConversationFeedback";
 import type { IConversationFeedbackClient } from "../data";
-import type { FeedbackItem, Feedback, FeedbackCounts } from "@/types/conversation-understand";
+import type {
+  FeedbackItem,
+  Feedback,
+  FeedbackCounts,
+} from "@/types/conversation-understand";
 import type { VoteFeedbackResult } from "../domain/feedback.types";
 
 // Mock client

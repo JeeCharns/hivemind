@@ -22,11 +22,13 @@ Two UX issues with the invite link flow:
 ### Fix 1: Login Page Stutter
 
 **Current flow:**
+
 - `/invite/[token]` redirects to `/login?intent=join&invite={token}`
 - Login page fires `useEffect` to fetch `/api/invites/[token]/preview`
 - Page re-renders with hive name after fetch completes
 
 **New flow:**
+
 - `/invite/[token]` fetches preview data server-side
 - Redirects to `/login?intent=join&invite={token}&hiveName={encodedHiveName}`
 - Login page reads `hiveName` from URL, renders immediately
@@ -36,6 +38,7 @@ Two UX issues with the invite link flow:
 ### Fix 2: Cookie-Based Invite Context
 
 **Cookie specification:**
+
 - Name: `hivemind_invite_token`
 - Value: The invite token
 - Options:
@@ -62,37 +65,43 @@ Two UX issues with the invite link flow:
 ## Files to Modify
 
 ### 1. `app/invite/[token]/page.tsx`
+
 Convert to server component:
+
 - Fetch preview data server-side (validates token, gets hive name)
 - Set `hivemind_invite_token` cookie
 - Redirect unauthenticated users to login with `hiveName` param
 - If authenticated, render client component that calls accept API
 
 ### 2. `app/(auth)/login/LoginPageClient.tsx`
+
 - Read `hiveName` from `searchParams` directly
 - Remove `useEffect` that fetches preview API
 - Keep fetch as fallback only if `hiveName` param is missing
 
 ### 3. `app/(auth)/callback/page.tsx`
+
 - After successful auth, read `hivemind_invite_token` cookie server-side
 - If present: clear cookie, redirect to `/invite/{token}`
 - If absent: continue existing logic
 
 ### 4. New file: `lib/auth/server/inviteCookie.ts`
+
 Centralised cookie utilities:
+
 - `setInviteCookie(token: string)` — sets the cookie
 - `getInviteCookie()` — reads the cookie value
 - `clearInviteCookie()` — deletes the cookie
 
 ## Edge Cases
 
-| Case | Handling |
-|------|----------|
-| User has stale invite cookie from earlier attempt | Always overwrite cookie when visiting `/invite/[token]` |
-| Invalid/expired token in cookie | `/invite/[token]` already handles invalid tokens with error state |
-| User already a member of the hive | Accept API uses `upsert` (idempotent), just redirects to hive |
-| Magic link opened on different device | Falls back to `/hives`; user can click original invite link again |
-| User navigates to `/login` directly (no invite) | No cookie set, existing behaviour preserved |
+| Case                                              | Handling                                                          |
+| ------------------------------------------------- | ----------------------------------------------------------------- |
+| User has stale invite cookie from earlier attempt | Always overwrite cookie when visiting `/invite/[token]`           |
+| Invalid/expired token in cookie                   | `/invite/[token]` already handles invalid tokens with error state |
+| User already a member of the hive                 | Accept API uses `upsert` (idempotent), just redirects to hive     |
+| Magic link opened on different device             | Falls back to `/hives`; user can click original invite link again |
+| User navigates to `/login` directly (no invite)   | No cookie set, existing behaviour preserved                       |
 
 ## Security Considerations
 
@@ -105,6 +114,7 @@ Centralised cookie utilities:
 ## Trade-offs
 
 **Accepted limitation:** If the user opens the magic link on a completely different device (not just a new tab), the cookie won't exist and they'll be redirected to `/hives`. This is an acceptable trade-off given:
+
 - It's a rare edge case
 - User can simply click the original invite link again
 - Full cross-device support would require database-backed session state

@@ -100,11 +100,7 @@ describe("SessionStore", () => {
       mockClient.setMockSession(mockSession);
 
       // Call refresh multiple times concurrently
-      const promises = [
-        store.refresh(),
-        store.refresh(),
-        store.refresh(),
-      ];
+      const promises = [store.refresh(), store.refresh(), store.refresh()];
 
       await Promise.all(promises);
 

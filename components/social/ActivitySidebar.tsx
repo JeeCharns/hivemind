@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useHiveActivity } from '@/lib/social/hooks';
-import type { ActivityEvent } from '@/lib/social/types';
-import { formatRelativeTimestamp } from '@/lib/formatters';
+import { useState } from "react";
+import { useHiveActivity } from "@/lib/social/hooks";
+import type { ActivityEvent } from "@/lib/social/types";
+import { formatRelativeTimestamp } from "@/lib/formatters";
 
 const INITIAL_LIMIT = 3;
 
@@ -14,16 +14,18 @@ interface ActivitySidebarProps {
 
 function getActivityText(event: ActivityEvent): string {
   switch (event.eventType) {
-    case 'join':
-      return 'Someone joined';
-    case 'response':
-      return 'Someone shared an idea';
-    case 'vote':
-      return '+1 vote';
-    case 'phase_change':
-      return (event.metadata as { message?: string })?.message || 'Phase changed';
+    case "join":
+      return "Someone joined";
+    case "response":
+      return "Someone shared an idea";
+    case "vote":
+      return "+1 vote";
+    case "phase_change":
+      return (
+        (event.metadata as { message?: string })?.message || "Phase changed"
+      );
     default:
-      return 'Activity';
+      return "Activity";
   }
 }
 
@@ -47,7 +49,10 @@ export function ActivitySidebar({
 
       <div className="space-y-2">
         {visibleActivity.map((event) => (
-          <div key={event.id} className="flex items-start justify-between gap-2">
+          <div
+            key={event.id}
+            className="flex items-start justify-between gap-2"
+          >
             <p className="text-sm text-gray-700">{getActivityText(event)}</p>
             <span className="shrink-0 text-xs text-gray-400">
               {formatRelativeTimestamp(event.createdAt)}

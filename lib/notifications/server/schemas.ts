@@ -4,7 +4,7 @@
  * Runtime validation for notification-related API requests.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export const emailPreferencesSchema = z.object({
   new_conversation: z.boolean().optional(),
@@ -20,5 +20,7 @@ export const sendEmailRequestSchema = z.object({
   user_id: z.string().uuid(),
 });
 
-export type UpdateEmailPreferencesInput = z.infer<typeof updateEmailPreferencesSchema>;
+export type UpdateEmailPreferencesInput = z.infer<
+  typeof updateEmailPreferencesSchema
+>;
 export type SendEmailRequestInput = z.infer<typeof sendEmailRequestSchema>;

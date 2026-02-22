@@ -15,4 +15,3 @@ Create an ADR when you:
 
 - Copy `docs/decisions/adr-template.md` into `docs/decisions/adr-000X-<slug>.md`
 - Keep it short; link to the relevant code
-

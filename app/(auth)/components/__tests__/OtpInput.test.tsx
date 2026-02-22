@@ -80,7 +80,11 @@ describe("OtpInput", () => {
       const onChange = jest.fn();
 
       render(
-        <OtpInput {...defaultProps} onChange={onChange} onComplete={onComplete} />
+        <OtpInput
+          {...defaultProps}
+          onChange={onChange}
+          onComplete={onComplete}
+        />
       );
 
       const inputs = screen.getAllByRole("textbox");

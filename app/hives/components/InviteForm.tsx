@@ -55,15 +55,15 @@ export default function InviteForm({
         required
       />
 
-      {error && (
-        <div className="text-body text-red-600 px-2">{error}</div>
-      )}
+      {error && <div className="text-body text-red-600 px-2">{error}</div>}
 
       <Button
         type="submit"
         disabled={isSubmitting || emailCount === 0 || emailCount > 10}
       >
-        {isSubmitting ? "Sending Invites..." : `Send ${emailCount} Invite${emailCount !== 1 ? "s" : ""}`}
+        {isSubmitting
+          ? "Sending Invites..."
+          : `Send ${emailCount} Invite${emailCount !== 1 ? "s" : ""}`}
       </Button>
     </form>
   );

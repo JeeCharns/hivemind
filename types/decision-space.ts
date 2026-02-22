@@ -10,9 +10,12 @@
 // ENUMS / UNIONS
 // ============================================
 
-export type DecisionRoundStatus = 'voting_open' | 'voting_closed' | 'results_generated';
+export type DecisionRoundStatus =
+  | "voting_open"
+  | "voting_closed"
+  | "results_generated";
 
-export type DecisionVisibility = 'hidden' | 'transparent';
+export type DecisionVisibility = "hidden" | "transparent";
 
 // ============================================
 // DATABASE ROWS

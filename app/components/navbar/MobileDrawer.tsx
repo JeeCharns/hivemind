@@ -21,14 +21,23 @@ interface MobileDrawerProps {
   viewModel: NavbarViewModel;
 }
 
-const allPages: { id: NavbarPage; label: string; path: string; adminOnly: boolean }[] = [
+const allPages: {
+  id: NavbarPage;
+  label: string;
+  path: string;
+  adminOnly: boolean;
+}[] = [
   { id: "home", label: "Home", path: "", adminOnly: false },
   { id: "members", label: "Members", path: "/members", adminOnly: false },
   { id: "settings", label: "Settings", path: "/settings", adminOnly: true },
   { id: "invite", label: "Invite", path: "/invite", adminOnly: false },
 ];
 
-export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawerProps) {
+export default function MobileDrawer({
+  isOpen,
+  onClose,
+  viewModel,
+}: MobileDrawerProps) {
   const { user, hives, currentHive, currentPage } = viewModel;
   const router = useRouter();
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -49,7 +58,9 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
       }
     };
     resolve();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [hives]);
 
   // Lock body scroll when drawer is open
@@ -144,24 +155,26 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
           {currentHive ? (
             // Show page links when in a hive
             <>
-              {allPages.filter((p) => !p.adminOnly || currentHive.isAdmin).map((page) => {
-                const isActive = page.id === currentPage;
-                const href = basePath + page.path;
-                return (
-                  <Link
-                    key={page.id}
-                    href={href}
-                    onClick={() => onClose()}
-                    className={`flex items-center px-4 py-3 text-body transition ${
-                      isActive
-                        ? "bg-indigo-50 text-indigo-600 font-medium"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {page.label}
-                  </Link>
-                );
-              })}
+              {allPages
+                .filter((p) => !p.adminOnly || currentHive.isAdmin)
+                .map((page) => {
+                  const isActive = page.id === currentPage;
+                  const href = basePath + page.path;
+                  return (
+                    <Link
+                      key={page.id}
+                      href={href}
+                      onClick={() => onClose()}
+                      className={`flex items-center px-4 py-3 text-body transition ${
+                        isActive
+                          ? "bg-indigo-50 text-indigo-600 font-medium"
+                          : "text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {page.label}
+                    </Link>
+                  );
+                })}
 
               {/* Hive switcher */}
               {hives.length > 1 && (
@@ -178,7 +191,12 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
                         onClick={() => onClose()}
                         className="flex items-center gap-3 px-4 py-3 text-body text-slate-700 hover:bg-slate-50 transition"
                       >
-                        <HiveLogo src={logoUrls[hive.id] ?? null} name={hive.name} size={32} className="shrink-0" />
+                        <HiveLogo
+                          src={logoUrls[hive.id] ?? null}
+                          name={hive.name}
+                          size={32}
+                          className="shrink-0"
+                        />
                         <span className="truncate">{hive.name}</span>
                       </Link>
                     ))}
@@ -199,7 +217,12 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
                     onClick={() => onClose()}
                     className="flex items-center gap-3 px-4 py-3 text-body text-slate-700 hover:bg-slate-50 transition"
                   >
-                    <HiveLogo src={logoUrls[hive.id] ?? null} name={hive.name} size={32} className="shrink-0" />
+                    <HiveLogo
+                      src={logoUrls[hive.id] ?? null}
+                      name={hive.name}
+                      size={32}
+                      className="shrink-0"
+                    />
                     <span className="truncate">{hive.name}</span>
                   </Link>
                 ))
@@ -219,7 +242,9 @@ export default function MobileDrawer({ isOpen, onClose, viewModel }: MobileDrawe
             <div className="px-4 py-3 border-b border-slate-100">
               <p className="text-subtitle text-slate-800">{user.displayName}</p>
               {user.email && (
-                <p className="text-info text-slate-500 truncate">{user.email}</p>
+                <p className="text-info text-slate-500 truncate">
+                  {user.email}
+                </p>
               )}
             </div>
 

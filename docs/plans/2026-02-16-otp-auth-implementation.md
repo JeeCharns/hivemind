@@ -13,6 +13,7 @@
 ## Task 1: Create OtpInput Component Tests
 
 **Files:**
+
 - Create: `app/(auth)/components/__tests__/OtpInput.test.tsx`
 
 **Step 1: Create test file with basic rendering test**
@@ -103,7 +104,12 @@ describe("OtpInput", () => {
       });
 
       const { rerender } = render(
-        <OtpInput {...defaultProps} value={value} onChange={onChange} onComplete={onComplete} />
+        <OtpInput
+          {...defaultProps}
+          value={value}
+          onChange={onChange}
+          onComplete={onComplete}
+        />
       );
 
       const inputs = screen.getAllByRole("textbox");
@@ -112,7 +118,12 @@ describe("OtpInput", () => {
         await userEvent.type(inputs[i], String(i + 1));
         value = value + String(i + 1);
         rerender(
-          <OtpInput {...defaultProps} value={value} onChange={onChange} onComplete={onComplete} />
+          <OtpInput
+            {...defaultProps}
+            value={value}
+            onChange={onChange}
+            onComplete={onComplete}
+          />
         );
       }
 
@@ -217,6 +228,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ## Task 2: Implement OtpInput Component
 
 **Files:**
+
 - Create: `app/(auth)/components/OtpInput.tsx`
 
 **Step 1: Create the OtpInput component**
@@ -224,7 +236,13 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ```tsx
 "use client";
 
-import { useRef, useCallback, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
+import {
+  useRef,
+  useCallback,
+  KeyboardEvent,
+  ClipboardEvent,
+  ChangeEvent,
+} from "react";
 
 type OtpInputProps = {
   length?: number;
@@ -245,10 +263,13 @@ export default function OtpInput({
 }: OtpInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const focusInput = useCallback((index: number) => {
-    const clampedIndex = Math.max(0, Math.min(index, length - 1));
-    inputRefs.current[clampedIndex]?.focus();
-  }, [length]);
+  const focusInput = useCallback(
+    (index: number) => {
+      const clampedIndex = Math.max(0, Math.min(index, length - 1));
+      inputRefs.current[clampedIndex]?.focus();
+    },
+    [length]
+  );
 
   const handleChange = useCallback(
     (index: number) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -327,7 +348,11 @@ export default function OtpInput({
   const disabledClass = disabled ? "bg-slate-100 cursor-not-allowed" : "";
 
   return (
-    <div className="flex gap-2 justify-center" role="group" aria-label="One-time password input">
+    <div
+      className="flex gap-2 justify-center"
+      role="group"
+      aria-label="One-time password input"
+    >
       {Array.from({ length }).map((_, index) => (
         <input
           key={index}
@@ -378,6 +403,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ## Task 3: Add verifyOtp to useAuth Hook
 
 **Files:**
+
 - Modify: `app/(auth)/hooks/useAuth.ts`
 
 **Step 1: Update the useAuth hook**
@@ -562,6 +588,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ## Task 4: Update LoginPageClient for OTP Flow
 
 **Files:**
+
 - Modify: `app/(auth)/login/LoginPageClient.tsx`
 
 **Step 1: Rewrite LoginPageClient with OTP flow**
@@ -897,10 +924,7 @@ function getOtpError(err: unknown): {
   }
 
   // Handle invalid/expired OTP errors
-  if (
-    code === "otp_expired" ||
-    message.toLowerCase().includes("expired")
-  ) {
+  if (code === "otp_expired" || message.toLowerCase().includes("expired")) {
     return {
       message: "Code expired. Please request a new one.",
       isRateLimit: false,
@@ -937,7 +961,9 @@ export default function LoginPageClient() {
 Modify `app/(auth)/components/LoginForm.tsx` line 46 to use the new default:
 
 ```tsx
-{loading ? "Sending..." : (buttonText ?? "Send verification code")}
+{
+  loading ? "Sending..." : (buttonText ?? "Send verification code");
+}
 ```
 
 **Step 3: Run typecheck and lint**
@@ -967,6 +993,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ## Task 5: Run Full Test Suite and Manual Testing
 
 **Files:**
+
 - None (verification only)
 
 **Step 1: Run all tests**
@@ -1015,6 +1042,7 @@ If fixes needed, commit with appropriate message.
 ## Task 6: Update Documentation
 
 **Files:**
+
 - Modify: `lib/auth/README.md`
 - Modify: `docs/feature-map.md`
 
@@ -1045,13 +1073,13 @@ Update login flow section to reflect OTP:
 ```markdown
 ### Login Flow
 
-| Step | File | Description |
-|------|------|-------------|
-| Email entry | `app/(auth)/login/LoginPageClient.tsx` | Email form, sends OTP |
-| OTP entry | `app/(auth)/login/LoginPageClient.tsx` | 6-digit code input |
-| OTP component | `app/(auth)/components/OtpInput.tsx` | 6-box input with paste/navigation |
-| Auth hook | `app/(auth)/hooks/useAuth.ts` | sendOtp, verifyOtp functions |
-| Session | `lib/auth/react/AuthProvider.tsx` | Session refresh after verify |
+| Step          | File                                   | Description                       |
+| ------------- | -------------------------------------- | --------------------------------- |
+| Email entry   | `app/(auth)/login/LoginPageClient.tsx` | Email form, sends OTP             |
+| OTP entry     | `app/(auth)/login/LoginPageClient.tsx` | 6-digit code input                |
+| OTP component | `app/(auth)/components/OtpInput.tsx`   | 6-box input with paste/navigation |
+| Auth hook     | `app/(auth)/hooks/useAuth.ts`          | sendOtp, verifyOtp functions      |
+| Session       | `lib/auth/react/AuthProvider.tsx`      | Session refresh after verify      |
 ```
 
 **Step 3: Commit documentation**
@@ -1071,11 +1099,11 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 
 ## Summary
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1 | Write OtpInput tests | `app/(auth)/components/__tests__/OtpInput.test.tsx` |
-| 2 | Implement OtpInput | `app/(auth)/components/OtpInput.tsx` |
-| 3 | Add verifyOtp to useAuth | `app/(auth)/hooks/useAuth.ts` |
-| 4 | Update LoginPageClient | `app/(auth)/login/LoginPageClient.tsx`, `app/(auth)/components/LoginForm.tsx` |
-| 5 | Run tests and manual QA | (verification) |
-| 6 | Update documentation | `lib/auth/README.md`, `docs/feature-map.md` |
+| Task | Description              | Files                                                                         |
+| ---- | ------------------------ | ----------------------------------------------------------------------------- |
+| 1    | Write OtpInput tests     | `app/(auth)/components/__tests__/OtpInput.test.tsx`                           |
+| 2    | Implement OtpInput       | `app/(auth)/components/OtpInput.tsx`                                          |
+| 3    | Add verifyOtp to useAuth | `app/(auth)/hooks/useAuth.ts`                                                 |
+| 4    | Update LoginPageClient   | `app/(auth)/login/LoginPageClient.tsx`, `app/(auth)/components/LoginForm.tsx` |
+| 5    | Run tests and manual QA  | (verification)                                                                |
+| 6    | Update documentation     | `lib/auth/README.md`, `docs/feature-map.md`                                   |

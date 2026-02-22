@@ -211,7 +211,9 @@ async function ensureSystemProfile(
           `  ON CONFLICT (id) DO NOTHING;`
       );
     } else {
-      result.errors.push(`Failed to create system profile: ${insertError.message}`);
+      result.errors.push(
+        `Failed to create system profile: ${insertError.message}`
+      );
     }
     return result;
   }

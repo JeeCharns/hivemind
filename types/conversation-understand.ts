@@ -115,7 +115,13 @@ export interface UnderstandViewModel {
   clusterBuckets?: ClusterBucket[];
   /** Response IDs that couldn't be consolidated */
   unconsolidatedResponseIds?: string[];
-  analysisStatus?: "not_started" | "embedding" | "analyzing" | "ready" | "error" | null;
+  analysisStatus?:
+    | "not_started"
+    | "embedding"
+    | "analyzing"
+    | "ready"
+    | "error"
+    | null;
   analysisError?: string | null;
   responseCount?: number;
   threshold?: number;

@@ -25,4 +25,3 @@ export type TriggerConversationAnalysisResponse = {
 };
 
 export type ConversationsApiError = ApiErrorShape;
-

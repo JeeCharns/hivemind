@@ -54,7 +54,9 @@ interface UnconsolidatedResponseRow {
   response_id: string | number;
 }
 
-function parseAnalysisStatus(value: unknown): UnderstandViewModel["analysisStatus"] {
+function parseAnalysisStatus(
+  value: unknown
+): UnderstandViewModel["analysisStatus"] {
   switch (value) {
     case "not_started":
     case "embedding":
@@ -81,12 +83,17 @@ export async function getUnderstandViewModel(
   conversationId: string,
   userId: string
 ): Promise<UnderstandViewModel> {
-  console.log("[getUnderstandViewModel] START - conversationId:", conversationId);
+  console.log(
+    "[getUnderstandViewModel] START - conversationId:",
+    conversationId
+  );
 
   // 1. Verify conversation exists and get hive_id + analysis metadata
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
-    .select("id, hive_id, analysis_status, analysis_error, analysis_response_count, analysis_updated_at")
+    .select(
+      "id, hive_id, analysis_status, analysis_error, analysis_response_count, analysis_updated_at"
+    )
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -98,7 +105,14 @@ export async function getUnderstandViewModel(
   await requireHiveMember(supabase, userId, conversation.hive_id);
 
   // 3. Fetch all data in parallel
-  const [responsesResult, themesResult, feedbackResult, countResult, bucketsResult, unconsolidatedResult] = await Promise.all([
+  const [
+    responsesResult,
+    themesResult,
+    feedbackResult,
+    countResult,
+    bucketsResult,
+    unconsolidatedResult,
+  ] = await Promise.all([
     // Fetch responses with UMAP coordinates
     supabase
       .from("conversation_responses")
@@ -128,7 +142,8 @@ export async function getUnderstandViewModel(
     // Fetch cluster buckets (LLM-driven consolidation)
     supabase
       .from("conversation_cluster_buckets")
-      .select(`
+      .select(
+        `
         id,
         cluster_index,
         bucket_name,
@@ -136,7 +151,8 @@ export async function getUnderstandViewModel(
         consolidated_statement,
         response_count,
         conversation_cluster_bucket_members(response_id)
-      `)
+      `
+      )
       .eq("conversation_id", conversationId)
       .order("cluster_index", { ascending: true })
       .order("bucket_index", { ascending: true }),
@@ -165,7 +181,10 @@ export async function getUnderstandViewModel(
   }
 
   if (bucketsResult.error) {
-    console.error("[getUnderstandViewModel] Failed to fetch cluster buckets:", bucketsResult.error);
+    console.error(
+      "[getUnderstandViewModel] Failed to fetch cluster buckets:",
+      bucketsResult.error
+    );
     // Don't throw - buckets are optional feature
   } else {
     console.log("[getUnderstandViewModel] Buckets query result:", {
@@ -175,7 +194,10 @@ export async function getUnderstandViewModel(
   }
 
   if (unconsolidatedResult.error) {
-    console.error("[getUnderstandViewModel] Failed to fetch unconsolidated responses:", unconsolidatedResult.error);
+    console.error(
+      "[getUnderstandViewModel] Failed to fetch unconsolidated responses:",
+      unconsolidatedResult.error
+    );
     // Don't throw - optional feature
   }
 
@@ -184,7 +206,8 @@ export async function getUnderstandViewModel(
   const feedbackRows = (feedbackResult.data || []) as FeedbackRow[];
   const responseCount = countResult.count ?? 0;
   const bucketsData = (bucketsResult.data || []) as ClusterBucketRow[];
-  const unconsolidatedData = (unconsolidatedResult.data || []) as UnconsolidatedResponseRow[];
+  const unconsolidatedData = (unconsolidatedResult.data ||
+    []) as UnconsolidatedResponseRow[];
 
   // Normalize response IDs to strings (Supabase can return BIGINT ids as numbers)
   const normalizedResponses = responses.map((r) => ({
@@ -239,7 +262,11 @@ export async function getUnderstandViewModel(
     const feedbackType = fb.feedback as Feedback;
 
     // Increment count
-    if (feedbackType === "agree" || feedbackType === "pass" || feedbackType === "disagree") {
+    if (
+      feedbackType === "agree" ||
+      feedbackType === "pass" ||
+      feedbackType === "disagree"
+    ) {
       existing.counts[feedbackType]++;
     }
 
@@ -266,9 +293,9 @@ export async function getUnderstandViewModel(
   // Note: responses array is empty for incremental loading - fetch on demand via API
   const clusterBuckets: ClusterBucket[] = bucketsData.map((bucket) => {
     // Get member response IDs from join table
-    const memberIds: string[] = (bucket.conversation_cluster_bucket_members || []).map(
-      (m) => String(m.response_id)
-    );
+    const memberIds: string[] = (
+      bucket.conversation_cluster_bucket_members || []
+    ).map((m) => String(m.response_id));
 
     return {
       bucketId: String(bucket.id),

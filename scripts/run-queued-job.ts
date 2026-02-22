@@ -19,7 +19,8 @@ if (!jobId) {
   process.exit(1);
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseSecretKey) {
@@ -57,8 +58,12 @@ async function main() {
   console.log(`   Attempts: ${job.attempts}\n`);
 
   if (job.status !== "queued") {
-    console.log(`⚠️  Job is not in 'queued' status. Current status: ${job.status}`);
-    console.log(`   Continue anyway? This will run the analysis regardless of status.`);
+    console.log(
+      `⚠️  Job is not in 'queued' status. Current status: ${job.status}`
+    );
+    console.log(
+      `   Continue anyway? This will run the analysis regardless of status.`
+    );
   }
 
   // 2. Claim the job
@@ -76,7 +81,9 @@ async function main() {
   console.log("✅ Job claimed!\n");
 
   // 3. Run analysis
-  console.log(`📊 Starting ${job.strategy} analysis for conversation ${job.conversation_id}...`);
+  console.log(
+    `📊 Starting ${job.strategy} analysis for conversation ${job.conversation_id}...`
+  );
   console.log(`   This may take a few minutes...\n`);
 
   try {
@@ -104,7 +111,8 @@ async function main() {
 
     console.log("\n✨ Analysis completed successfully!\n");
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     console.error("❌ Analysis failed:", errorMessage);
 
     if (error instanceof Error && error.stack) {

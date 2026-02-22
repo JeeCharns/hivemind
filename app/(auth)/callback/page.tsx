@@ -60,7 +60,9 @@ export default function AuthCallbackPage() {
 
           // Check for invite token in cookie (works across tabs)
           try {
-            const inviteContextResponse = await fetch("/api/auth/invite-context");
+            const inviteContextResponse = await fetch(
+              "/api/auth/invite-context"
+            );
             if (inviteContextResponse.ok) {
               const { token } = await inviteContextResponse.json();
               if (token) {
@@ -99,7 +101,9 @@ export default function AuthCallbackPage() {
 
         // Only attempt code exchange if we don't have a session yet
         if (!session && code) {
-          console.log("[Auth Callback] No existing session found, attempting code exchange");
+          console.log(
+            "[Auth Callback] No existing session found, attempting code exchange"
+          );
           const { error } = await supabase.auth.exchangeCodeForSession(code);
 
           if (error) {
@@ -108,7 +112,9 @@ export default function AuthCallbackPage() {
             // Check if it's a PKCE code verifier error
             if (error.message?.includes("code verifier")) {
               console.error("PKCE code verifier missing - this usually means:");
-              console.error("1. The magic link was opened in a different browser");
+              console.error(
+                "1. The magic link was opened in a different browser"
+              );
               console.error("2. Browser cookies/localStorage were cleared");
               console.error("3. The link was opened in incognito/private mode");
               router.push("/login?error=session_expired");
@@ -123,7 +129,9 @@ export default function AuthCallbackPage() {
           const result = await supabase.auth.getSession();
           session = result.data.session;
         } else if (session && code) {
-          console.log("[Auth Callback] Session already exists, skipping code exchange");
+          console.log(
+            "[Auth Callback] Session already exists, skipping code exchange"
+          );
         }
 
         // Remove query params (e.g. ?code=...) after we've processed them.

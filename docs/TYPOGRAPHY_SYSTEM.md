@@ -7,6 +7,7 @@ The Hivemind app now has a standardized typography system configured in [tailwin
 ## Typography Tokens
 
 ### Display Sizes
+
 Large, attention-grabbing text for hero sections and major headings.
 
 - `text-display-lg` - 60px, line-height 1.1, -0.02em tracking, font-weight 600, uses Space Grotesk
@@ -14,6 +15,7 @@ Large, attention-grabbing text for hero sections and major headings.
 - `text-display-sm` - 32px, line-height 1.2, -0.01em tracking, font-weight 600, uses Space Grotesk
 
 ### Headings
+
 Structured heading hierarchy for content organization.
 
 - `text-h1` - 30px (1.875rem), line-height 1.3, -0.01em tracking, font-weight 600, uses Space Grotesk
@@ -22,6 +24,7 @@ Structured heading hierarchy for content organization.
 - `text-h4` - 18px (1.125rem), line-height 1.4, font-weight 600, uses Space Grotesk
 
 ### Body Text
+
 Standard content text in varying sizes.
 
 - `text-body-lg` - 16px (1rem), line-height 1.5, font-weight 400
@@ -29,6 +32,7 @@ Standard content text in varying sizes.
 - `text-body-sm` - 13px (0.8125rem), line-height 1.4, font-weight 400
 
 ### UI Elements
+
 Specialized text for interface components.
 
 - `text-subtitle` - 14px medium weight for emphasized body text
@@ -44,6 +48,7 @@ Specialized text for interface components.
 ## Color Tokens
 
 ### Text Colors
+
 Standardized text color palette.
 
 - `text-text-primary` - #172847 (dark navy, main content)
@@ -53,6 +58,7 @@ Standardized text color palette.
 - `text-text-disabled` - #A0AEC0 (placeholder text, disabled states)
 
 ### Brand Colors
+
 - `text-brand-primary` - #3A1DC8 (primary brand purple)
 - `bg-brand-primary` - #3A1DC8
 - `border-brand-primary` - #3A1DC8
@@ -110,7 +116,9 @@ Standardized text color palette.
 ## Component-Specific Examples
 
 ### Buttons
+
 Already updated in [app/components/button.tsx](../app/components/button.tsx:18-20).
+
 ```tsx
 // Button sizes automatically use typography system
 <Button size="sm">Small</Button>  // text-button-sm
@@ -119,7 +127,9 @@ Already updated in [app/components/button.tsx](../app/components/button.tsx:18-2
 ```
 
 ### Form Inputs
+
 Already updated in [app/components/input.tsx](../app/components/input.tsx:12-23).
+
 ```tsx
 <Input label="Email" helperText="We'll never share your email" />
 // Label uses: text-label font-display
@@ -128,14 +138,18 @@ Already updated in [app/components/input.tsx](../app/components/input.tsx:12-23)
 ```
 
 ### Alerts
+
 Already updated in [app/components/alert.tsx](../app/components/alert.tsx:20).
+
 ```tsx
 <Alert variant="error">Error message</Alert>
 // Uses: text-body
 ```
 
 ### Navigation
-Already updated in [app/components/navbar/*.tsx](../app/components/navbar/).
+
+Already updated in [app/components/navbar/\*.tsx](../app/components/navbar/).
+
 ```tsx
 // Menu labels
 <span className="text-subtitle text-slate-800">Menu Item</span>
@@ -148,6 +162,7 @@ Already updated in [app/components/navbar/*.tsx](../app/components/navbar/).
 ```
 
 ### Page Headings
+
 ```tsx
 // Page title
 <h1 className="text-h1 text-text-primary">Page Title</h1>
@@ -163,6 +178,7 @@ Already updated in [app/components/navbar/*.tsx](../app/components/navbar/).
 ```
 
 ### Content Text
+
 ```tsx
 // Primary body text
 <p className="text-body text-text-primary">Main content</p>
@@ -179,14 +195,18 @@ Already updated in [app/components/navbar/*.tsx](../app/components/navbar/).
 The typography system uses two font families strategically:
 
 ### Space Grotesk (font-display)
+
 Used for:
+
 - All display sizes (display-lg, display-md, display-sm)
 - All headings (h1, h2, h3, h4)
 - Labels (label, label-sm)
 - **Applied automatically** when using heading/display/label utility classes
 
 ### Inter (font-sans, default)
+
 Used for:
+
 - All body text (body-lg, body, body-sm)
 - Subtitles
 - Buttons
@@ -198,10 +218,12 @@ Used for:
 ## Files Already Updated
 
 ✅ **Core Configuration:**
+
 - [tailwind.config.ts](../tailwind.config.ts) - Typography tokens defined with font families
 - [app/globals.css](../app/globals.css) - Utility classes with font-display auto-applied
 
 ✅ **Core Components (10 files):**
+
 - [app/components/button.tsx](../app/components/button.tsx) - Button sizes
 - [app/components/input.tsx](../app/components/input.tsx) - Form inputs (labels use Space Grotesk)
 - [app/components/alert.tsx](../app/components/alert.tsx) - Alerts
@@ -209,7 +231,7 @@ Used for:
 - [app/components/navbar/PageSelector.tsx](../app/components/navbar/PageSelector.tsx) - Navigation
 - [app/components/navbar/UserMenu.tsx](../app/components/navbar/UserMenu.tsx) - Navigation
 - [app/components/conversation/ConversationHeader.tsx](../app/components/conversation/ConversationHeader.tsx) - Conversation UI (headings use Space Grotesk)
-- [app/(auth)/login/LoginPageClient.tsx](../app/(auth)/login/LoginPageClient.tsx) - Auth pages (heading and subtitle use Space Grotesk)
+- [app/(auth)/login/LoginPageClient.tsx](<../app/(auth)/login/LoginPageClient.tsx>) - Auth pages (heading and subtitle use Space Grotesk)
 - Documentation files created
 
 ## Files Still To Update
@@ -217,6 +239,7 @@ Used for:
 The following files contain typography that should be migrated to the new system:
 
 ### High Priority (Core UI)
+
 - `app/components/conversation/ListenView.tsx` - Tags, response text
 - `app/components/conversation/ReportView.tsx` - Report content
 - `app/components/conversation/UnderstandView.tsx` - Analysis visualization
@@ -228,6 +251,7 @@ The following files contain typography that should be migrated to the new system
 - `app/hives/components/HiveCard.tsx` - Card typography
 
 ### Medium Priority (Settings & Forms)
+
 - `app/settings/**/*.tsx` - Settings pages
 - `app/hives/components/SettingsForm.tsx` - Form labels
 - `app/hives/components/InviteForm.tsx` - Form labels
@@ -237,12 +261,14 @@ The following files contain typography that should be migrated to the new system
 For each file, apply these transformations:
 
 1. **Remove inline fontFamily styles**
+
    ```diff
    - style={{ fontFamily: "'Space Grotesk', Inter, system-ui" }}
    + font-display (if it was Space Grotesk)
    ```
 
 2. **Replace arbitrary font sizes**
+
    ```diff
    - text-[24px] leading-[31px] font-medium
    + text-h2
@@ -255,6 +281,7 @@ For each file, apply these transformations:
    ```
 
 3. **Replace hardcoded colors**
+
    ```diff
    - text-[#172847]
    + text-text-primary
@@ -270,6 +297,7 @@ For each file, apply these transformations:
    ```
 
 4. **Simplify combined classes**
+
    ```diff
    - text-sm font-medium text-slate-800
    + text-subtitle text-slate-800
@@ -290,6 +318,7 @@ For each file, apply these transformations:
 ## Testing Checklist
 
 After migrating a component:
+
 - [ ] Visual appearance unchanged (compare before/after screenshots)
 - [ ] Font sizes render correctly at all breakpoints
 - [ ] Line heights don't cause overlapping text

@@ -12,4 +12,3 @@
 ## Guardrail
 
 If a file needs `SupabaseClient`, prefer putting it under `server/` (or a `data/` client) and inject it for tests.
-

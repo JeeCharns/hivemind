@@ -19,7 +19,8 @@ function looksLikeBase64(value: string): boolean {
 function normalizeBase64(input: string): string {
   // Supabase uses "base64-" prefix and may use base64url encoding.
   const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4));
+  const padding =
+    base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4));
   return `${base64}${padding}`;
 }
 
@@ -29,8 +30,7 @@ function decodeBase64ToString(value: string): string | null {
     if (typeof globalThis.atob === "function") {
       return globalThis.atob(normalized);
     }
-  } catch {
-  }
+  } catch {}
 
   try {
     if (typeof Buffer === "undefined") return null;
@@ -50,8 +50,11 @@ export function parseSupabaseAuthCookieValue(value: string): Session | null {
     return parsed as Session;
   } catch {
     // Supabase SSR cookies are often stored as "base64-<json>".
-    const base64Prefixed = decoded.startsWith("base64-") ? decoded.slice("base64-".length) : null;
-    const base64Candidate = base64Prefixed ?? (looksLikeBase64(decoded) ? decoded : null);
+    const base64Prefixed = decoded.startsWith("base64-")
+      ? decoded.slice("base64-".length)
+      : null;
+    const base64Candidate =
+      base64Prefixed ?? (looksLikeBase64(decoded) ? decoded : null);
     if (!base64Candidate) return null;
 
     const json = decodeBase64ToString(base64Candidate);
@@ -68,7 +71,9 @@ export function parseSupabaseAuthCookieValue(value: string): Session | null {
   }
 }
 
-export function findSupabaseAuthSessionCookie(cookies: NamedCookie[]): Session | null {
+export function findSupabaseAuthSessionCookie(
+  cookies: NamedCookie[]
+): Session | null {
   const cookieGroups = new Map<
     string,
     { baseValue: string | null; chunks: Map<number, string> }
@@ -102,7 +107,7 @@ export function findSupabaseAuthSessionCookie(cookies: NamedCookie[]): Session |
           .sort(([a], [b]) => a - b)
           .map(([, v]) => v)
           .join("")
-      : group.baseValue ?? "";
+      : (group.baseValue ?? "");
 
     const session = value ? parseSupabaseAuthCookieValue(value) : null;
     if (session?.access_token) return session;

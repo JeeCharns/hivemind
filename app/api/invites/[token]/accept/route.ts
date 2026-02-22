@@ -56,19 +56,27 @@ export async function POST(
     const supabase = await supabaseServerClient();
     const admin = supabaseAdminClient();
 
-    console.log("[POST /api/invites/[token]/accept] Accepting token:", redactToken(token), {
-      supabaseHost: supabaseHostFromEnv(),
-      hasServiceRoleKey: Boolean(
-        process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
-      ),
-    });
+    console.log(
+      "[POST /api/invites/[token]/accept] Accepting token:",
+      redactToken(token),
+      {
+        supabaseHost: supabaseHostFromEnv(),
+        hasServiceRoleKey: Boolean(
+          process.env.SUPABASE_SECRET_KEY ??
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        ),
+      }
+    );
 
     // 3. Fetch invite link
     // Important: a user who is not yet a hive member cannot pass RLS on
     // `hive_invite_links`, so we must resolve the token server-side.
     const inviteLink = await getShareLinkByToken(admin, token);
     if (!inviteLink) {
-      console.log("[POST /api/invites/[token]/accept] Invite not found for token:", redactToken(token));
+      console.log(
+        "[POST /api/invites/[token]/accept] Invite not found for token:",
+        redactToken(token)
+      );
       return jsonError("Invite not found", 404, "INVITE_NOT_FOUND");
     }
 
@@ -84,7 +92,12 @@ export async function POST(
     }
 
     const accessMode = inviteLink.access_mode as AccessMode;
-    const canAccept = await canAcceptInvite(admin, inviteLink.hive_id, userEmail, accessMode);
+    const canAccept = await canAcceptInvite(
+      admin,
+      inviteLink.hive_id,
+      userEmail,
+      accessMode
+    );
 
     if (!canAccept) {
       return jsonError(
@@ -95,7 +108,12 @@ export async function POST(
     }
 
     // 5. Add user to hive (idempotent)
-    await addUserToHive(supabase, inviteLink.hive_id, session.user.id, userEmail);
+    await addUserToHive(
+      supabase,
+      inviteLink.hive_id,
+      session.user.id,
+      userEmail
+    );
 
     // 6. Mark invite as accepted if invited_only mode
     if (inviteLink.access_mode === "invited_only") {
@@ -110,7 +128,10 @@ export async function POST(
       .maybeSingle();
 
     if (hiveError) {
-      console.error("[POST /api/invites/[token]/accept] Failed to fetch hive:", hiveError);
+      console.error(
+        "[POST /api/invites/[token]/accept] Failed to fetch hive:",
+        hiveError
+      );
     }
 
     return NextResponse.json({

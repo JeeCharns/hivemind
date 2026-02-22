@@ -179,7 +179,14 @@ function determineOptimalClusters(
   let maxDistance = 0;
 
   for (let k = 1; k <= maxK; k++) {
-    const distance = perpendicularDistance(k, distortions[k - 1], x1, y1, x2, y2);
+    const distance = perpendicularDistance(
+      k,
+      distortions[k - 1],
+      x1,
+      y1,
+      x2,
+      y2
+    );
     if (distance > maxDistance) {
       maxDistance = distance;
       bestK = k;
@@ -190,12 +197,17 @@ function determineOptimalClusters(
   // However, if there's a steep drop from k=1 to k=2, that's a strong signal
   // even if the overall curve looks linear (because the rest of the curve after k=2 might be flat)
   const yRange = Math.abs(y1 - y2);
-  const dropK1ToK2 = distortions.length >= 2 ? Math.abs(distortions[0] - distortions[1]) : 0;
+  const dropK1ToK2 =
+    distortions.length >= 2 ? Math.abs(distortions[0] - distortions[1]) : 0;
   const isStrongK2Signal = dropK1ToK2 > 0.5 * distortions[0]; // 50%+ drop from k=1 to k=2
 
   // Only apply linear threshold if there's no strong k=2 signal
   const LINEAR_THRESHOLD = 0.001; // 0.1% of y-range (very conservative)
-  if (!isStrongK2Signal && yRange > 0 && maxDistance < LINEAR_THRESHOLD * yRange) {
+  if (
+    !isStrongK2Signal &&
+    yRange > 0 &&
+    maxDistance < LINEAR_THRESHOLD * yRange
+  ) {
     if (debug) {
       console.log(
         `[determineOptimalClusters] curve is linear (maxDistance=${maxDistance}, yRange=${yRange}), returning k=1`
@@ -241,7 +253,9 @@ export function clusterEmbeddings(
     const k = numClusters ?? determineOptimalClusters(embeddings, config);
 
     if (debug) {
-      console.log(`[clusterEmbeddings] Using k=${k} for ${embeddings.length} embeddings`);
+      console.log(
+        `[clusterEmbeddings] Using k=${k} for ${embeddings.length} embeddings`
+      );
     }
 
     // Handle k=1 case (all in one cluster)
@@ -282,9 +296,7 @@ export function clusterEmbeddings(
  * @param clusterIndices - Array of cluster assignments
  * @returns Map of cluster index to size
  */
-export function getClusterStats(
-  clusterIndices: number[]
-): Map<number, number> {
+export function getClusterStats(clusterIndices: number[]): Map<number, number> {
   const stats = new Map<number, number>();
 
   for (const idx of clusterIndices) {

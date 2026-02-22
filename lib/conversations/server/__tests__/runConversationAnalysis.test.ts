@@ -4,8 +4,6 @@
  * Tests cluster relabeling and other helpers
  */
 
-
-
 // Export helper functions for testing by adding them to a testable module
 // Since helpers are internal, we'll test the behavior indirectly through integration tests
 
@@ -130,7 +128,11 @@ describe("Embedding Normalization", () => {
       });
     };
 
-    const input = [[3, 4], [0, 0], [1, 0]];
+    const input = [
+      [3, 4],
+      [0, 0],
+      [1, 0],
+    ];
     const result = normalizeEmbeddings(input);
 
     // Check first embedding is normalized (3,4) -> (0.6, 0.8)
@@ -150,10 +152,13 @@ describe("Embedding Normalization", () => {
 });
 
 import { enforceMinClusters } from "../../domain/clusterEnforcement";
-import { MIN_CLUSTERS_SMALL, MIN_CLUSTERS_LARGE, MISC_CLUSTER_INDEX } from "../../domain/thresholds";
+import {
+  MIN_CLUSTERS_SMALL,
+  MIN_CLUSTERS_LARGE,
+  MISC_CLUSTER_INDEX,
+} from "../../domain/thresholds";
 
 describe("Minimum Cluster Floor Enforcement", () => {
-
   /**
    * Helper to create synthetic embeddings
    */
@@ -243,12 +248,18 @@ describe("Minimum Cluster Floor Enforcement", () => {
     const clusterIndices = new Array(20).fill(0);
 
     // Step 1: Enforce minimum clusters
-    const enforcementResult = enforceMinClusters(embeddings, clusterIndices, 20);
+    const enforcementResult = enforceMinClusters(
+      embeddings,
+      clusterIndices,
+      20
+    );
 
     // Step 2: Outlier detection would run on enforcementResult.clusterIndices
     // (not testing actual outlier detection here, just the ordering)
 
     // Verify that enforcement has completed before outlier detection
-    expect(enforcementResult.finalClusterCount).toBeGreaterThanOrEqual(MIN_CLUSTERS_SMALL);
+    expect(enforcementResult.finalClusterCount).toBeGreaterThanOrEqual(
+      MIN_CLUSTERS_SMALL
+    );
   });
 });

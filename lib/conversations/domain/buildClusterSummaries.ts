@@ -36,12 +36,7 @@ export interface ClusterSummary {
 /**
  * Computes the Euclidean distance between two 2D points
  */
-const distance = (
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number
-): number => {
+const distance = (x1: number, y1: number, x2: number, y2: number): number => {
   return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 };
 

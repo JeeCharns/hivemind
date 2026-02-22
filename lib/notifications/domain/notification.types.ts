@@ -5,10 +5,10 @@
  */
 
 export type NotificationType =
-  | 'new_conversation'
-  | 'analysis_complete'
-  | 'report_generated'
-  | 'opinion_liked';
+  | "new_conversation"
+  | "analysis_complete"
+  | "report_generated"
+  | "opinion_liked";
 
 export interface Notification {
   id: string;

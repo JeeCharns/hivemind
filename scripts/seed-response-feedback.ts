@@ -35,7 +35,8 @@ function parseNumber(value: string | undefined, fallback: number): number {
 
 function normalizeWeights(weights: Options["weights"]): Options["weights"] {
   const total = weights.agree + weights.pass + weights.disagree;
-  if (!Number.isFinite(total) || total <= 0) return { agree: 0.6, pass: 0.25, disagree: 0.15 };
+  if (!Number.isFinite(total) || total <= 0)
+    return { agree: 0.6, pass: 0.25, disagree: 0.15 };
   return {
     agree: weights.agree / total,
     pass: weights.pass / total,
@@ -62,7 +63,8 @@ function sampleUnique<T>(items: T[], count: number): T[] {
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size));
   return out;
 }
 
@@ -96,15 +98,23 @@ function usage(): string {
 }
 
 function parseOptions(argv: string[]): Options {
-  const conversationId = getArgValue(argv, "--conversationId") || getArgValue(argv, "-c") || "";
+  const conversationId =
+    getArgValue(argv, "--conversationId") || getArgValue(argv, "-c") || "";
   const users = parseNumber(getArgValue(argv, "--users"), 50);
   const agree = parseNumber(getArgValue(argv, "--agree"), 0.6);
   const pass = parseNumber(getArgValue(argv, "--pass"), 0.25);
   const disagree = parseNumber(getArgValue(argv, "--disagree"), 0.15);
-  const agreementHotspots = parseNumber(getArgValue(argv, "--agreementHotspots"), 5);
-  const divisiveHotspots = parseNumber(getArgValue(argv, "--divisiveHotspots"), 5);
+  const agreementHotspots = parseNumber(
+    getArgValue(argv, "--agreementHotspots"),
+    5
+  );
+  const divisiveHotspots = parseNumber(
+    getArgValue(argv, "--divisiveHotspots"),
+    5
+  );
   const createUsers = argv.includes("--createUsers");
-  const addCreatedUsersToHive = argv.includes("--addCreatedUsersToHive") || createUsers;
+  const addCreatedUsersToHive =
+    argv.includes("--addCreatedUsersToHive") || createUsers;
   const clearExisting = argv.includes("--clearExisting");
   const confirm = argv.includes("--confirm");
   const seedTag = getArgValue(argv, "--seedTag") || `seed-${Date.now()}`;
@@ -132,11 +142,15 @@ async function main() {
     process.exit(1);
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseSecretKey =
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseSecretKey) {
-    console.error("Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) and SUPABASE_SECRET_KEY");
+    console.error(
+      "Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) and SUPABASE_SECRET_KEY"
+    );
     process.exit(1);
   }
 
@@ -144,7 +158,9 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  async function fetchConsolidatedStatementRepresentativeIds(conversationId: string): Promise<string[]> {
+  async function fetchConsolidatedStatementRepresentativeIds(
+    conversationId: string
+  ): Promise<string[]> {
     // Each cluster bucket's representative is its first member response (lowest response_id).
     // The UI votes on this representative when users agree/disagree with a consolidated statement.
     const { data: buckets, error: bucketsError } = await supabase
@@ -152,9 +168,14 @@ async function main() {
       .select("id")
       .eq("conversation_id", conversationId);
 
-    if (bucketsError) throw new Error(`Failed to fetch cluster buckets: ${bucketsError.message}`);
+    if (bucketsError)
+      throw new Error(
+        `Failed to fetch cluster buckets: ${bucketsError.message}`
+      );
     if (!buckets || buckets.length === 0) {
-      throw new Error("Conversation has no consolidated statements (cluster buckets); nothing to seed");
+      throw new Error(
+        "Conversation has no consolidated statements (cluster buckets); nothing to seed"
+      );
     }
 
     const bucketIds = buckets.map((b) => String((b as { id: unknown }).id));
@@ -169,9 +190,14 @@ async function main() {
         .order("response_id", { ascending: true })
         .limit(1);
 
-      if (membersError) throw new Error(`Failed to fetch bucket members for ${bucketId}: ${membersError.message}`);
+      if (membersError)
+        throw new Error(
+          `Failed to fetch bucket members for ${bucketId}: ${membersError.message}`
+        );
       if (members && members.length > 0) {
-        representativeIds.push(String((members[0] as { response_id: unknown }).response_id));
+        representativeIds.push(
+          String((members[0] as { response_id: unknown }).response_id)
+        );
       }
     }
 
@@ -184,11 +210,15 @@ async function main() {
       .select("user_id")
       .eq("hive_id", hiveId);
 
-    if (error) throw new Error(`Failed to fetch hive members: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to fetch hive members: ${error.message}`);
     return (data || []).map((r) => String((r as { user_id: unknown }).user_id));
   }
 
-  async function createSeedUsers(count: number, seedTag: string): Promise<string[]> {
+  async function createSeedUsers(
+    count: number,
+    seedTag: string
+  ): Promise<string[]> {
     const ids: string[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -203,7 +233,9 @@ async function main() {
       });
 
       if (error || !data.user) {
-        throw new Error(`Failed to create seed user (${email}): ${error?.message || "unknown error"}`);
+        throw new Error(
+          `Failed to create seed user (${email}): ${error?.message || "unknown error"}`
+        );
       }
 
       await ensureProfileExists(supabase, { id: data.user.id, email });
@@ -213,14 +245,22 @@ async function main() {
     return ids;
   }
 
-  async function addUsersToHive(hiveId: string, userIds: string[]): Promise<void> {
+  async function addUsersToHive(
+    hiveId: string,
+    userIds: string[]
+  ): Promise<void> {
     if (userIds.length === 0) return;
-    const rows = userIds.map((userId) => ({ hive_id: hiveId, user_id: userId, role: "member" }));
+    const rows = userIds.map((userId) => ({
+      hive_id: hiveId,
+      user_id: userId,
+      role: "member",
+    }));
     const { error } = await supabase.from("hive_members").upsert(rows, {
       onConflict: "hive_id,user_id",
       ignoreDuplicates: true,
     });
-    if (error) throw new Error(`Failed to add users to hive_members: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to add users to hive_members: ${error.message}`);
   }
 
   const { data: conversation, error: convError } = await supabase
@@ -233,9 +273,13 @@ async function main() {
     throw new Error(`Conversation not found: ${options.conversationId}`);
   }
 
-  const responseIds = await fetchConsolidatedStatementRepresentativeIds(options.conversationId);
+  const responseIds = await fetchConsolidatedStatementRepresentativeIds(
+    options.conversationId
+  );
   if (responseIds.length === 0) {
-    throw new Error("Conversation has no consolidated statements; nothing to seed");
+    throw new Error(
+      "Conversation has no consolidated statements; nothing to seed"
+    );
   }
 
   // Prefer real hive members as voter identities (no auth pollution).
@@ -255,28 +299,54 @@ async function main() {
 
   const userIds = [...baseUsers, ...createdUserIds];
 
-  const agreementIds = new Set(sampleUnique(responseIds, Math.min(options.agreementHotspots, responseIds.length)));
-  const remainingForDivisive = responseIds.filter((id: string) => !agreementIds.has(id));
+  const agreementIds = new Set(
+    sampleUnique(
+      responseIds,
+      Math.min(options.agreementHotspots, responseIds.length)
+    )
+  );
+  const remainingForDivisive = responseIds.filter(
+    (id: string) => !agreementIds.has(id)
+  );
   const divisiveIds = new Set(
-    sampleUnique(remainingForDivisive, Math.min(options.divisiveHotspots, remainingForDivisive.length))
+    sampleUnique(
+      remainingForDivisive,
+      Math.min(options.divisiveHotspots, remainingForDivisive.length)
+    )
   );
 
-  const agreementWeights: Options["weights"] = normalizeWeights({ agree: 0.8, pass: 0.15, disagree: 0.05 });
-  const divisiveWeights: Options["weights"] = normalizeWeights({ agree: 0.45, pass: 0.1, disagree: 0.45 });
+  const agreementWeights: Options["weights"] = normalizeWeights({
+    agree: 0.8,
+    pass: 0.15,
+    disagree: 0.05,
+  });
+  const divisiveWeights: Options["weights"] = normalizeWeights({
+    agree: 0.45,
+    pass: 0.1,
+    disagree: 0.45,
+  });
 
   if (!options.confirm) {
     console.log("Dry-run (add --confirm to write):");
     console.log(`  conversationId: ${options.conversationId}`);
     console.log(`  consolidatedStatements: ${responseIds.length}`);
     console.log(`  hiveMembers: ${hiveMemberIds.length}`);
-    console.log(`  voters: ${userIds.length}${missing > 0 && !options.createUsers ? " (set --createUsers to reach target)" : ""}`);
+    console.log(
+      `  voters: ${userIds.length}${missing > 0 && !options.createUsers ? " (set --createUsers to reach target)" : ""}`
+    );
     console.log(`  each voter votes on all ${responseIds.length} statements`);
-    console.log(`  agreementHotspots: ${agreementIds.size}, divisiveHotspots: ${divisiveIds.size}`);
+    console.log(
+      `  agreementHotspots: ${agreementIds.size}, divisiveHotspots: ${divisiveIds.size}`
+    );
     if (missing > 0 && options.createUsers) {
-      console.log(`  createdUsers: ${createdUserIds.length} (seedTag: ${options.seedTag})`);
+      console.log(
+        `  createdUsers: ${createdUserIds.length} (seedTag: ${options.seedTag})`
+      );
     }
     if (options.clearExisting) {
-      console.log("  clearExisting: true (will delete response_feedback rows for this conversation)");
+      console.log(
+        "  clearExisting: true (will delete response_feedback rows for this conversation)"
+      );
     }
     process.exit(0);
   }
@@ -286,7 +356,8 @@ async function main() {
       .from("response_feedback")
       .delete()
       .eq("conversation_id", options.conversationId);
-    if (error) throw new Error(`Failed to clear existing feedback: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to clear existing feedback: ${error.message}`);
   }
 
   const rows: Array<{
@@ -321,16 +392,23 @@ async function main() {
     const { error } = await supabase.from("response_feedback").upsert(batch, {
       onConflict: "conversation_id,response_id,user_id",
     });
-    if (error) throw new Error(`Failed to upsert response_feedback: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to upsert response_feedback: ${error.message}`);
   }
 
   console.log("Seeded response_feedback:");
   console.log(`  conversationId: ${options.conversationId}`);
-  console.log(`  voters: ${userIds.length} (existing: ${baseUsers.length}, created: ${createdUserIds.length})`);
+  console.log(
+    `  voters: ${userIds.length} (existing: ${baseUsers.length}, created: ${createdUserIds.length})`
+  );
   console.log(`  rows: ${rows.length}`);
-  console.log(`  totals: agree=${totals.agree}, pass=${totals.pass}, disagree=${totals.disagree}`);
+  console.log(
+    `  totals: agree=${totals.agree}, pass=${totals.pass}, disagree=${totals.disagree}`
+  );
   if (createdUserIds.length > 0) {
-    console.log(`  created user email prefix: ${options.seedTag}+<n>@example.com`);
+    console.log(
+      `  created user email prefix: ${options.seedTag}+<n>@example.com`
+    );
   }
 }
 

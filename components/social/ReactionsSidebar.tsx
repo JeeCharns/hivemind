@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { PencilSimple, Trash, Check, X } from '@phosphor-icons/react';
-import { useHiveReactions } from '@/lib/social/hooks';
-import { formatRelativeTimestamp } from '@/lib/formatters';
-import ConfirmationModal from '@/app/components/ConfirmationModal';
-import type { Reaction, ReactionEmoji } from '@/lib/social/types';
+import { useState } from "react";
+import { PencilSimple, Trash, Check, X } from "@phosphor-icons/react";
+import { useHiveReactions } from "@/lib/social/hooks";
+import { formatRelativeTimestamp } from "@/lib/formatters";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
+import type { Reaction, ReactionEmoji } from "@/lib/social/types";
 
 const MAX_MESSAGE_LENGTH = 50;
 
@@ -17,7 +17,7 @@ interface ReactionsSidebarProps {
   onAddReaction: (emoji: ReactionEmoji, message?: string) => Promise<void>;
 }
 
-const EMOJI_OPTIONS: ReactionEmoji[] = ['👋', '🎉', '💡', '❤️', '🐝'];
+const EMOJI_OPTIONS: ReactionEmoji[] = ["👋", "🎉", "💡", "❤️", "🐝"];
 
 export function ReactionsSidebar({
   hiveId,
@@ -30,14 +30,16 @@ export function ReactionsSidebar({
 
   // Add reaction state
   const [showPicker, setShowPicker] = useState(false);
-  const [selectedEmoji, setSelectedEmoji] = useState<ReactionEmoji | null>(null);
-  const [message, setMessage] = useState('');
+  const [selectedEmoji, setSelectedEmoji] = useState<ReactionEmoji | null>(
+    null
+  );
+  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
+  const [editText, setEditText] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -54,11 +56,11 @@ export function ReactionsSidebar({
       await onAddReaction(selectedEmoji, message || undefined);
       setShowPicker(false);
       setSelectedEmoji(null);
-      setMessage('');
+      setMessage("");
       refresh();
     } catch (err) {
-      console.error('[ReactionsSidebar] Failed to add reaction:', err);
-      setError('Failed to send. Please try again.');
+      console.error("[ReactionsSidebar] Failed to add reaction:", err);
+      setError("Failed to send. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -66,13 +68,13 @@ export function ReactionsSidebar({
 
   const startEdit = (reactionId: string, currentMessage: string | null) => {
     setEditingId(reactionId);
-    setEditText(currentMessage || '');
+    setEditText(currentMessage || "");
     setEditError(null);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditText('');
+    setEditText("");
     setEditError(null);
   };
 
@@ -84,21 +86,21 @@ export function ReactionsSidebar({
 
     try {
       const res = await fetch(`/api/hives/${hiveId}/reactions/${reactionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: editText }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setEditError(data.error || 'Failed to save changes');
+        setEditError(data.error || "Failed to save changes");
         return;
       }
 
       refresh();
       cancelEdit();
     } catch {
-      setEditError('Failed to save changes');
+      setEditError("Failed to save changes");
     } finally {
       setIsSavingEdit(false);
     }
@@ -111,18 +113,18 @@ export function ReactionsSidebar({
 
     try {
       const res = await fetch(`/api/hives/${hiveId}/reactions/${deleteId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!res.ok) {
         const data = await res.json();
-        console.error('Delete failed:', data.error);
+        console.error("Delete failed:", data.error);
       }
 
       refresh();
       setDeleteId(null);
     } catch (err) {
-      console.error('Delete failed:', err);
+      console.error("Delete failed:", err);
     } finally {
       setIsDeleting(false);
     }
@@ -134,7 +136,7 @@ export function ReactionsSidebar({
         <h3 className="text-sm font-semibold text-gray-900">Chat</h3>
         {viewerCount > 0 && (
           <span className="text-xs text-gray-500">
-            {viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}
+            {viewerCount} {viewerCount === 1 ? "viewer" : "viewers"}
           </span>
         )}
       </div>
@@ -154,7 +156,9 @@ export function ReactionsSidebar({
                   <div className="space-y-2">
                     <textarea
                       value={editText}
-                      onChange={(e) => setEditText(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
+                      onChange={(e) =>
+                        setEditText(e.target.value.slice(0, MAX_MESSAGE_LENGTH))
+                      }
                       maxLength={MAX_MESSAGE_LENGTH}
                       className="w-full border border-gray-200 rounded-lg p-2 text-sm text-gray-900 focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none resize-none"
                       rows={2}
@@ -193,7 +197,7 @@ export function ReactionsSidebar({
                   <>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-900 truncate">
-                        {reaction.displayName || 'Anonymous'}
+                        {reaction.displayName || "Anonymous"}
                       </span>
                       <span className="text-xs text-gray-400 flex-shrink-0">
                         {formatRelativeTimestamp(reaction.createdAt)}
@@ -203,7 +207,9 @@ export function ReactionsSidebar({
                         <div className="ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
                           <button
                             type="button"
-                            onClick={() => startEdit(reaction.id, reaction.message)}
+                            onClick={() =>
+                              startEdit(reaction.id, reaction.message)
+                            }
                             className="p-1 text-gray-400 hover:text-amber-500 rounded"
                             title="Edit"
                           >
@@ -221,7 +227,9 @@ export function ReactionsSidebar({
                       )}
                     </div>
                     {reaction.message && (
-                      <p className="text-sm text-gray-700 mt-0.5">{reaction.message}</p>
+                      <p className="text-sm text-gray-700 mt-0.5">
+                        {reaction.message}
+                      </p>
                     )}
                   </>
                 )}
@@ -252,7 +260,7 @@ export function ReactionsSidebar({
                 type="button"
                 onClick={() => setSelectedEmoji(emoji)}
                 className={`rounded-lg p-2 text-xl hover:bg-gray-100 ${
-                  selectedEmoji === emoji ? 'bg-amber-100' : ''
+                  selectedEmoji === emoji ? "bg-amber-100" : ""
                 }`}
               >
                 {emoji}
@@ -269,9 +277,7 @@ export function ReactionsSidebar({
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
           />
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex gap-2">
             <button
@@ -279,7 +285,7 @@ export function ReactionsSidebar({
               onClick={() => {
                 setShowPicker(false);
                 setSelectedEmoji(null);
-                setMessage('');
+                setMessage("");
                 setError(null);
               }}
               className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
@@ -292,7 +298,7 @@ export function ReactionsSidebar({
               disabled={!selectedEmoji || isSubmitting}
               className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
             >
-              {isSubmitting ? 'Sending...' : 'Send'}
+              {isSubmitting ? "Sending..." : "Send"}
             </button>
           </div>
         </div>

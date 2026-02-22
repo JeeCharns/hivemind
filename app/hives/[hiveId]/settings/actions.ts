@@ -210,7 +210,8 @@ export async function updateHiveVisibilityAction(
     console.error("[updateHiveVisibilityAction] Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update visibility",
+      error:
+        error instanceof Error ? error.message : "Failed to update visibility",
     };
   }
 }

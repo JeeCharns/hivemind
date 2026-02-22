@@ -113,10 +113,13 @@ export class HiveClient implements IHiveClient {
   }
 
   async listInvites(hiveId: string): Promise<HiveInvite[]> {
-    const response = await fetch(`${this.baseUrl}/api/hives/${hiveId}/invites`, {
-      method: "GET",
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${this.baseUrl}/api/hives/${hiveId}/invites`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to fetch invites");

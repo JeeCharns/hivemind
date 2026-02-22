@@ -51,12 +51,17 @@ export default function SettingsForm({
   };
 
   const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this hive? This action cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this hive? This action cannot be undone."
+      )
+    ) {
       onDelete();
     }
   };
 
-  const hasChanges = name.trim() !== initialName || logoUrl.trim() !== (initialLogoUrl || "");
+  const hasChanges =
+    name.trim() !== initialName || logoUrl.trim() !== (initialLogoUrl || "");
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -80,9 +85,7 @@ export default function SettingsForm({
         />
       </div>
 
-      {error && (
-        <div className="text-body text-red-600 px-2">{error}</div>
-      )}
+      {error && <div className="text-body text-red-600 px-2">{error}</div>}
 
       <div className="flex gap-3">
         <Button

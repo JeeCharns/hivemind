@@ -5,9 +5,16 @@ import type { UnderstandViewModel } from "@/types/conversation-understand";
 
 jest.mock("@/app/components/conversation/UnderstandView", () => ({
   __esModule: true,
-  default: function MockUnderstandView({ analysisInProgress }: { analysisInProgress?: boolean }) {
+  default: function MockUnderstandView({
+    analysisInProgress,
+  }: {
+    analysisInProgress?: boolean;
+  }) {
     return (
-      <div data-testid="understand-view" data-analysis-in-progress={analysisInProgress}>
+      <div
+        data-testid="understand-view"
+        data-analysis-in-progress={analysisInProgress}
+      >
         {analysisInProgress && <div>Left column loading overlay</div>}
       </div>
     );
@@ -16,7 +23,10 @@ jest.mock("@/app/components/conversation/UnderstandView", () => ({
 
 jest.mock("@/lib/conversations/react/useConversationAnalysisRealtime", () => ({
   __esModule: true,
-  useConversationAnalysisRealtime: () => ({ status: "disconnected", error: null }),
+  useConversationAnalysisRealtime: () => ({
+    status: "disconnected",
+    error: null,
+  }),
 }));
 
 jest.mock("@/lib/conversations/react/useAnalysisStatus", () => ({
@@ -80,7 +90,9 @@ describe("UnderstandViewContainer", () => {
     );
 
     expect(screen.getByText(/ready to generate themes/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /generate/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /generate/i })
+    ).toBeInTheDocument();
   });
 
   it("shows the generate banner without the button for non-admins", () => {
@@ -97,7 +109,9 @@ describe("UnderstandViewContainer", () => {
     );
 
     expect(screen.getByText(/ready to generate themes/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /generate/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /generate/i })
+    ).not.toBeInTheDocument();
   });
 
   it("shows partial loading (left column only) when regenerate is clicked and responses exist", async () => {
@@ -167,7 +181,9 @@ describe("UnderstandViewContainer", () => {
     expect(screen.getByTestId("understand-view")).toBeInTheDocument();
 
     // Verify the regenerate button is hidden while analysis is in progress
-    expect(screen.queryByRole("button", { name: /regenerate/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /regenerate/i })
+    ).not.toBeInTheDocument();
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/conversations/conv-1/analyze",
@@ -218,7 +234,9 @@ describe("UnderstandViewContainer", () => {
     );
 
     // Regenerate button should not be shown while analysis is in progress
-    expect(screen.queryByRole("button", { name: /regenerate/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /regenerate/i })
+    ).not.toBeInTheDocument();
 
     // But the view should still be rendered (partial loading mode)
     expect(screen.getByTestId("understand-view")).toBeInTheDocument();

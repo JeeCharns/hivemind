@@ -45,7 +45,8 @@ export function canRemoveMember(
   if (adminCount <= 1) {
     return {
       canRemove: false,
-      reason: "Cannot remove the only admin. Promote another member to admin first.",
+      reason:
+        "Cannot remove the only admin. Promote another member to admin first.",
     };
   }
 
@@ -84,7 +85,8 @@ export function canChangeRole(
   if (adminCount <= 1) {
     return {
       canChange: false,
-      reason: "Cannot demote the only admin. Promote another member to admin first.",
+      reason:
+        "Cannot demote the only admin. Promote another member to admin first.",
     };
   }
 

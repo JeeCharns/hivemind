@@ -4,15 +4,19 @@
  * Server-side functions for fetching, updating, and deleting notifications.
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Notification, NotificationRow, EmailPreferences } from '../domain/notification.types';
-import { DEFAULT_EMAIL_PREFERENCES } from '../domain/notification.types';
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type {
+  Notification,
+  NotificationRow,
+  EmailPreferences,
+} from "../domain/notification.types";
+import { DEFAULT_EMAIL_PREFERENCES } from "../domain/notification.types";
 
 function mapRowToNotification(row: NotificationRow): Notification {
   return {
     id: row.id,
     userId: row.user_id,
-    type: row.type as Notification['type'],
+    type: row.type as Notification["type"],
     title: row.title,
     body: row.body,
     hiveId: row.hive_id,
@@ -30,15 +34,15 @@ export async function getNotifications(
   limit = 20
 ): Promise<Notification[]> {
   const { data, error } = await supabase
-    .from('user_notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .from("user_notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
-    console.error('[notificationService] getNotifications error:', error);
-    throw new Error('Failed to fetch notifications');
+    console.error("[notificationService] getNotifications error:", error);
+    throw new Error("Failed to fetch notifications");
   }
 
   return (data ?? []).map(mapRowToNotification);
@@ -49,13 +53,13 @@ export async function getUnreadCount(
   userId: string
 ): Promise<number> {
   const { count, error } = await supabase
-    .from('user_notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .is('read_at', null);
+    .from("user_notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .is("read_at", null);
 
   if (error) {
-    console.error('[notificationService] getUnreadCount error:', error);
+    console.error("[notificationService] getUnreadCount error:", error);
     return 0;
   }
 
@@ -67,14 +71,14 @@ export async function markAllAsRead(
   userId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from('user_notifications')
+    .from("user_notifications")
     .update({ read_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .is('read_at', null);
+    .eq("user_id", userId)
+    .is("read_at", null);
 
   if (error) {
-    console.error('[notificationService] markAllAsRead error:', error);
-    throw new Error('Failed to mark notifications as read');
+    console.error("[notificationService] markAllAsRead error:", error);
+    throw new Error("Failed to mark notifications as read");
   }
 }
 
@@ -83,13 +87,13 @@ export async function clearAllNotifications(
   userId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from('user_notifications')
+    .from("user_notifications")
     .delete()
-    .eq('user_id', userId);
+    .eq("user_id", userId);
 
   if (error) {
-    console.error('[notificationService] clearAllNotifications error:', error);
-    throw new Error('Failed to clear notifications');
+    console.error("[notificationService] clearAllNotifications error:", error);
+    throw new Error("Failed to clear notifications");
   }
 }
 
@@ -99,15 +103,15 @@ export async function getNotificationById(
   userId: string
 ): Promise<Notification | null> {
   const { data, error } = await supabase
-    .from('user_notifications')
-    .select('*')
-    .eq('id', notificationId)
-    .eq('user_id', userId)
+    .from("user_notifications")
+    .select("*")
+    .eq("id", notificationId)
+    .eq("user_id", userId)
     .single();
 
   if (error || !data) {
     if (error) {
-      console.error('[notificationService] getNotificationById error:', error);
+      console.error("[notificationService] getNotificationById error:", error);
     }
     return null;
   }
@@ -120,9 +124,9 @@ export async function getEmailPreferences(
   userId: string
 ): Promise<EmailPreferences> {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('email_preferences')
-    .eq('id', userId)
+    .from("profiles")
+    .select("email_preferences")
+    .eq("id", userId)
     .single();
 
   if (error || !data?.email_preferences) {
@@ -142,13 +146,13 @@ export async function updateEmailPreferences(
   const updated = { ...current, ...preferences };
 
   const { error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update({ email_preferences: updated })
-    .eq('id', userId);
+    .eq("id", userId);
 
   if (error) {
-    console.error('[notificationService] updateEmailPreferences error:', error);
-    throw new Error('Failed to update email preferences');
+    console.error("[notificationService] updateEmailPreferences error:", error);
+    throw new Error("Failed to update email preferences");
   }
 
   return updated;
@@ -167,7 +171,7 @@ export async function getUserEmail(
   const { data, error } = await supabase.auth.admin.getUserById(userId);
 
   if (error || !data?.user?.email) {
-    console.error('[notificationService] getUserEmail error:', error);
+    console.error("[notificationService] getUserEmail error:", error);
     return null;
   }
 

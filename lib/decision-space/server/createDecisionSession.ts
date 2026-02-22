@@ -77,7 +77,10 @@ export async function createDecisionSession(
     .single();
 
   if (convError || !conversation) {
-    console.error("[createDecisionSession] Failed to create conversation:", convError);
+    console.error(
+      "[createDecisionSession] Failed to create conversation:",
+      convError
+    );
     throw new Error("Failed to create decision session");
   }
 
@@ -96,7 +99,10 @@ export async function createDecisionSession(
     .insert(proposals);
 
   if (proposalsError) {
-    console.error("[createDecisionSession] Failed to create proposals:", proposalsError);
+    console.error(
+      "[createDecisionSession] Failed to create proposals:",
+      proposalsError
+    );
     await supabase.from("conversations").delete().eq("id", conversation.id);
     throw new Error("Failed to create proposals");
   }
@@ -115,7 +121,10 @@ export async function createDecisionSession(
     .single();
 
   if (roundError || !round) {
-    console.error("[createDecisionSession] Failed to create round:", roundError);
+    console.error(
+      "[createDecisionSession] Failed to create round:",
+      roundError
+    );
     await supabase.from("conversations").delete().eq("id", conversation.id);
     throw new Error("Failed to create voting round");
   }

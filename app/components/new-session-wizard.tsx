@@ -155,7 +155,9 @@ export default function NewSessionWizard({
                   <button
                     key={opt.key}
                     type="button"
-                    onClick={() => !opt.disabled && setType(opt.key as ConversationType)}
+                    onClick={() =>
+                      !opt.disabled && setType(opt.key as ConversationType)
+                    }
                     disabled={opt.disabled}
                     className={`w-full rounded-xl border p-4 flex flex-col items-start gap-1 text-left transition relative ${
                       opt.disabled
@@ -173,7 +175,9 @@ export default function NewSessionWizard({
                     <span className="text-subtitle text-text-primary">
                       {opt.title}
                     </span>
-                    <span className="text-body text-text-secondary">{opt.desc}</span>
+                    <span className="text-body text-text-secondary">
+                      {opt.desc}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -251,7 +255,9 @@ export default function NewSessionWizard({
                   <PlusIcon size={24} />
                 </div>
                 <div className="text-center">
-                  <p className="text-subtitle text-slate-900">Drag & drop CSV</p>
+                  <p className="text-subtitle text-slate-900">
+                    Drag & drop CSV
+                  </p>
                   <p className="text-body text-slate-500">
                     or click to choose a CSV file
                   </p>
@@ -386,10 +392,10 @@ export default function NewSessionWizard({
                             report.conversationId &&
                             selectedReportVersion ===
                               report.latestReportVersion && (
-                            <span className="text-label text-brand-primary bg-white px-2 py-1 rounded">
-                              Selected
-                            </span>
-                          )}
+                              <span className="text-label text-brand-primary bg-white px-2 py-1 rounded">
+                                Selected
+                              </span>
+                            )}
                         </div>
                         <span className="text-body text-text-secondary">
                           Version {report.latestReportVersion}

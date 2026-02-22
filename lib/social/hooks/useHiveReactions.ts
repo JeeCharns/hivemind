@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Use Hive Reactions Hook
@@ -13,10 +13,13 @@
  * - Reports connection status for UI indicator
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import type { Reaction, ReactionEmoji } from '../types';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import type { Reaction, ReactionEmoji } from "../types";
 
 interface UseHiveReactionsOptions {
   hiveId: string;
@@ -25,7 +28,7 @@ interface UseHiveReactionsOptions {
   maxReactions?: number;
 }
 
-type ReactionStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
+type ReactionStatus = "connecting" | "connected" | "error" | "disconnected";
 
 interface UseHiveReactionsResult {
   reactions: Reaction[];
@@ -57,7 +60,7 @@ export function useHiveReactions({
   maxReactions = 20,
 }: UseHiveReactionsOptions): UseHiveReactionsResult {
   const [reactions, setReactions] = useState<Reaction[]>(initialReactions);
-  const [status, setStatus] = useState<ReactionStatus>('disconnected');
+  const [status, setStatus] = useState<ReactionStatus>("disconnected");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Silent refresh - fetches latest reactions from server
@@ -67,23 +70,23 @@ export function useHiveReactions({
     try {
       // Fetch reactions
       const { data: reactionsData, error: reactionsError } = await supabase
-        .from('hive_reactions')
-        .select('id, hive_id, user_id, emoji, message, created_at')
-        .eq('hive_id', hiveId)
-        .order('created_at', { ascending: false })
+        .from("hive_reactions")
+        .select("id, hive_id, user_id, emoji, message, created_at")
+        .eq("hive_id", hiveId)
+        .order("created_at", { ascending: false })
         .limit(maxReactions);
 
       if (reactionsError || !reactionsData) {
-        console.error('[useHiveReactions] Refresh error:', reactionsError);
+        console.error("[useHiveReactions] Refresh error:", reactionsError);
         return;
       }
 
       // Fetch profiles for display names
       const userIds = [...new Set(reactionsData.map((r) => r.user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name')
-        .in('id', userIds);
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
 
       const displayNameMap = new Map<string, string>();
       if (profiles) {
@@ -107,13 +110,13 @@ export function useHiveReactions({
         }))
       );
     } catch (err) {
-      console.error('[useHiveReactions] Refresh error:', err);
+      console.error("[useHiveReactions] Refresh error:", err);
     }
   }, [hiveId, maxReactions]);
 
   const handleNewReaction = useCallback(
     (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
+      if (payload.eventType === "INSERT" && payload.new) {
         const row = payload.new as unknown as HiveReactionRow;
 
         const newReaction: Reaction = {
@@ -138,29 +141,29 @@ export function useHiveReactions({
     }
 
     // Use queueMicrotask to avoid synchronous setState in effect body
-    queueMicrotask(() => setStatus('connecting'));
+    queueMicrotask(() => setStatus("connecting"));
 
     const channelName = `hive:${hiveId}:reactions`;
 
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'hive_reactions',
+          event: "INSERT",
+          schema: "public",
+          table: "hive_reactions",
           filter: `hive_id=eq.${hiveId}`,
         },
         handleNewReaction
       )
       .subscribe((subscriptionStatus, err) => {
-        if (subscriptionStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-        } else if (subscriptionStatus === 'CHANNEL_ERROR' || err) {
-          setStatus('error');
-        } else if (subscriptionStatus === 'CLOSED') {
-          setStatus('disconnected');
+        if (subscriptionStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (subscriptionStatus === "CHANNEL_ERROR" || err) {
+          setStatus("error");
+        } else if (subscriptionStatus === "CLOSED") {
+          setStatus("disconnected");
         }
       });
 

@@ -5,7 +5,10 @@
  * Tests anonymity persistence and masking for POST/GET /api/conversations/[conversationId]/responses
  */
 
-import { GET, POST } from "@/app/api/conversations/[conversationId]/responses/route";
+import {
+  GET,
+  POST,
+} from "@/app/api/conversations/[conversationId]/responses/route";
 import { NextRequest } from "next/server";
 
 // Mock dependencies
@@ -64,7 +67,9 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
     };
 
     mockSupabaseServerClient.mockResolvedValue(
-      mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+      mockSupabase as unknown as Awaited<
+        ReturnType<typeof supabaseServerClient>
+      >
     );
   });
 
@@ -95,10 +100,12 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementation((data: Record<string, unknown>) => {
-        insertedData = data;
-        return mockSupabase;
-      });
+      mockSupabase.insert.mockImplementation(
+        (data: Record<string, unknown>) => {
+          insertedData = data;
+          return mockSupabase;
+        }
+      );
 
       const request = new NextRequest(
         "http://localhost/api/conversations/conv-123/responses",
@@ -150,10 +157,12 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementation((data: Record<string, unknown>) => {
-        insertedData = data;
-        return mockSupabase;
-      });
+      mockSupabase.insert.mockImplementation(
+        (data: Record<string, unknown>) => {
+          insertedData = data;
+          return mockSupabase;
+        }
+      );
 
       const request = new NextRequest(
         "http://localhost/api/conversations/conv-123/responses",
@@ -205,10 +214,12 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         error: null,
       });
 
-      mockSupabase.insert.mockImplementation((data: Record<string, unknown>) => {
-        insertedData = data;
-        return mockSupabase;
-      });
+      mockSupabase.insert.mockImplementation(
+        (data: Record<string, unknown>) => {
+          insertedData = data;
+          return mockSupabase;
+        }
+      );
 
       const request = new NextRequest(
         "http://localhost/api/conversations/conv-123/responses",
@@ -230,7 +241,6 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
       });
     });
   });
-
 });
 
 describe("GET /api/conversations/[conversationId]/responses", () => {
@@ -269,7 +279,9 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
     };
 
     mockSupabaseServerClient.mockResolvedValue(
-      mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+      mockSupabase as unknown as Awaited<
+        ReturnType<typeof supabaseServerClient>
+      >
     );
   });
 
@@ -423,5 +435,4 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
       expect(data.responses[0].user.avatarUrl).toBe("/jane.jpg");
     });
   });
-
 });

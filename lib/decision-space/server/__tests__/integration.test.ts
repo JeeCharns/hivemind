@@ -24,7 +24,9 @@ jest.mock("@/lib/analysis/openai/embeddingsClient", () => ({
 }));
 
 jest.mock("@/lib/analysis/openai/generateDecisionAnalysis", () => ({
-  generateDecisionAnalysis: jest.fn().mockResolvedValue("Mock AI analysis of decision results"),
+  generateDecisionAnalysis: jest
+    .fn()
+    .mockResolvedValue("Mock AI analysis of decision results"),
 }));
 
 // Helper to create mock Supabase client
@@ -76,9 +78,24 @@ describe("Decision Space Integration Tests", () => {
         eq: jest.fn().mockReturnThis(),
         order: jest.fn().mockResolvedValue({
           data: [
-            { cluster_index: 0, name: "Environment", description: "Environmental concerns", size: 15 },
-            { cluster_index: 1, name: "Economy", description: "Economic issues", size: 12 },
-            { cluster_index: 2, name: "Education", description: "Education topics", size: 8 },
+            {
+              cluster_index: 0,
+              name: "Environment",
+              description: "Environmental concerns",
+              size: 15,
+            },
+            {
+              cluster_index: 1,
+              name: "Economy",
+              description: "Economic issues",
+              size: 12,
+            },
+            {
+              cluster_index: 2,
+              name: "Education",
+              description: "Education topics",
+              size: 8,
+            },
           ],
           error: null,
         }),
@@ -97,7 +114,8 @@ describe("Decision Space Integration Tests", () => {
             id: "bucket-1",
             cluster_index: 0,
             bucket_name: "Renewable Energy",
-            consolidated_statement: "We should invest more in renewable energy sources",
+            consolidated_statement:
+              "We should invest more in renewable energy sources",
             response_count: 8,
           },
           {
@@ -152,7 +170,8 @@ describe("Decision Space Integration Tests", () => {
         if (table === "conversations") return mockConversationSelect;
         if (table === "conversation_themes") return mockThemesSelect;
         if (table === "conversation_cluster_buckets") return mockBucketsSelect;
-        if (table === "conversation_cluster_bucket_members") return mockMembersSelect;
+        if (table === "conversation_cluster_bucket_members")
+          return mockMembersSelect;
         if (table === "response_feedback") return mockFeedbackSelect;
         return { select: jest.fn().mockReturnThis() };
       });
@@ -177,9 +196,13 @@ describe("Decision Space Integration Tests", () => {
 
       // Verify statement data (sorted by agreePercent descending)
       // bucket-2: 100%, bucket-3: 100%, bucket-1: 67%
-      expect(result.statements[0].statementText).toBe("Stricter pollution regulations are needed");
+      expect(result.statements[0].statementText).toBe(
+        "Stricter pollution regulations are needed"
+      );
       expect(result.statements[0].clusterIndex).toBe(0);
-      expect(result.statements[2].statementText).toBe("We should invest more in renewable energy sources");
+      expect(result.statements[2].statementText).toBe(
+        "We should invest more in renewable energy sources"
+      );
       expect(result.statements[2].clusterIndex).toBe(0);
     });
 
@@ -199,7 +222,11 @@ describe("Decision Space Integration Tests", () => {
       });
 
       await expect(
-        getDecisionSetupData(mockSupabase as unknown as SupabaseClient, TEST_USER_ID, TEST_SOURCE_CONV_ID)
+        getDecisionSetupData(
+          mockSupabase as unknown as SupabaseClient,
+          TEST_USER_ID,
+          TEST_SOURCE_CONV_ID
+        )
       ).rejects.toThrow("Source must be an understand session");
     });
 
@@ -219,7 +246,11 @@ describe("Decision Space Integration Tests", () => {
       });
 
       await expect(
-        getDecisionSetupData(mockSupabase as unknown as SupabaseClient, TEST_USER_ID, TEST_SOURCE_CONV_ID)
+        getDecisionSetupData(
+          mockSupabase as unknown as SupabaseClient,
+          TEST_USER_ID,
+          TEST_SOURCE_CONV_ID
+        )
       ).rejects.toThrow("Analysis must be complete");
     });
   });
@@ -300,8 +331,18 @@ describe("Decision Space Integration Tests", () => {
         description: "Vote on community priorities",
         selectedClusters: [0, 1],
         selectedStatements: [
-          { bucketId: "bucket-1", clusterIndex: 0, statementText: "Renewable energy investment", agreePercent: 75 },
-          { bucketId: "bucket-2", clusterIndex: 1, statementText: "Tax incentives for businesses", agreePercent: 68 },
+          {
+            bucketId: "bucket-1",
+            clusterIndex: 0,
+            statementText: "Renewable energy investment",
+            agreePercent: 75,
+          },
+          {
+            bucketId: "bucket-2",
+            clusterIndex: 1,
+            statementText: "Tax incentives for businesses",
+            agreePercent: 68,
+          },
         ],
         consensusThreshold: 70,
         visibility: "hidden" as const,
@@ -382,14 +423,21 @@ describe("Decision Space Integration Tests", () => {
         title: "Test",
         selectedClusters: [0],
         selectedStatements: [
-          { bucketId: "b1", clusterIndex: 0, statementText: "Statement", agreePercent: 70 },
+          {
+            bucketId: "b1",
+            clusterIndex: 0,
+            statementText: "Statement",
+            agreePercent: 70,
+          },
         ],
         consensusThreshold: 70,
         visibility: "hidden" as const,
       };
 
       const result = await createDecisionSession(
-        mockSupabase as unknown as SupabaseClient, TEST_USER_ID, input
+        mockSupabase as unknown as SupabaseClient,
+        TEST_USER_ID,
+        input
       );
 
       expect(result.conversationId).toBe(newConversationId);
@@ -458,20 +506,31 @@ describe("Decision Space Integration Tests", () => {
         return { select: jest.fn().mockReturnThis() };
       });
 
-      await createDecisionSession(mockSupabase as unknown as SupabaseClient, TEST_USER_ID, {
-        hiveId: TEST_HIVE_ID,
-        sourceConversationId: TEST_SOURCE_CONV_ID,
-        title: "Test",
-        selectedClusters: [0],
-        selectedStatements: [
-          { bucketId: "b1", clusterIndex: 0, statementText: "Statement", agreePercent: 70 },
-        ],
-        consensusThreshold: 70,
-        visibility: "hidden",
-      });
+      await createDecisionSession(
+        mockSupabase as unknown as SupabaseClient,
+        TEST_USER_ID,
+        {
+          hiveId: TEST_HIVE_ID,
+          sourceConversationId: TEST_SOURCE_CONV_ID,
+          title: "Test",
+          selectedClusters: [0],
+          selectedStatements: [
+            {
+              bucketId: "b1",
+              clusterIndex: 0,
+              statementText: "Statement",
+              agreePercent: 70,
+            },
+          ],
+          consensusThreshold: 70,
+          visibility: "hidden",
+        }
+      );
 
       expect(insertedConversation).toBeTruthy();
-      expect(insertedConversation!.source_conversation_id).toBe(TEST_SOURCE_CONV_ID);
+      expect(insertedConversation!.source_conversation_id).toBe(
+        TEST_SOURCE_CONV_ID
+      );
       expect(insertedConversation!.type).toBe("decide");
     });
   });
@@ -501,12 +560,15 @@ describe("Decision Space Integration Tests", () => {
       expect(result.newVotes).toBe(3);
       expect(result.remainingCredits).toBe(90);
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith("vote_on_decision_proposal", {
-        p_round_id: "round-1",
-        p_proposal_id: "proposal-1",
-        p_user_id: TEST_USER_ID,
-        p_delta: 1,
-      });
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        "vote_on_decision_proposal",
+        {
+          p_round_id: "round-1",
+          p_proposal_id: "proposal-1",
+          p_user_id: TEST_USER_ID,
+          p_delta: 1,
+        }
+      );
     });
 
     it("enforces 99 credit budget with quadratic cost", async () => {
@@ -580,12 +642,15 @@ describe("Decision Space Integration Tests", () => {
       expect(result.success).toBe(true);
       expect(result.newVotes).toBe(-2);
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith("vote_on_decision_proposal", {
-        p_round_id: "round-1",
-        p_proposal_id: "proposal-1",
-        p_user_id: TEST_USER_ID,
-        p_delta: -1,
-      });
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        "vote_on_decision_proposal",
+        {
+          p_round_id: "round-1",
+          p_proposal_id: "proposal-1",
+          p_user_id: TEST_USER_ID,
+          p_delta: -1,
+        }
+      );
     });
 
     it("handles round not found error", async () => {
@@ -595,11 +660,15 @@ describe("Decision Space Integration Tests", () => {
       });
 
       await expect(
-        voteOnDecisionProposal(mockSupabase as unknown as SupabaseClient, TEST_USER_ID, {
-          roundId: "invalid-round",
-          proposalId: "proposal-1",
-          delta: 1,
-        })
+        voteOnDecisionProposal(
+          mockSupabase as unknown as SupabaseClient,
+          TEST_USER_ID,
+          {
+            roundId: "invalid-round",
+            proposalId: "proposal-1",
+            delta: 1,
+          }
+        )
       ).rejects.toThrow("Failed to record vote");
     });
   });
@@ -688,8 +757,18 @@ describe("Decision Space Integration Tests", () => {
             eq: jest.fn().mockReturnThis(),
             order: jest.fn().mockResolvedValue({
               data: [
-                { id: "p1", statement_text: "Statement 1", original_agree_percent: 70, display_order: 0 },
-                { id: "p2", statement_text: "Statement 2", original_agree_percent: 65, display_order: 1 },
+                {
+                  id: "p1",
+                  statement_text: "Statement 1",
+                  original_agree_percent: 70,
+                  display_order: 0,
+                },
+                {
+                  id: "p2",
+                  statement_text: "Statement 2",
+                  original_agree_percent: 65,
+                  display_order: 1,
+                },
               ],
               error: null,
             }),
@@ -712,7 +791,10 @@ describe("Decision Space Integration Tests", () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({
-              data: { source_conversation_id: TEST_SOURCE_CONV_ID, title: "Test Decision" },
+              data: {
+                source_conversation_id: TEST_SOURCE_CONV_ID,
+                title: "Test Decision",
+              },
               error: null,
             }),
           };
@@ -766,7 +848,11 @@ describe("Decision Space Integration Tests", () => {
       });
 
       await expect(
-        closeDecisionRound(mockSupabase as unknown as SupabaseClient, TEST_USER_ID, "round-1")
+        closeDecisionRound(
+          mockSupabase as unknown as SupabaseClient,
+          TEST_USER_ID,
+          "round-1"
+        )
       ).rejects.toThrow("Only hive admins can close voting rounds");
     });
 
@@ -791,7 +877,11 @@ describe("Decision Space Integration Tests", () => {
       });
 
       await expect(
-        closeDecisionRound(mockSupabase as unknown as SupabaseClient, TEST_USER_ID, "round-1")
+        closeDecisionRound(
+          mockSupabase as unknown as SupabaseClient,
+          TEST_USER_ID,
+          "round-1"
+        )
       ).rejects.toThrow("Round is not open for voting");
     });
   });
@@ -827,9 +917,24 @@ describe("Decision Space Integration Tests", () => {
             eq: jest.fn().mockReturnThis(),
             order: jest.fn().mockResolvedValue({
               data: [
-                { id: "p1", statement_text: "Priority 1", original_agree_percent: 75, display_order: 0 },
-                { id: "p2", statement_text: "Priority 2", original_agree_percent: 60, display_order: 1 },
-                { id: "p3", statement_text: "Priority 3", original_agree_percent: 80, display_order: 2 },
+                {
+                  id: "p1",
+                  statement_text: "Priority 1",
+                  original_agree_percent: 75,
+                  display_order: 0,
+                },
+                {
+                  id: "p2",
+                  statement_text: "Priority 2",
+                  original_agree_percent: 60,
+                  display_order: 1,
+                },
+                {
+                  id: "p3",
+                  statement_text: "Priority 3",
+                  original_agree_percent: 80,
+                  display_order: 2,
+                },
               ],
               error: null,
             }),
@@ -854,7 +959,10 @@ describe("Decision Space Integration Tests", () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({
-              data: { source_conversation_id: TEST_SOURCE_CONV_ID, title: "Test Decision" },
+              data: {
+                source_conversation_id: TEST_SOURCE_CONV_ID,
+                title: "Test Decision",
+              },
               error: null,
             }),
           };
@@ -870,10 +978,17 @@ describe("Decision Space Integration Tests", () => {
         return { select: jest.fn().mockReturnThis() };
       });
 
-      await generateDecisionResults(mockSupabase as unknown as SupabaseClient, roundId);
+      await generateDecisionResults(
+        mockSupabase as unknown as SupabaseClient,
+        roundId
+      );
 
       expect(savedRankings).toBeTruthy();
-      const rankings = savedRankings as Array<{ proposalId: string; totalVotes: number; rank: number }>;
+      const rankings = savedRankings as Array<{
+        proposalId: string;
+        totalVotes: number;
+        rank: number;
+      }>;
 
       // p1 has 13 votes (8+5), p2 has 3, p3 has 10
       // Sorted by votes: p1 (13), p3 (10), p2 (3)
@@ -911,7 +1026,12 @@ describe("Decision Space Integration Tests", () => {
             eq: jest.fn().mockReturnThis(),
             order: jest.fn().mockResolvedValue({
               data: [
-                { id: "p1", statement_text: "Statement 1", original_agree_percent: 70, display_order: 0 },
+                {
+                  id: "p1",
+                  statement_text: "Statement 1",
+                  original_agree_percent: 70,
+                  display_order: 0,
+                },
               ],
               error: null,
             }),
@@ -931,7 +1051,10 @@ describe("Decision Space Integration Tests", () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({
-              data: { source_conversation_id: TEST_SOURCE_CONV_ID, title: "Test" },
+              data: {
+                source_conversation_id: TEST_SOURCE_CONV_ID,
+                title: "Test",
+              },
               error: null,
             }),
           };
@@ -947,10 +1070,16 @@ describe("Decision Space Integration Tests", () => {
         return { select: jest.fn().mockReturnThis() };
       });
 
-      await generateDecisionResults(mockSupabase as unknown as SupabaseClient, roundId);
+      await generateDecisionResults(
+        mockSupabase as unknown as SupabaseClient,
+        roundId
+      );
 
       expect(savedRankings).toBeTruthy();
-      const rankings = savedRankings as Array<{ totalVotes: number; votePercent: number }>;
+      const rankings = savedRankings as Array<{
+        totalVotes: number;
+        votePercent: number;
+      }>;
       expect(rankings[0].totalVotes).toBe(0);
       expect(rankings[0].votePercent).toBe(0);
     });
@@ -988,7 +1117,14 @@ describe("Decision Space Integration Tests", () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             order: jest.fn().mockResolvedValue({
-              data: [{ cluster_index: 0, name: "Theme 1", description: "Desc", size: 5 }],
+              data: [
+                {
+                  cluster_index: 0,
+                  name: "Theme 1",
+                  description: "Desc",
+                  size: 5,
+                },
+              ],
               error: null,
             }),
           };
@@ -1001,13 +1137,24 @@ describe("Decision Space Integration Tests", () => {
           };
           chain.order.mockReturnValueOnce(chain);
           chain.order.mockResolvedValueOnce({
-            data: [{ id: "b1", cluster_index: 0, bucket_name: "B1", consolidated_statement: "S1", response_count: 3 }],
+            data: [
+              {
+                id: "b1",
+                cluster_index: 0,
+                bucket_name: "B1",
+                consolidated_statement: "S1",
+                response_count: 3,
+              },
+            ],
             error: null,
           });
           return chain;
         }
         if (table === "conversation_cluster_bucket_members") {
-          return { select: jest.fn().mockReturnThis(), in: jest.fn().mockResolvedValue({ data: [], error: null }) };
+          return {
+            select: jest.fn().mockReturnThis(),
+            in: jest.fn().mockResolvedValue({ data: [], error: null }),
+          };
         }
         return { select: jest.fn().mockReturnThis() };
       });
@@ -1031,7 +1178,12 @@ describe("Decision Space Integration Tests", () => {
               select: jest.fn().mockReturnThis(),
               eq: jest.fn().mockReturnThis(),
               maybeSingle: jest.fn().mockResolvedValue({
-                data: { id: TEST_SOURCE_CONV_ID, hive_id: TEST_HIVE_ID, type: "understand", analysis_status: "ready" },
+                data: {
+                  id: TEST_SOURCE_CONV_ID,
+                  hive_id: TEST_HIVE_ID,
+                  type: "understand",
+                  analysis_status: "ready",
+                },
                 error: null,
               }),
             };
@@ -1039,14 +1191,21 @@ describe("Decision Space Integration Tests", () => {
           return {
             insert: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue({ data: { id: "new-conv", slug: "test" }, error: null }),
+            single: jest
+              .fn()
+              .mockResolvedValue({
+                data: { id: "new-conv", slug: "test" },
+                error: null,
+              }),
           };
         }
         if (table === "hive_members") {
           return {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
-            maybeSingle: jest.fn().mockResolvedValue({ data: { role: "admin" }, error: null }),
+            maybeSingle: jest
+              .fn()
+              .mockResolvedValue({ data: { role: "admin" }, error: null }),
           };
         }
         if (table === "decision_proposals") {
@@ -1056,26 +1215,32 @@ describe("Decision Space Integration Tests", () => {
           return {
             insert: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue({ data: { id: "round-1" }, error: null }),
+            single: jest
+              .fn()
+              .mockResolvedValue({ data: { id: "round-1" }, error: null }),
           };
         }
         return { select: jest.fn().mockReturnThis() };
       });
 
-      const session = await createDecisionSession(createMock as unknown as SupabaseClient, TEST_USER_ID, {
-        hiveId: TEST_HIVE_ID,
-        sourceConversationId: TEST_SOURCE_CONV_ID,
-        title: "E2E Test Decision",
-        selectedClusters: [0],
-        selectedStatements: setupData.statements.map((s) => ({
-          bucketId: s.bucketId,
-          clusterIndex: s.clusterIndex,
-          statementText: s.statementText,
-          agreePercent: s.agreePercent,
-        })),
-        consensusThreshold: 70,
-        visibility: "hidden",
-      });
+      const session = await createDecisionSession(
+        createMock as unknown as SupabaseClient,
+        TEST_USER_ID,
+        {
+          hiveId: TEST_HIVE_ID,
+          sourceConversationId: TEST_SOURCE_CONV_ID,
+          title: "E2E Test Decision",
+          selectedClusters: [0],
+          selectedStatements: setupData.statements.map((s) => ({
+            bucketId: s.bucketId,
+            clusterIndex: s.clusterIndex,
+            statementText: s.statementText,
+            agreePercent: s.agreePercent,
+          })),
+          consensusThreshold: 70,
+          visibility: "hidden",
+        }
+      );
       expect(session.conversationId).toBeTruthy();
       expect(session.roundId).toBeTruthy();
 
@@ -1086,11 +1251,15 @@ describe("Decision Space Integration Tests", () => {
         error: null,
       });
 
-      const voteResult = await voteOnDecisionProposal(voteMock as unknown as SupabaseClient, TEST_USER_ID, {
-        roundId: session.roundId,
-        proposalId: "proposal-1",
-        delta: 1,
-      });
+      const voteResult = await voteOnDecisionProposal(
+        voteMock as unknown as SupabaseClient,
+        TEST_USER_ID,
+        {
+          roundId: session.roundId,
+          proposalId: "proposal-1",
+          delta: 1,
+        }
+      );
       expect(voteResult.success).toBe(true);
 
       // Step 4: Round closes successfully

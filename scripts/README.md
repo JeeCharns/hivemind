@@ -55,16 +55,19 @@ npm run worker
 **Purpose**: Reload PostgREST's schema cache when database schema changes aren't being picked up by the Supabase API.
 
 **When to use**:
+
 - After applying migrations that add/modify columns
 - When seeing errors like `column X does not exist` even though the column exists in the database
 - The background analysis automatically uses a fallback strategy when it detects schema cache issues, but reloading the cache will restore optimal performance
 
 **Usage**:
+
 ```bash
 npm run reload-schema
 ```
 
 **Alternative**: Run this SQL in Supabase SQL editor:
+
 ```sql
 SELECT pg_notify('pgrst', 'reload schema');
 ```
@@ -90,6 +93,7 @@ npx tsx scripts/clean-failed-jobs.ts
 ```
 
 This script:
+
 1. Finds jobs that failed with PostgREST errors
 2. Checks if their conversations actually completed analysis
 3. Marks those jobs as succeeded
@@ -125,6 +129,7 @@ npx tsx scripts/seed-response-feedback.ts --conversationId <uuid> --users 80 --v
 **Root cause**: PostgREST schema cache is stale after migrations, so jobs can't be properly claimed or updated. However, the analysis completes successfully in the background.
 
 **Solution**:
+
 1. Run `npx tsx scripts/clean-failed-jobs.ts` to mark completed jobs as succeeded
 2. Run `npx tsx scripts/reload-postgrest-schema.ts` or manually reload the schema cache
 3. The worker now automatically detects this condition and won't retry endlessly

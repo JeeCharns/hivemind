@@ -34,7 +34,10 @@ export function convexHull(points: Point[]): Point[] {
   // Build lower hull
   const lower: Point[] = [];
   for (const p of sorted) {
-    while (lower.length >= 2 && crossProduct(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+    while (
+      lower.length >= 2 &&
+      crossProduct(lower[lower.length - 2], lower[lower.length - 1], p) <= 0
+    ) {
       lower.pop();
     }
     lower.push(p);
@@ -44,7 +47,10 @@ export function convexHull(points: Point[]): Point[] {
   const upper: Point[] = [];
   for (let i = sorted.length - 1; i >= 0; i--) {
     const p = sorted[i];
-    while (upper.length >= 2 && crossProduct(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+    while (
+      upper.length >= 2 &&
+      crossProduct(upper[upper.length - 2], upper[upper.length - 1], p) <= 0
+    ) {
       upper.pop();
     }
     upper.push(p);
@@ -95,13 +101,17 @@ export function offsetPolygon(points: Point[], offset: number): Point[] {
     };
 
     // Normalize average normal
-    const avgLen = Math.sqrt(avgNormal.x * avgNormal.x + avgNormal.y * avgNormal.y);
+    const avgLen = Math.sqrt(
+      avgNormal.x * avgNormal.x + avgNormal.y * avgNormal.y
+    );
     avgNormal.x /= avgLen;
     avgNormal.y /= avgLen;
 
     // Calculate offset factor to maintain consistent offset distance
     // This accounts for the angle between edges
-    const sinHalfAngle = Math.sqrt((1 - (edge1.x * edge2.x + edge1.y * edge2.y)) / 2);
+    const sinHalfAngle = Math.sqrt(
+      (1 - (edge1.x * edge2.x + edge1.y * edge2.y)) / 2
+    );
     const offsetFactor = sinHalfAngle > 0.1 ? 1 / sinHalfAngle : 10; // Clamp to avoid extreme values
 
     // Apply offset
@@ -121,7 +131,7 @@ export function offsetPolygon(points: Point[], offset: number): Point[] {
 export function smoothPolygon(points: Point[], smoothness = 0.3): string {
   if (points.length < 3) {
     // Fallback for degenerate cases
-    return points.length === 0 ? '' : `M ${points[0].x},${points[0].y}`;
+    return points.length === 0 ? "" : `M ${points[0].x},${points[0].y}`;
   }
 
   const pathParts: string[] = [];
@@ -164,15 +174,19 @@ export function smoothPolygon(points: Point[], smoothness = 0.3): string {
     if (i === points.length - 1) {
       // Connect back to the beginning with a curve
       const firstControl = points[0];
-      const firstEnd = points[0].x + (points[1].x - points[0].x) * smoothness * 0.5;
-      const firstEndY = points[0].y + (points[1].y - points[0].y) * smoothness * 0.5;
-      pathParts.push(`Q ${firstControl.x},${firstControl.y} ${firstEnd},${firstEndY}`);
+      const firstEnd =
+        points[0].x + (points[1].x - points[0].x) * smoothness * 0.5;
+      const firstEndY =
+        points[0].y + (points[1].y - points[0].y) * smoothness * 0.5;
+      pathParts.push(
+        `Q ${firstControl.x},${firstControl.y} ${firstEnd},${firstEndY}`
+      );
     }
   }
 
-  pathParts.push('Z'); // Close path
+  pathParts.push("Z"); // Close path
 
-  return pathParts.join(' ');
+  return pathParts.join(" ");
 }
 
 /**
@@ -183,7 +197,7 @@ export function generateClusterHullPath(
   padding = 18,
   smoothness = 0.3
 ): string {
-  if (points.length === 0) return '';
+  if (points.length === 0) return "";
 
   // Fallback to circle for very small clusters
   if (points.length === 1) {

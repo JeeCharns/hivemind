@@ -13,7 +13,10 @@ import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import type { HiveMemberRole, MemberActionResult } from "@/types/members";
 import { isValidRole } from "@/lib/members/validation/memberValidation";
 import { getMembersWithSignedUrls } from "@/lib/members/server/getMembersWithSignedUrls";
-import { canRemoveMember, canChangeRole } from "@/lib/members/validation/memberValidation";
+import {
+  canRemoveMember,
+  canChangeRole,
+} from "@/lib/members/validation/memberValidation";
 
 /**
  * Check if user is an admin of the hive
@@ -76,11 +79,18 @@ export async function changeMemberRoleAction(
     }
 
     // 4. Fetch current members to validate the change
-    const members = await getMembersWithSignedUrls(supabase, hiveId, session.user.id);
+    const members = await getMembersWithSignedUrls(
+      supabase,
+      hiveId,
+      session.user.id
+    );
     const validation = canChangeRole(members, userId, newRole);
 
     if (!validation.canChange) {
-      return { success: false, error: validation.reason || "Cannot change role" };
+      return {
+        success: false,
+        error: validation.reason || "Cannot change role",
+      };
     }
 
     // 5. Update the role
@@ -143,11 +153,18 @@ export async function removeMemberAction(
     }
 
     // 4. Fetch current members to validate the removal
-    const members = await getMembersWithSignedUrls(supabase, hiveId, session.user.id);
+    const members = await getMembersWithSignedUrls(
+      supabase,
+      hiveId,
+      session.user.id
+    );
     const validation = canRemoveMember(members, userId);
 
     if (!validation.canRemove) {
-      return { success: false, error: validation.reason || "Cannot remove member" };
+      return {
+        success: false,
+        error: validation.reason || "Cannot remove member",
+      };
     }
 
     // 5. Remove the member
@@ -185,7 +202,9 @@ export async function removeMemberAction(
  *
  * @param hiveId - Hive UUID
  */
-export async function leaveHiveAction(hiveId: string): Promise<MemberActionResult> {
+export async function leaveHiveAction(
+  hiveId: string
+): Promise<MemberActionResult> {
   try {
     // 1. Validate inputs
     if (!hiveId) {
@@ -214,7 +233,10 @@ export async function leaveHiveAction(hiveId: string): Promise<MemberActionResul
     const validation = canRemoveMember(members, userId);
 
     if (!validation.canRemove) {
-      return { success: false, error: validation.reason || "Cannot leave hive" };
+      return {
+        success: false,
+        error: validation.reason || "Cannot leave hive",
+      };
     }
 
     // 5. Remove the member

@@ -22,16 +22,19 @@ const createMockChannel = (): MockChannel => {
   let subscribeCallback: ((status: string, err?: Error) => void) | null = null;
 
   const channel: MockChannel = {
-    on: jest.fn((type: string, filter: unknown, handler: (payload: unknown) => void) => {
-      const key = typeof filter === "object" && filter !== null && "event" in filter
-        ? `${type}:${(filter as { event: string }).event}`
-        : type;
-      if (!handlers[key]) {
-        handlers[key] = [];
+    on: jest.fn(
+      (type: string, filter: unknown, handler: (payload: unknown) => void) => {
+        const key =
+          typeof filter === "object" && filter !== null && "event" in filter
+            ? `${type}:${(filter as { event: string }).event}`
+            : type;
+        if (!handlers[key]) {
+          handlers[key] = [];
+        }
+        handlers[key].push(handler);
+        return channel; // Return self for chaining
       }
-      handlers[key].push(handler);
-      return channel; // Return self for chaining
-    }),
+    ),
     subscribe: jest.fn((callback: (status: string, err?: Error) => void) => {
       subscribeCallback = callback;
       // Simulate async subscription success
@@ -171,10 +174,15 @@ describe("useConversationFeedRealtime", () => {
     const onNewResponse = jest.fn();
 
     // Override subscribe to simulate error
-    mockChannel.subscribe = jest.fn((callback: (status: string, err?: Error) => void) => {
-      setTimeout(() => callback("CHANNEL_ERROR", new Error("Connection failed")), 0);
-      return mockChannel;
-    });
+    mockChannel.subscribe = jest.fn(
+      (callback: (status: string, err?: Error) => void) => {
+        setTimeout(
+          () => callback("CHANNEL_ERROR", new Error("Connection failed")),
+          0
+        );
+        return mockChannel;
+      }
+    );
 
     const { result } = renderHook(() =>
       useConversationFeedRealtime({

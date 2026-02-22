@@ -80,15 +80,11 @@ Respond in JSON format:
     return {
       clusterIndex,
       name: parsed.name || `Theme ${clusterIndex + 1}`,
-      description:
-        parsed.description || "A collection of related responses",
+      description: parsed.description || "A collection of related responses",
       size: responses.length,
     };
   } catch (error) {
-    console.error(
-      `[generateTheme] Failed for cluster ${clusterIndex}:`,
-      error
-    );
+    console.error(`[generateTheme] Failed for cluster ${clusterIndex}:`, error);
 
     // Fallback theme
     return {

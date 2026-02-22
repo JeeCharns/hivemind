@@ -76,7 +76,9 @@ describe("POST /api/conversations/[conversationId]/report", () => {
 
     mockSupabase = createMockChain();
     mockSupabaseServerClient.mockResolvedValue(
-      mockSupabase as unknown as Awaited<ReturnType<typeof supabaseServerClient>>
+      mockSupabase as unknown as Awaited<
+        ReturnType<typeof supabaseServerClient>
+      >
     );
 
     // Mock Anthropic client

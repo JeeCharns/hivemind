@@ -1,7 +1,10 @@
 // lib/decision-space/server/voteOnDecisionProposal.ts
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { VoteOnProposalInput, VoteOnProposalResult } from "@/types/decision-space";
+import type {
+  VoteOnProposalInput,
+  VoteOnProposalResult,
+} from "@/types/decision-space";
 
 /**
  * Vote on a decision proposal using quadratic voting

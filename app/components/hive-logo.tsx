@@ -19,7 +19,8 @@ export default function HiveLogo({
   const initials = label.slice(0, 2).toUpperCase();
 
   const baseClasses = "avatar-round border border-slate-200";
-  const containerClasses = `${baseClasses} relative overflow-hidden ${className ?? ""}`.trim();
+  const containerClasses =
+    `${baseClasses} relative overflow-hidden ${className ?? ""}`.trim();
   const fallbackTextSize = size >= 64 ? "text-xl" : "text-sm";
   const fallbackClasses =
     `${baseClasses} bg-indigo-100 text-indigo-800 flex items-center justify-center font-semibold ${fallbackTextSize} ${className ?? ""}`.trim();

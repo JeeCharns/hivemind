@@ -28,7 +28,12 @@ describe("createDecisionSession", () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             maybeSingle: jest.fn().mockResolvedValue({
-              data: { id: "source-conv", hive_id: "hive-1", type: "understand", analysis_status: "ready" },
+              data: {
+                id: "source-conv",
+                hive_id: "hive-1",
+                type: "understand",
+                analysis_status: "ready",
+              },
               error: null,
             }),
           };
@@ -81,7 +86,12 @@ describe("createDecisionSession", () => {
         title: "Test Decision",
         selectedClusters: [0],
         selectedStatements: [
-          { bucketId: "bucket-1", clusterIndex: 0, statementText: "Statement 1", agreePercent: 80 },
+          {
+            bucketId: "bucket-1",
+            clusterIndex: 0,
+            statementText: "Statement 1",
+            agreePercent: 80,
+          },
         ],
         consensusThreshold: 70,
         visibility: "hidden",
@@ -114,7 +124,12 @@ describe("createDecisionSession", () => {
           title: "Test",
           selectedClusters: [0],
           selectedStatements: [
-            { bucketId: "b1", clusterIndex: 0, statementText: "S1", agreePercent: 80 },
+            {
+              bucketId: "b1",
+              clusterIndex: 0,
+              statementText: "S1",
+              agreePercent: 80,
+            },
           ],
           consensusThreshold: 70,
           visibility: "hidden",

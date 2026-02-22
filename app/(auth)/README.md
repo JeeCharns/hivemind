@@ -16,4 +16,3 @@ This folder owns the login/register/logout/callback UI and should stay thin.
 ## Guardrail
 
 Avoid putting business logic (session parsing, redirects, Supabase calls) directly in page components; keep it in `lib/auth/*` and call through hooks/components.
-

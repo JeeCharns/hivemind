@@ -61,7 +61,9 @@ export default function MembersView({
           setActionError(result.error);
         }
       } catch (err) {
-        setActionError(err instanceof Error ? err.message : "Failed to change role");
+        setActionError(
+          err instanceof Error ? err.message : "Failed to change role"
+        );
       } finally {
         setPendingUserId(null);
       }
@@ -79,7 +81,9 @@ export default function MembersView({
           setActionError(result.error);
         }
       } catch (err) {
-        setActionError(err instanceof Error ? err.message : "Failed to remove member");
+        setActionError(
+          err instanceof Error ? err.message : "Failed to remove member"
+        );
       } finally {
         setPendingUserId(null);
       }

@@ -16,7 +16,9 @@ const supabaseServiceKey =
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error("❌ Missing required environment variables:");
   console.error("   - NEXT_PUBLIC_SUPABASE_URL");
-  console.error("   - SUPABASE_SECRET_KEY (legacy alias SUPABASE_SERVICE_ROLE_KEY supported)");
+  console.error(
+    "   - SUPABASE_SECRET_KEY (legacy alias SUPABASE_SERVICE_ROLE_KEY supported)"
+  );
   process.exit(1);
 }
 
@@ -26,20 +28,27 @@ async function applyMigration(filename: string) {
   console.log(`\n📝 Applying migration: ${filename}`);
 
   try {
-    const migrationPath = join(process.cwd(), "supabase", "migrations", filename);
+    const migrationPath = join(
+      process.cwd(),
+      "supabase",
+      "migrations",
+      filename
+    );
     const sql = readFileSync(migrationPath, "utf-8");
 
     // Split by semicolons but preserve them in statements
     const statements = sql
       .split(";")
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith("--"))
-      .map(s => s + ";");
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith("--"))
+      .map((s) => s + ";");
 
     for (const statement of statements) {
       if (statement.trim().length <= 1) continue;
 
-      const { error } = await supabase.rpc("exec_sql", { sql_query: statement });
+      const { error } = await supabase.rpc("exec_sql", {
+        sql_query: statement,
+      });
 
       if (error) {
         console.error(`❌ Error executing statement:`, error);
@@ -58,9 +67,7 @@ async function applyMigration(filename: string) {
 async function main() {
   console.log("🚀 Starting migration process...");
 
-  const migrations = [
-    "001_create_hive_invites.sql",
-  ];
+  const migrations = ["001_create_hive_invites.sql"];
 
   for (const migration of migrations) {
     await applyMigration(migration);

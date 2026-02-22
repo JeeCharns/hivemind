@@ -49,9 +49,8 @@ export function useRequireAuth(options: UseRequireAuthOptions = {}) {
     // Redirect if unauthenticated
     if (!isAuthenticated && !isLoading) {
       // Build redirect URL with 'next' parameter
-      const returnUrl = preserveReturnUrl && pathname !== redirectTo
-        ? pathname
-        : null;
+      const returnUrl =
+        preserveReturnUrl && pathname !== redirectTo ? pathname : null;
 
       // Validate return URL for security (prevent open redirects)
       const safeReturnUrl = validateReturnUrl(returnUrl);
@@ -68,7 +67,15 @@ export function useRequireAuth(options: UseRequireAuthOptions = {}) {
         router.push(redirectTo);
       }
     }
-  }, [isAuthenticated, isLoading, router, pathname, redirectTo, allowWhileLoading, preserveReturnUrl]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    router,
+    pathname,
+    redirectTo,
+    allowWhileLoading,
+    preserveReturnUrl,
+  ]);
 
   return {
     status,

@@ -35,7 +35,9 @@ export const createDecisionSessionSchema = z.object({
   deadline: z.string().datetime().optional(),
 });
 
-export type CreateDecisionSessionInput = z.infer<typeof createDecisionSessionSchema>;
+export type CreateDecisionSessionInput = z.infer<
+  typeof createDecisionSessionSchema
+>;
 
 // ============================================
 // VOTING
@@ -44,9 +46,12 @@ export type CreateDecisionSessionInput = z.infer<typeof createDecisionSessionSch
 export const voteOnProposalSchema = z.object({
   roundId: z.string().uuid(),
   proposalId: z.string().uuid(),
-  delta: z.number().int().refine((v) => v === 1 || v === -1, {
-    message: "Delta must be 1 or -1",
-  }),
+  delta: z
+    .number()
+    .int()
+    .refine((v) => v === 1 || v === -1, {
+      message: "Delta must be 1 or -1",
+    }),
 });
 
 export type VoteOnProposalInput = z.infer<typeof voteOnProposalSchema>;
@@ -61,14 +66,18 @@ export const closeRoundSchema = z.object({
 
 export type CloseRoundInput = z.infer<typeof closeRoundSchema>;
 
-export const startNewRoundSchema = z.object({
-  conversationId: z.string().uuid(),
-  keepProposals: z.boolean(),
-  selectedStatements: z.array(selectedStatementSchema).optional(),
-}).refine(
-  (data) => data.keepProposals || (data.selectedStatements && data.selectedStatements.length > 0),
-  { message: "selectedStatements required when keepProposals is false" }
-);
+export const startNewRoundSchema = z
+  .object({
+    conversationId: z.string().uuid(),
+    keepProposals: z.boolean(),
+    selectedStatements: z.array(selectedStatementSchema).optional(),
+  })
+  .refine(
+    (data) =>
+      data.keepProposals ||
+      (data.selectedStatements && data.selectedStatements.length > 0),
+    { message: "selectedStatements required when keepProposals is false" }
+  );
 
 export type StartNewRoundInput = z.infer<typeof startNewRoundSchema>;
 
@@ -80,4 +89,6 @@ export const getDecisionSetupDataSchema = z.object({
   sourceConversationId: z.string().uuid(),
 });
 
-export type GetDecisionSetupDataInput = z.infer<typeof getDecisionSetupDataSchema>;
+export type GetDecisionSetupDataInput = z.infer<
+  typeof getDecisionSetupDataSchema
+>;

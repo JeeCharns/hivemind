@@ -84,7 +84,8 @@ export default function DecisionViewContainer({
       // Refresh the page to get updated state
       router.refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to close round";
+      const message =
+        err instanceof Error ? err.message : "Failed to close round";
       setError(message);
       setTimeout(() => setError(null), 5000);
     } finally {

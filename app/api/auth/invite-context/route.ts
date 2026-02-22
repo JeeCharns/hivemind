@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getInviteCookie, clearInviteCookie, setInviteCookie } from "@/lib/auth/server/inviteCookie";
+import {
+  getInviteCookie,
+  clearInviteCookie,
+  setInviteCookie,
+} from "@/lib/auth/server/inviteCookie";
 import { inviteTokenSchema } from "@/lib/hives/schemas";
 
 /**

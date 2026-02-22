@@ -73,7 +73,10 @@ function sampleResponsesAcrossThemes(
   // Allocate proportionally, minimum 1 per bucket
   let remaining = maxSamples;
   const allocations = bucketEntries.map(([, items]) => {
-    const share = Math.max(1, Math.round((items.length / responses.length) * maxSamples));
+    const share = Math.max(
+      1,
+      Math.round((items.length / responses.length) * maxSamples)
+    );
     return Math.min(share, items.length);
   });
 
@@ -406,7 +409,7 @@ Reference specific vote data to support your points (e.g. "78% agreed that...").
       max_tokens: 8000,
       temperature: 0.4,
       system:
-        "You are a skilled analyst writing for participants of a collective conversation. Your role is to help them understand what the group collectively expressed. Write in a natural narrative style — not a list of results, but a cohesive document that synthesises findings, draws connections between themes, and surfaces meaningful insights. Use a neutral, evidence-grounded tone that shifts to empathetic warmth when discussing points of genuine concern or division. Always reference specific vote data to support your narrative (e.g. \"78% agreed that...\"). Output valid HTML only — no markdown, no code fences, no preamble. Scale the depth and length of your writing to match the complexity of the data: a small simple conversation warrants a focused summary, a large complex one warrants deeper analysis.",
+        'You are a skilled analyst writing for participants of a collective conversation. Your role is to help them understand what the group collectively expressed. Write in a natural narrative style — not a list of results, but a cohesive document that synthesises findings, draws connections between themes, and surfaces meaningful insights. Use a neutral, evidence-grounded tone that shifts to empathetic warmth when discussing points of genuine concern or division. Always reference specific vote data to support your narrative (e.g. "78% agreed that..."). Output valid HTML only — no markdown, no code fences, no preamble. Scale the depth and length of your writing to match the complexity of the data: a small simple conversation warrants a focused summary, a large complex one warrants deeper analysis.',
       messages: [
         {
           role: "user",
@@ -442,7 +445,8 @@ Reference specific vote data to support your points (e.g. "78% agreed that...").
       return jsonError("Failed to fetch report version", 500);
     }
 
-    const { data: latestVersion, error: latestVersionError } = latestVersionResult;
+    const { data: latestVersion, error: latestVersionError } =
+      latestVersionResult;
     if (latestVersionError) {
       return jsonError("Failed to fetch report version", 500);
     }

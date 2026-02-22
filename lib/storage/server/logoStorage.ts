@@ -46,7 +46,10 @@ export async function uploadLogo(
       .from(BUCKET_NAME)
       .remove([previousPath])
       .catch((err) => {
-        console.warn(`[logoStorage] Failed to delete old logo ${previousPath}:`, err);
+        console.warn(
+          `[logoStorage] Failed to delete old logo ${previousPath}:`,
+          err
+        );
       });
   }
 
@@ -73,7 +76,10 @@ export async function getLogoSignedUrl(
       .createSignedUrl(path, SIGNED_URL_EXPIRY);
 
     if (error || !data?.signedUrl) {
-      console.warn(`[logoStorage] Failed to create signed URL for ${path}:`, error);
+      console.warn(
+        `[logoStorage] Failed to create signed URL for ${path}:`,
+        error
+      );
       return null;
     }
 

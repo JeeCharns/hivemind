@@ -39,7 +39,9 @@ export async function getDecisionSetupData(
   }
 
   if (sourceConv.analysis_status !== "ready") {
-    throw new Error("Analysis must be complete before creating decision session");
+    throw new Error(
+      "Analysis must be complete before creating decision session"
+    );
   }
 
   // 2. Verify user has access to this hive
@@ -59,13 +61,15 @@ export async function getDecisionSetupData(
   // 4. Fetch consolidated statements (buckets)
   const { data: buckets, error: bucketsError } = await supabase
     .from("conversation_cluster_buckets")
-    .select(`
+    .select(
+      `
       id,
       cluster_index,
       bucket_name,
       consolidated_statement,
       response_count
-    `)
+    `
+    )
     .eq("conversation_id", sourceConversationId)
     .order("cluster_index", { ascending: true })
     .order("bucket_index", { ascending: true });
@@ -76,7 +80,10 @@ export async function getDecisionSetupData(
 
   // 5. Fetch consensus data for buckets
   const bucketIds = buckets?.map((b) => b.id) || [];
-  const consensusMap: Map<string, { agreePercent: number; totalVotes: number }> = new Map();
+  const consensusMap: Map<
+    string,
+    { agreePercent: number; totalVotes: number }
+  > = new Map();
 
   if (bucketIds.length > 0) {
     // Get first member response for each bucket
@@ -105,9 +112,15 @@ export async function getDecisionSetupData(
 
       // Calculate consensus per bucket
       if (feedback) {
-        const responseToFeedback = new Map<number, { agree: number; total: number }>();
+        const responseToFeedback = new Map<
+          number,
+          { agree: number; total: number }
+        >();
         for (const f of feedback) {
-          const existing = responseToFeedback.get(f.response_id) || { agree: 0, total: 0 };
+          const existing = responseToFeedback.get(f.response_id) || {
+            agree: 0,
+            total: 0,
+          };
           existing.total++;
           if (f.feedback === "agree") {
             existing.agree++;
@@ -144,7 +157,10 @@ export async function getDecisionSetupData(
       const consensusValues = clusterConsensus.get(theme.cluster_index) || [];
       const avgConsensus =
         consensusValues.length > 0
-          ? Math.round(consensusValues.reduce((a, b) => a + b, 0) / consensusValues.length)
+          ? Math.round(
+              consensusValues.reduce((a, b) => a + b, 0) /
+                consensusValues.length
+            )
           : 0;
 
       return {
@@ -161,7 +177,9 @@ export async function getDecisionSetupData(
     .sort((a, b) => b.avgConsensusPercent - a.avgConsensusPercent);
 
   // 7. Build statement selection items
-  const clusterNames = new Map(themes?.map((t) => [t.cluster_index, t.name]) || []);
+  const clusterNames = new Map(
+    themes?.map((t) => [t.cluster_index, t.name]) || []
+  );
 
   const statements: StatementSelectionItem[] = (buckets || [])
     .map((bucket) => {
@@ -169,7 +187,9 @@ export async function getDecisionSetupData(
       return {
         bucketId: bucket.id,
         clusterIndex: bucket.cluster_index,
-        clusterName: clusterNames.get(bucket.cluster_index) || `Cluster ${bucket.cluster_index}`,
+        clusterName:
+          clusterNames.get(bucket.cluster_index) ||
+          `Cluster ${bucket.cluster_index}`,
         statementText: bucket.consolidated_statement,
         agreePercent: consensus?.agreePercent ?? null,
         totalVotes: consensus?.totalVotes ?? 0,

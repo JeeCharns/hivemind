@@ -6,7 +6,10 @@
  */
 
 import { runConversationAnalysis } from "../runConversationAnalysis";
-import { createOpenAIClient, generateEmbeddings } from "@/lib/analysis/openai/embeddingsClient";
+import {
+  createOpenAIClient,
+  generateEmbeddings,
+} from "@/lib/analysis/openai/embeddingsClient";
 import { reduceToTwoD } from "@/lib/analysis/clustering/dimensionReduction";
 import { clusterEmbeddings } from "@/lib/analysis/clustering/kmeans";
 import { generateThemes } from "@/lib/analysis/openai/themeGenerator";
@@ -111,8 +114,12 @@ describe("saveClusterModels (in runConversationAnalysis)", () => {
       [0, 0, 1],
     ];
     (generateEmbeddings as jest.Mock).mockResolvedValue(embeddings);
-    (reduceToTwoD as jest.Mock).mockReturnValue(Array.from({ length: 9 }, () => [0, 0]));
-    (clusterEmbeddings as jest.Mock).mockReturnValue([0, 0, 0, 1, 1, 1, 2, 2, 2]);
+    (reduceToTwoD as jest.Mock).mockReturnValue(
+      Array.from({ length: 9 }, () => [0, 0])
+    );
+    (clusterEmbeddings as jest.Mock).mockReturnValue([
+      0, 0, 0, 1, 1, 1, 2, 2, 2,
+    ]);
     (generateThemes as jest.Mock).mockResolvedValue([
       { clusterIndex: 0, name: "Theme 1", description: "Desc 1", size: 3 },
       { clusterIndex: 1, name: "Theme 2", description: "Desc 2", size: 3 },
@@ -143,7 +150,9 @@ describe("saveClusterModels (in runConversationAnalysis)", () => {
       error: null,
     });
 
-    (generateEmbeddings as jest.Mock).mockResolvedValue(Array.from({ length: 6 }, () => [1, 0, 0]));
+    (generateEmbeddings as jest.Mock).mockResolvedValue(
+      Array.from({ length: 6 }, () => [1, 0, 0])
+    );
 
     const coordinates = [
       [0, 0],
@@ -220,9 +229,15 @@ describe("saveClusterModels (in runConversationAnalysis)", () => {
       error: null,
     });
 
-    (generateEmbeddings as jest.Mock).mockResolvedValue(Array.from({ length: 10 }, () => [1, 0, 0]));
-    (reduceToTwoD as jest.Mock).mockReturnValue(Array.from({ length: 10 }, () => [0, 0]));
-    (clusterEmbeddings as jest.Mock).mockReturnValue(Array.from({ length: 10 }, (_, i) => i % 2));
+    (generateEmbeddings as jest.Mock).mockResolvedValue(
+      Array.from({ length: 10 }, () => [1, 0, 0])
+    );
+    (reduceToTwoD as jest.Mock).mockReturnValue(
+      Array.from({ length: 10 }, () => [0, 0])
+    );
+    (clusterEmbeddings as jest.Mock).mockReturnValue(
+      Array.from({ length: 10 }, (_, i) => i % 2)
+    );
     (generateThemes as jest.Mock).mockResolvedValue([
       { clusterIndex: 0, name: "Theme 1", description: "Desc 1", size: 5 },
       { clusterIndex: 1, name: "Theme 2", description: "Desc 2", size: 5 },
@@ -254,9 +269,15 @@ describe("saveClusterModels (in runConversationAnalysis)", () => {
       error: null,
     });
 
-    (generateEmbeddings as jest.Mock).mockResolvedValue(Array.from({ length: 10 }, () => [1, 0, 0]));
-    (reduceToTwoD as jest.Mock).mockReturnValue(Array.from({ length: 10 }, () => [0, 0]));
-    (clusterEmbeddings as jest.Mock).mockReturnValue(Array.from({ length: 10 }, (_, i) => i % 2));
+    (generateEmbeddings as jest.Mock).mockResolvedValue(
+      Array.from({ length: 10 }, () => [1, 0, 0])
+    );
+    (reduceToTwoD as jest.Mock).mockReturnValue(
+      Array.from({ length: 10 }, () => [0, 0])
+    );
+    (clusterEmbeddings as jest.Mock).mockReturnValue(
+      Array.from({ length: 10 }, (_, i) => i % 2)
+    );
     (generateThemes as jest.Mock).mockResolvedValue([
       { clusterIndex: 0, name: "Theme 1", description: "Desc 1", size: 5 },
       { clusterIndex: 1, name: "Theme 2", description: "Desc 2", size: 5 },

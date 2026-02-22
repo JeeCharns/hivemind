@@ -10,7 +10,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { updateAccountProfile } from "@/lib/account/server/updateAccountProfile";
-import { updateAccountProfileFormSchema, avatarFileSchema } from "@/lib/account/schemas";
+import {
+  updateAccountProfileFormSchema,
+  avatarFileSchema,
+} from "@/lib/account/schemas";
 import { jsonError } from "@/lib/api/errors";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -36,7 +39,9 @@ export async function POST(request: NextRequest) {
     const avatarFile = formData.get("avatar");
 
     // 3. Validate displayName
-    const nameValidation = updateAccountProfileFormSchema.safeParse({ displayName });
+    const nameValidation = updateAccountProfileFormSchema.safeParse({
+      displayName,
+    });
     if (!nameValidation.success) {
       const firstError = nameValidation.error.issues?.[0];
       return jsonError(

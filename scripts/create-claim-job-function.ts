@@ -11,7 +11,8 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 async function main() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !supabaseSecretKey) {
@@ -137,8 +138,10 @@ GRANT EXECUTE ON FUNCTION public.fetch_next_analysis_job(TIMESTAMPTZ) TO service
 
   console.log("📝 SQL to execute:");
   console.log(sql);
-  console.log("\n⚠️  Please execute the above SQL in your Supabase SQL Editor:");
-  console.log(`   ${supabaseUrl.replace('//', '//app.')}/project/_/sql`);
+  console.log(
+    "\n⚠️  Please execute the above SQL in your Supabase SQL Editor:"
+  );
+  console.log(`   ${supabaseUrl.replace("//", "//app.")}/project/_/sql`);
   console.log("\n   Or copy/paste this SQL directly into the SQL editor.\n");
 
   // Alternative: Try to use a generic SQL executor if available
@@ -147,7 +150,9 @@ GRANT EXECUTE ON FUNCTION public.fetch_next_analysis_job(TIMESTAMPTZ) TO service
   const { data, error } = await supabase.rpc("exec_sql", { sql });
 
   if (error) {
-    console.warn("⚠️  RPC execution not available. Please run the SQL manually.");
+    console.warn(
+      "⚠️  RPC execution not available. Please run the SQL manually."
+    );
     console.log("\n💡 Steps:");
     console.log("   1. Go to your Supabase SQL Editor");
     console.log("   2. Copy the SQL shown above");

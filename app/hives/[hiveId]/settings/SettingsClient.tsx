@@ -12,7 +12,12 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { validateImageFile } from "@/lib/storage/validation";
-import { updateHiveNameAction, updateHiveLogoAction, updateHiveVisibilityAction, deleteHiveAction } from "./actions";
+import {
+  updateHiveNameAction,
+  updateHiveLogoAction,
+  updateHiveVisibilityAction,
+  deleteHiveAction,
+} from "./actions";
 import type { HiveVisibility } from "@/types/hives-api";
 import Alert from "@/app/components/alert";
 import Button from "@/app/components/button";
@@ -37,7 +42,8 @@ export default function SettingsClient({
   const [name, setName] = useState(initialName);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<HiveVisibility>(initialVisibility);
+  const [visibility, setVisibility] =
+    useState<HiveVisibility>(initialVisibility);
 
   // UI feedback state
   const [logoError, setLogoError] = useState<string | null>(null);
@@ -152,7 +158,9 @@ export default function SettingsClient({
           setMessage(result.message || "Visibility updated.");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update visibility.");
+        setError(
+          err instanceof Error ? err.message : "Failed to update visibility."
+        );
         setVisibility(initialVisibility); // Revert on error
       } finally {
         setLoading(false);
@@ -268,7 +276,9 @@ export default function SettingsClient({
           Control who can discover and join this hive.
         </p>
         <div className="flex flex-col gap-3 max-w-xl">
-          <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === "public" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}>
+          <label
+            className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === "public" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}
+          >
             <input
               type="radio"
               name="visibility"
@@ -279,16 +289,16 @@ export default function SettingsClient({
               className="w-4 h-4 mt-0.5"
             />
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-[#172847]">
-                Public
-              </span>
+              <span className="text-sm font-medium text-[#172847]">Public</span>
               <span className="text-xs text-slate-500">
                 Anyone can search for and join this hive.
               </span>
             </div>
           </label>
 
-          <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === "private" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}>
+          <label
+            className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === "private" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}
+          >
             <input
               type="radio"
               name="visibility"
@@ -303,7 +313,8 @@ export default function SettingsClient({
                 Private
               </span>
               <span className="text-xs text-slate-500">
-                Only people with an invite link can join. This hive won&apos;t appear in search.
+                Only people with an invite link can join. This hive won&apos;t
+                appear in search.
               </span>
             </div>
           </label>
@@ -330,7 +341,8 @@ export default function SettingsClient({
         ) : (
           <div className="space-y-2">
             <Alert variant="error">
-              Are you sure you want to delete this hive? All data will be removed.
+              Are you sure you want to delete this hive? All data will be
+              removed.
             </Alert>
             <div className="flex gap-2">
               <Button

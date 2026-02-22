@@ -18,7 +18,8 @@ import { claimAnalysisJob } from "../lib/conversations/server/claimAnalysisJob";
 // Configuration
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || "5000", 10);
 const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || "3", 10);
-const WORKER_ID = process.env.WORKER_ID || `worker-${Math.random().toString(36).substring(7)}`;
+const WORKER_ID =
+  process.env.WORKER_ID || `worker-${Math.random().toString(36).substring(7)}`;
 const JOB_LOCK_TTL_MS = parseInt(process.env.JOB_LOCK_TTL_MS || "900000", 10); // 15 minutes
 
 // Logger setup
@@ -44,7 +45,8 @@ const logger = winston.createLogger({
  * Initialize Supabase client
  */
 function createSupabaseClient(): SupabaseClient {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !supabaseSecretKey) {
@@ -175,7 +177,12 @@ async function processJob(
     strategy: "full" | "incremental";
   }
 ): Promise<void> {
-  const { id: jobId, conversation_id: conversationId, attempts, strategy } = job;
+  const {
+    id: jobId,
+    conversation_id: conversationId,
+    attempts,
+    strategy,
+  } = job;
 
   logger.info("Processing job", { jobId, conversationId, attempts, strategy });
 
@@ -202,7 +209,11 @@ async function processJob(
     // Mark as succeeded
     await markJobSucceeded(supabase, jobId);
 
-    logger.info("Job completed successfully", { jobId, conversationId, strategy });
+    logger.info("Job completed successfully", {
+      jobId,
+      conversationId,
+      strategy,
+    });
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
@@ -235,7 +246,10 @@ async function processJob(
         .eq("id", conversationId)
         .maybeSingle();
 
-      if (conv?.analysis_status === "ready" || conv?.analysis_status === "completed") {
+      if (
+        conv?.analysis_status === "ready" ||
+        conv?.analysis_status === "completed"
+      ) {
         logger.info("Analysis already completed despite job error", {
           jobId,
           conversationId,
@@ -245,10 +259,13 @@ async function processJob(
         // Try to mark as succeeded, but don't fail if we can't
         try {
           await markJobSucceeded(supabase, jobId);
-          logger.info("Marked job as succeeded after detecting completed analysis", {
-            jobId,
-            conversationId,
-          });
+          logger.info(
+            "Marked job as succeeded after detecting completed analysis",
+            {
+              jobId,
+              conversationId,
+            }
+          );
           return; // Exit early, don't retry
         } catch {
           logger.warn("Could not update job status, but analysis is complete", {

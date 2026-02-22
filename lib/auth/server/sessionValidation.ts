@@ -52,7 +52,8 @@ function decodeJwtPayload(token: string): JwtPayload | null {
     const payload = parts[1];
     // Convert base64url to base64
     const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padding = base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4));
+    const padding =
+      base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4));
     const normalizedBase64 = `${base64}${padding}`;
 
     // Decode base64
@@ -163,7 +164,9 @@ export function getValidatedAuthState(
 /**
  * Environment flag to enable debug logging
  */
-const DEBUG_AUTH = process.env.DEBUG_AUTH_MW === "true" || process.env.NODE_ENV === "development";
+const DEBUG_AUTH =
+  process.env.DEBUG_AUTH_MW === "true" ||
+  process.env.NODE_ENV === "development";
 
 /**
  * Log auth validation for debugging

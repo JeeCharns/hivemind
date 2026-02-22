@@ -19,7 +19,8 @@ export async function resolveHiveId(
   hiveKey: string
 ): Promise<string | null> {
   // Check if it's already a valid UUID (36 chars with dashes)
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidPattern.test(hiveKey)) {
     // It's a UUID, verify it exists
     const { data, error } = await supabase

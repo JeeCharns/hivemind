@@ -60,9 +60,7 @@ export default async function MembersPage({
           <Alert variant="error">{error}</Alert>
           <div className="mt-4 text-center">
             <Link href={`/hives/${hiveKey}`}>
-              <Button variant="secondary">
-                Back to Hive
-              </Button>
+              <Button variant="secondary">Back to Hive</Button>
             </Link>
           </div>
         </div>
@@ -102,14 +100,15 @@ function HiveNotFound({ hiveKey }: { hiveKey: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
       <div className="text-center max-w-md">
-        <h1 className="text-2xl font-semibold text-[#172847] mb-4">Hive Not Found</h1>
+        <h1 className="text-2xl font-semibold text-[#172847] mb-4">
+          Hive Not Found
+        </h1>
         <p className="text-sm text-[#566175] mb-6">
-          The hive &quot;{hiveKey}&quot; doesn&apos;t exist or you don&apos;t have access to it.
+          The hive &quot;{hiveKey}&quot; doesn&apos;t exist or you don&apos;t
+          have access to it.
         </p>
         <Link href="/hives">
-          <Button variant="secondary">
-            Back to Hives
-          </Button>
+          <Button variant="secondary">Back to Hives</Button>
         </Link>
       </div>
     </div>

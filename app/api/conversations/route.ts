@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("[POST /api/conversations] Error:", err);
 
-    const message = err instanceof Error ? err.message : "Internal server error";
+    const message =
+      err instanceof Error ? err.message : "Internal server error";
     const isUnauthorized = message.includes("Unauthorized");
 
     return jsonError(

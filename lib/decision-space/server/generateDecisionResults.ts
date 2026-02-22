@@ -64,7 +64,9 @@ export async function generateDecisionResults(
       totalVotes: voteTotals.get(p.id) || 0,
       votePercent:
         totalVotesAllProposals > 0
-          ? Math.round(((voteTotals.get(p.id) || 0) / totalVotesAllProposals) * 100)
+          ? Math.round(
+              ((voteTotals.get(p.id) || 0) / totalVotesAllProposals) * 100
+            )
           : 0,
       rank: 0,
     }))
@@ -96,7 +98,9 @@ export async function generateDecisionResults(
 
   // 7. Add change from previous
   if (previousRankings) {
-    const prevRankMap = new Map(previousRankings.map((r) => [r.proposalId, r.rank]));
+    const prevRankMap = new Map(
+      previousRankings.map((r) => [r.proposalId, r.rank])
+    );
     for (const ranking of rankings) {
       const prevRank = prevRankMap.get(ranking.proposalId);
       if (prevRank !== undefined) {
@@ -130,14 +134,19 @@ export async function generateDecisionResults(
   });
 
   // 11. Save results
-  const { error: insertError } = await supabase.from("decision_results").insert({
-    round_id: roundId,
-    proposal_rankings: rankings,
-    ai_analysis: aiAnalysis,
-  });
+  const { error: insertError } = await supabase
+    .from("decision_results")
+    .insert({
+      round_id: roundId,
+      proposal_rankings: rankings,
+      ai_analysis: aiAnalysis,
+    });
 
   if (insertError) {
-    console.error("[generateDecisionResults] Failed to save results:", insertError);
+    console.error(
+      "[generateDecisionResults] Failed to save results:",
+      insertError
+    );
     throw new Error("Failed to save results");
   }
 }

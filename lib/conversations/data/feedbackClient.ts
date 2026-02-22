@@ -29,11 +29,14 @@ export class ConversationFeedbackClient implements IConversationFeedbackClient {
     responseId: string,
     feedback: Feedback
   ): Promise<VoteFeedbackResult> {
-    const response = await fetch(`/api/conversations/${conversationId}/feedback`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ responseId: String(responseId), feedback }),
-    });
+    const response = await fetch(
+      `/api/conversations/${conversationId}/feedback`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responseId: String(responseId), feedback }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response

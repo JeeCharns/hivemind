@@ -7,6 +7,7 @@ A notification system that alerts users to activity in their Hives via in-app no
 ## Requirements
 
 ### In-App Notifications
+
 - Bell icon in navbar (left of user dropdown) with unread count badge
 - Dropdown showing recent notifications on click
 - Real-time updates via Supabase Realtime (postgres_changes)
@@ -15,17 +16,19 @@ A notification system that alerts users to activity in their Hives via in-app no
 - "Clear all" button + auto-expiry after 90 days
 
 ### Email Notifications
+
 - Sent immediately when events occur
 - Per-type toggles in user settings (new_conversation, conversation_progress)
 - Sent via Nodemailer with Zoho SMTP
 
 ### Notification Triggers
-| Type | In-App | Email | Source |
-|------|--------|-------|--------|
-| `new_conversation` | Yes | Yes (if enabled) | New conversation in any Hive user is a member of |
-| `analysis_complete` | Yes | Yes (as "progress") | Conversation analysis completes |
-| `report_generated` | Yes | Yes (as "progress") | Report is generated |
-| `opinion_liked` | Yes | No | Someone likes user's response |
+
+| Type                | In-App | Email               | Source                                           |
+| ------------------- | ------ | ------------------- | ------------------------------------------------ |
+| `new_conversation`  | Yes    | Yes (if enabled)    | New conversation in any Hive user is a member of |
+| `analysis_complete` | Yes    | Yes (as "progress") | Conversation analysis completes                  |
+| `report_generated`  | Yes    | Yes (as "progress") | Report is generated                              |
+| `opinion_liked`     | Yes    | No                  | Someone likes user's response                    |
 
 ## Database Schema
 
@@ -131,10 +134,10 @@ Trigger fires → pg_net.http_post() → /api/notifications/email → Nodemailer
 Location: `lib/notifications/server/emailService.ts`
 
 ```typescript
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,        // smtp.zoho.com
+  host: process.env.SMTP_HOST, // smtp.zoho.com
   port: Number(process.env.SMTP_PORT), // 465
   secure: true,
   auth: {
@@ -197,6 +200,7 @@ INTERNAL_API_KEY=xxx  # For trigger → API authentication
 Location: `lib/notifications/hooks/useNotifications.ts`
 
 Following the `useHiveReactions` pattern:
+
 - Fetches initial notifications from `/api/notifications`
 - Subscribes to `postgres_changes` on `user_notifications` filtered by `user_id`
 - On INSERT, prepends to list and increments unread count
@@ -213,13 +217,13 @@ Add `NotificationBell` next to `UserMenu` in `/app/components/Navbar.tsx`:
 
 ## API Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/notifications` | GET | Fetch user's notifications (paginated) |
-| `/api/notifications/read` | PATCH | Mark all as read |
-| `/api/notifications` | DELETE | Clear all notifications |
-| `/api/notifications/email` | POST | Internal: send email (called by trigger) |
-| `/api/profile/notifications` | PATCH | Update email preferences |
+| Endpoint                     | Method | Purpose                                  |
+| ---------------------------- | ------ | ---------------------------------------- |
+| `/api/notifications`         | GET    | Fetch user's notifications (paginated)   |
+| `/api/notifications/read`    | PATCH  | Mark all as read                         |
+| `/api/notifications`         | DELETE | Clear all notifications                  |
+| `/api/notifications/email`   | POST   | Internal: send email (called by trigger) |
+| `/api/profile/notifications` | PATCH  | Update email preferences                 |
 
 ## Notification Preferences UI
 

@@ -60,7 +60,9 @@ export async function resolveHiveAndConversation(
     .maybeSingle();
 
   if (hiveError || !hive) {
-    throw new Error(`Failed to fetch hive: ${hiveError?.message || "Not found"}`);
+    throw new Error(
+      `Failed to fetch hive: ${hiveError?.message || "Not found"}`
+    );
   }
 
   // 2. Resolve conversation (slug or ID)
@@ -72,7 +74,9 @@ export async function resolveHiveAndConversation(
 
   const { data: conversation, error: conversationError } = await supabase
     .from("conversations")
-    .select("id, slug, hive_id, title, description, type, phase, analysis_status, report_json, source_conversation_id, source_report_version")
+    .select(
+      "id, slug, hive_id, title, description, type, phase, analysis_status, report_json, source_conversation_id, source_report_version"
+    )
     .eq("id", conversationId)
     .eq("hive_id", hiveId)
     .maybeSingle();
@@ -104,7 +108,8 @@ async function resolveConversationId(
   conversationKey: string
 ): Promise<string> {
   // Check if it's already a valid UUID
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   if (uuidPattern.test(conversationKey)) {
     // Verify it exists and belongs to this hive

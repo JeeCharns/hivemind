@@ -43,13 +43,9 @@ describe("updateAccountProfile", () => {
       avatarUrl: null,
     });
 
-    expect(mockUpsertProfile).toHaveBeenCalledWith(
-      mockSupabase,
-      "user-123",
-      {
-        displayName: "Jane Doe",
-      }
-    );
+    expect(mockUpsertProfile).toHaveBeenCalledWith(mockSupabase, "user-123", {
+      displayName: "Jane Doe",
+    });
   });
 
   it("should update profile with display name and avatar", async () => {
@@ -124,13 +120,9 @@ describe("updateAccountProfile", () => {
       })
     ).rejects.toThrow("Failed to update profile: Database error");
 
-    expect(mockUpsertProfile).toHaveBeenCalledWith(
-      mockSupabase,
-      "user-123",
-      {
-        displayName: "Jane Doe",
-      }
-    );
+    expect(mockUpsertProfile).toHaveBeenCalledWith(mockSupabase, "user-123", {
+      displayName: "Jane Doe",
+    });
   });
 
   it("should propagate avatar upload errors", async () => {

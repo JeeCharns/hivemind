@@ -120,8 +120,9 @@ describe("POST /api/account/profile", () => {
   const mockGetServerSession = getServerSession as jest.MockedFunction<
     typeof getServerSession
   >;
-  const mockUpdateAccountProfile =
-    updateAccountProfile as jest.MockedFunction<typeof updateAccountProfile>;
+  const mockUpdateAccountProfile = updateAccountProfile as jest.MockedFunction<
+    typeof updateAccountProfile
+  >;
   const mockSupabaseServerClient = supabaseServerClient as jest.MockedFunction<
     typeof supabaseServerClient
   >;

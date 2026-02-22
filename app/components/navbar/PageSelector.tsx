@@ -23,12 +23,33 @@ interface PageSelectorProps {
 
 const allPages = [
   { id: "home" as NavbarPage, label: "home", path: "", adminOnly: false },
-  { id: "members" as NavbarPage, label: "members", path: "/members", adminOnly: false },
-  { id: "settings" as NavbarPage, label: "settings", path: "/settings", adminOnly: true },
-  { id: "invite" as NavbarPage, label: "invite", path: "/invite", adminOnly: false },
+  {
+    id: "members" as NavbarPage,
+    label: "members",
+    path: "/members",
+    adminOnly: false,
+  },
+  {
+    id: "settings" as NavbarPage,
+    label: "settings",
+    path: "/settings",
+    adminOnly: true,
+  },
+  {
+    id: "invite" as NavbarPage,
+    label: "invite",
+    path: "/invite",
+    adminOnly: false,
+  },
 ];
 
-export default function PageSelector({ hiveId, hiveSlug, hiveName, currentPage, isAdmin = false }: PageSelectorProps) {
+export default function PageSelector({
+  hiveId,
+  hiveSlug,
+  hiveName,
+  currentPage,
+  isAdmin = false,
+}: PageSelectorProps) {
   const pathname = usePathname();
   const baseKey = hiveSlug || hiveId;
   const basePath = `/hives/${baseKey}`;
@@ -42,7 +63,11 @@ export default function PageSelector({ hiveId, hiveSlug, hiveName, currentPage, 
     if (p.path === "") {
       return pathname === fullPath || pathname === fullPath + "/";
     }
-    return pathname === fullPath || pathname === fullPath + "/" || pathname.startsWith(fullPath + "/");
+    return (
+      pathname === fullPath ||
+      pathname === fullPath + "/" ||
+      pathname.startsWith(fullPath + "/")
+    );
   })?.id;
 
   // Prefer URL-derived page so server defaults don't mask the current route
@@ -76,7 +101,12 @@ export default function PageSelector({ hiveId, hiveSlug, hiveName, currentPage, 
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -91,7 +121,9 @@ export default function PageSelector({ hiveId, hiveSlug, hiveName, currentPage, 
                 href={href}
                 onClick={() => setMenuOpen(false)}
                 className={`w-full text-left px-4 py-2 text-body hover:bg-slate-50 transition flex items-center gap-2 ${
-                  isActive ? "bg-indigo-50 text-indigo-600 text-subtitle" : "text-slate-700"
+                  isActive
+                    ? "bg-indigo-50 text-indigo-600 text-subtitle"
+                    : "text-slate-700"
                 }`}
               >
                 {page.label}

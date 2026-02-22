@@ -37,7 +37,9 @@ async function main() {
     console.error(`      Code: ${selectError.code}`);
   } else {
     console.log("   ✅ Can select from table");
-    console.log(`      Sample columns: ${Object.keys(selectTest?.[0] || {}).join(", ") || "no rows"}`);
+    console.log(
+      `      Sample columns: ${Object.keys(selectTest?.[0] || {}).join(", ") || "no rows"}`
+    );
   }
 
   // Test 2: Can we select specific columns?
@@ -81,7 +83,10 @@ async function main() {
   } else {
     console.log("   ✅ Can insert");
     // Clean up
-    await admin.from("conversation_analysis_jobs").delete().eq("id", insertTest.id);
+    await admin
+      .from("conversation_analysis_jobs")
+      .delete()
+      .eq("id", insertTest.id);
   }
 
   // Test 4: Can we update?
@@ -111,7 +116,9 @@ async function main() {
   `);
 
   console.log("\n✨ Diagnosis complete!");
-  console.log("\n💡 If columns show as not existing but you know they're in the database:");
+  console.log(
+    "\n💡 If columns show as not existing but you know they're in the database:"
+  );
   console.log("   1. Restart your Supabase project");
   console.log("   2. Or wait 5-10 minutes for PostgREST to auto-reload");
   console.log("   3. Or contact Supabase support if issue persists");

@@ -11,11 +11,14 @@ const conversationId = process.argv[2];
 const shouldRestart = process.argv.includes("--restart");
 
 if (!conversationId) {
-  console.error("Usage: npx tsx scripts/reset-stuck-job.ts <conversation-id> [--restart]");
+  console.error(
+    "Usage: npx tsx scripts/reset-stuck-job.ts <conversation-id> [--restart]"
+  );
   process.exit(1);
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseSecretKey) {
@@ -75,7 +78,9 @@ async function main() {
 
   console.log(`📊 Conversation status:`);
   console.log(`  Analysis status: ${conversation.analysis_status}`);
-  console.log(`  Analysis response count: ${conversation.analysis_response_count || "N/A"}\n`);
+  console.log(
+    `  Analysis response count: ${conversation.analysis_response_count || "N/A"}\n`
+  );
 
   // 3. Count current responses
   const { count: responseCount, error: countError } = await supabase
@@ -103,7 +108,9 @@ async function main() {
     return;
   }
 
-  console.log(`⚠️  Found ${stuckJobs.length} stuck job(s) in 'running' status\n`);
+  console.log(
+    `⚠️  Found ${stuckJobs.length} stuck job(s) in 'running' status\n`
+  );
 
   // 5. Reset stuck jobs
   console.log("🔧 Resetting stuck jobs to 'failed' status...\n");
@@ -127,8 +134,13 @@ async function main() {
   }
 
   // 6. Reset conversation status if needed
-  if (conversation.analysis_status === "embedding" || conversation.analysis_status === "analyzing") {
-    console.log("\n🔧 Resetting conversation analysis status to 'not_started'...");
+  if (
+    conversation.analysis_status === "embedding" ||
+    conversation.analysis_status === "analyzing"
+  ) {
+    console.log(
+      "\n🔧 Resetting conversation analysis status to 'not_started'..."
+    );
 
     const { error: convUpdateError } = await supabase
       .from("conversations")
@@ -150,8 +162,12 @@ async function main() {
     await restartAnalysis();
   } else {
     console.log("\n💡 To restart analysis, run:");
-    console.log(`   npx tsx scripts/reset-stuck-job.ts ${conversationId} --restart`);
-    console.log("\n   Or trigger from the UI (Understand tab > Generate/Regenerate button)");
+    console.log(
+      `   npx tsx scripts/reset-stuck-job.ts ${conversationId} --restart`
+    );
+    console.log(
+      "\n   Or trigger from the UI (Understand tab > Generate/Regenerate button)"
+    );
   }
 }
 
@@ -203,7 +219,9 @@ async function restartAnalysis() {
 
   console.log("✅ Updated conversation status to 'embedding'");
   console.log("\n🚀 Analysis restarted! Check status with:");
-  console.log(`   curl http://localhost:3000/api/conversations/${conversationId}/analysis-status`);
+  console.log(
+    `   curl http://localhost:3000/api/conversations/${conversationId}/analysis-status`
+  );
 }
 
 main()

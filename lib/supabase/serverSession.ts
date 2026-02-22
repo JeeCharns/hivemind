@@ -14,7 +14,9 @@ export async function getSupabaseSessionFromCookies(): Promise<Session | null> {
   }
 }
 
-export async function getSupabaseAccessTokenFromCookies(): Promise<string | null> {
+export async function getSupabaseAccessTokenFromCookies(): Promise<
+  string | null
+> {
   const session = await getSupabaseSessionFromCookies();
   return session?.access_token ?? null;
 }

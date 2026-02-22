@@ -142,10 +142,7 @@ export async function maybeEnqueueAutoAnalysis(
       };
     }
   } catch (error) {
-    console.error(
-      `[maybeEnqueueAutoAnalysis] Failed to enqueue:`,
-      error
-    );
+    console.error(`[maybeEnqueueAutoAnalysis] Failed to enqueue:`, error);
     return {
       triggered: false,
       status: "skipped",

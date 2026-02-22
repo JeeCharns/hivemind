@@ -10,13 +10,22 @@ describe("computeAgreementSummaries", () => {
 
     const feedbackRows = [
       // a: 8 agree, 1 pass, 1 disagree => 80% agree
-      ...Array.from({ length: 8 }, () => ({ responseId: "a", feedback: "agree" })),
+      ...Array.from({ length: 8 }, () => ({
+        responseId: "a",
+        feedback: "agree",
+      })),
       { responseId: "a", feedback: "pass" },
       { responseId: "a", feedback: "disagree" },
 
       // b: 5 agree, 5 disagree => 50/50
-      ...Array.from({ length: 5 }, () => ({ responseId: "b", feedback: "agree" })),
-      ...Array.from({ length: 5 }, () => ({ responseId: "b", feedback: "disagree" })),
+      ...Array.from({ length: 5 }, () => ({
+        responseId: "b",
+        feedback: "agree",
+      })),
+      ...Array.from({ length: 5 }, () => ({
+        responseId: "b",
+        feedback: "disagree",
+      })),
 
       // c: 2 agree => ignored by minVotes
       { responseId: "c", feedback: "agree" },

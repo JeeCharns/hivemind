@@ -23,4 +23,3 @@ export async function getAvatarUrl(
   return supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarPath).data
     .publicUrl;
 }
-

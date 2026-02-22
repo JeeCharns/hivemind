@@ -7,6 +7,7 @@
 ## Problem
 
 The current magic link authentication has two issues:
+
 1. Email redirects break the flow for users with email forwarding/filtering
 2. Magic links open in a new browser tab, creating poor UX
 
@@ -54,6 +55,7 @@ Use Supabase's existing `signInWithOtp()` without the `emailRedirectTo` option. 
 ```
 
 **Key interactions:**
+
 - Auto-focus moves to next box as digits are entered
 - Paste support: pasting "123456" fills all boxes
 - Backspace moves focus to previous box
@@ -68,6 +70,7 @@ Use Supabase's existing `signInWithOtp()` without the `emailRedirectTo` option. 
 Location: `app/(auth)/components/OtpInput.tsx`
 
 Props:
+
 - `length: number` (default 6)
 - `value: string`
 - `onChange: (value: string) => void`
@@ -76,6 +79,7 @@ Props:
 - `error: boolean`
 
 Behaviour:
+
 - Renders 6 individual `<input>` elements with `maxLength={1}`
 - Manages focus movement internally
 - Handles paste by splitting and distributing digits
@@ -84,6 +88,7 @@ Behaviour:
 ### Modified: `LoginPageClient.tsx`
 
 New state:
+
 - `step: 'email' | 'otp'`
 - `submittedEmail: string`
 - `otp: string`
@@ -132,20 +137,20 @@ Route to destination (invite/profile-setup/hives)
 
 ### Send OTP errors
 
-| Error | User Message | Action |
-|-------|--------------|--------|
-| Rate limit (429) | "Too many requests. Please wait 30s." | Cooldown timer |
-| Invalid email | "Please enter a valid email address" | Stay on email step |
-| Network error | "Connection failed. Please try again." | Allow retry |
+| Error            | User Message                           | Action             |
+| ---------------- | -------------------------------------- | ------------------ |
+| Rate limit (429) | "Too many requests. Please wait 30s."  | Cooldown timer     |
+| Invalid email    | "Please enter a valid email address"   | Stay on email step |
+| Network error    | "Connection failed. Please try again." | Allow retry        |
 
 ### Verify OTP errors
 
-| Error | User Message | Action |
-|-------|--------------|--------|
-| Invalid code | "Invalid code. Please check and try again." | Clear input |
-| Expired code | "Code expired. Please request a new one." | Show resend |
-| Too many attempts | "Too many failed attempts. Please request a new code." | Show resend |
-| Network error | "Connection failed. Please try again." | Keep code, allow retry |
+| Error             | User Message                                           | Action                 |
+| ----------------- | ------------------------------------------------------ | ---------------------- |
+| Invalid code      | "Invalid code. Please check and try again."            | Clear input            |
+| Expired code      | "Code expired. Please request a new one."              | Show resend            |
+| Too many attempts | "Too many failed attempts. Please request a new code." | Show resend            |
+| Network error     | "Connection failed. Please try again."                 | Keep code, allow retry |
 
 ## Testing Strategy
 
@@ -174,13 +179,16 @@ Route to destination (invite/profile-setup/hives)
 ## Files Changed
 
 **Create:**
+
 - `app/(auth)/components/OtpInput.tsx`
 
 **Modify:**
+
 - `app/(auth)/login/LoginPageClient.tsx`
 - `app/(auth)/hooks/useAuth.ts`
 
 **Unchanged:**
+
 - `app/(auth)/callback/page.tsx` (keep for potential OAuth)
 - `lib/auth/*` (session management unchanged)
 

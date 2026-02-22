@@ -65,7 +65,10 @@ export async function GET(
     const { data: conversations, error: convError } = await query;
 
     if (convError) {
-      console.error("[GET /api/hives/[hiveId]/understand-sessions] Conv query error:", convError);
+      console.error(
+        "[GET /api/hives/[hiveId]/understand-sessions] Conv query error:",
+        convError
+      );
       return jsonError("Failed to fetch sessions", 500, "DATABASE_ERROR");
     }
 
@@ -78,15 +81,20 @@ export async function GET(
     // Fetch cluster buckets with their first member response for all conversations
     const { data: buckets, error: bucketsError } = await supabase
       .from("conversation_cluster_buckets")
-      .select(`
+      .select(
+        `
         id,
         conversation_id,
         conversation_cluster_bucket_members(response_id)
-      `)
+      `
+      )
       .in("conversation_id", conversationIds);
 
     if (bucketsError) {
-      console.error("[GET /api/hives/[hiveId]/understand-sessions] Buckets query error:", bucketsError);
+      console.error(
+        "[GET /api/hives/[hiveId]/understand-sessions] Buckets query error:",
+        bucketsError
+      );
       // Continue without bucket data - just show 0 for counts
     }
 
@@ -97,13 +105,21 @@ export async function GET(
       .in("conversation_id", conversationIds);
 
     // Build maps for efficient lookup
-    const bucketsByConv = new Map<string, Array<{ id: string; firstResponseId: string | null }>>();
+    const bucketsByConv = new Map<
+      string,
+      Array<{ id: string; firstResponseId: string | null }>
+    >();
     (buckets || []).forEach((b) => {
       if (!bucketsByConv.has(b.conversation_id)) {
         bucketsByConv.set(b.conversation_id, []);
       }
-      const members = b.conversation_cluster_bucket_members as Array<{ response_id: string | number }> | null;
-      const firstResponseId = members?.[0]?.response_id != null ? String(members[0].response_id) : null;
+      const members = b.conversation_cluster_bucket_members as Array<{
+        response_id: string | number;
+      }> | null;
+      const firstResponseId =
+        members?.[0]?.response_id != null
+          ? String(members[0].response_id)
+          : null;
       bucketsByConv.get(b.conversation_id)!.push({ id: b.id, firstResponseId });
     });
 
@@ -124,14 +140,18 @@ export async function GET(
       let statementsWithVotes = 0;
 
       for (const bucket of convBuckets) {
-        if (bucket.firstResponseId && votedResponses.has(bucket.firstResponseId)) {
+        if (
+          bucket.firstResponseId &&
+          votedResponses.has(bucket.firstResponseId)
+        ) {
           statementsWithVotes++;
         }
       }
 
-      const votingCoverage = statementCount > 0
-        ? Math.round((statementsWithVotes / statementCount) * 100)
-        : 0;
+      const votingCoverage =
+        statementCount > 0
+          ? Math.round((statementsWithVotes / statementCount) * 100)
+          : 0;
 
       return {
         id: conv.id,

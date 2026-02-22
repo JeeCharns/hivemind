@@ -89,73 +89,80 @@ export default function MemberRow({
 
       {/* Actions Dropdown (admin only) */}
       {showActions && (
-      <div className="relative" ref={menuRef}>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => setActionsOpen(!actionsOpen)}
-          disabled={isPending}
-        >
-          Actions
-          <svg
-            className={`w-4 h-4 ml-1 transition-transform ${actionsOpen ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="relative" ref={menuRef}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setActionsOpen(!actionsOpen)}
+            disabled={isPending}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </Button>
+            Actions
+            <svg
+              className={`w-4 h-4 ml-1 transition-transform ${actionsOpen ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </Button>
 
-        {actionsOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-20">
-            {/* Header */}
-            <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-100 truncate">
-              {name}
-            </div>
-
-            {/* Change Role Section */}
-            <div className="py-1">
-              <div className="px-3 py-2 text-xs text-slate-500 uppercase tracking-wide">
-                Change role
+          {actionsOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-20">
+              {/* Header */}
+              <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-100 truncate">
+                {name}
               </div>
-              {ROLE_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  disabled={opt === role || isPending}
-                  onClick={() => {
-                    onChangeRole(userId, opt);
-                    setActionsOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed capitalize"
-                >
-                  {opt === role ? `✓ Current: ${opt}` : `Set to ${opt}`}
-                </button>
-              ))}
-            </div>
 
-            {/* Remove Section */}
-            <div className="border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isOnlyAdmin || isPending}
-                onClick={() => {
-                  if (confirm(`Remove ${name} from this hive?`)) {
-                    onRemove(userId);
-                    setActionsOpen(false);
+              {/* Change Role Section */}
+              <div className="py-1">
+                <div className="px-3 py-2 text-xs text-slate-500 uppercase tracking-wide">
+                  Change role
+                </div>
+                {ROLE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    disabled={opt === role || isPending}
+                    onClick={() => {
+                      onChangeRole(userId, opt);
+                      setActionsOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed capitalize"
+                  >
+                    {opt === role ? `✓ Current: ${opt}` : `Set to ${opt}`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Remove Section */}
+              <div className="border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={isOnlyAdmin || isPending}
+                  onClick={() => {
+                    if (confirm(`Remove ${name} from this hive?`)) {
+                      onRemove(userId);
+                      setActionsOpen(false);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={
+                    isOnlyAdmin ? "Cannot remove the only admin" : undefined
                   }
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={isOnlyAdmin ? "Cannot remove the only admin" : undefined}
-              >
-                Remove from hive
-              </button>
+                >
+                  Remove from hive
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
     </div>
   );
