@@ -1,1 +1,13 @@
-{ "css.lint.unknownAtRules": "ignore" }
+{
+    "css.lint.unknownAtRules": "ignore",
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /Users/solomonlamptey-cole/Projects/hivemind && node -e \"\nrequire\\('dotenv'\\)\\.config\\(\\{ path: '\\.env\\.local' \\}\\);\nconst \\{ createClient \\} = require\\('@supabase/supabase-js'\\);\nconst url = process\\.env\\.NEXT_PUBLIC_SUPABASE_URL;\nconst key = process\\.env\\.SUPABASE_SECRET_KEY \\|\\| process\\.env\\.SUPABASE_SERVICE_ROLE_KEY;\nif \\(!url \\|\\| !key\\) \\{ console\\.log\\('Missing env vars\\. URL:', !!url, 'KEY:', !!key\\); process\\.exit\\(1\\); \\}\nconst sb = createClient\\(url, key\\);\nsb\\.from\\('conversation_share_links'\\)\\.select\\('count'\\)\\.limit\\(1\\)\\.then\\(r => \\{\n  if \\(r\\.error\\) console\\.log\\('TABLE ERROR:', r\\.error\\.message, r\\.error\\.code\\);\n  else console\\.log\\('TABLE EXISTS - result:', JSON\\.stringify\\(r\\.data\\)\\);\n\\}\\)\\.catch\\(e => console\\.log\\('EXCEPTION:', e\\.message\\)\\);\n\" 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/solomonlamptey-cole/Projects/hivemind && source <\\(grep -v '\\^#' \\.env\\.local \\| sed 's/\\^/export /'\\) && node -e \"\nconst \\{ createClient \\} = require\\('@supabase/supabase-js'\\);\nconst url = process\\.env\\.NEXT_PUBLIC_SUPABASE_URL;\nconst key = process\\.env\\.SUPABASE_SECRET_KEY \\|\\| process\\.env\\.SUPABASE_SERVICE_ROLE_KEY;\nif \\(!url \\|\\| !key\\) \\{ console\\.log\\('Missing env vars\\. URL:', !!url, 'KEY:', !!key\\); process\\.exit\\(1\\); \\}\nconst sb = createClient\\(url, key\\);\nsb\\.from\\('conversation_share_links'\\)\\.select\\('count'\\)\\.limit\\(1\\)\\.then\\(r => \\{\n  if \\(r\\.error\\) console\\.log\\('TABLE ERROR:', r\\.error\\.message, r\\.error\\.code\\);\n  else console\\.log\\('TABLE EXISTS - result:', JSON\\.stringify\\(r\\.data\\)\\);\n\\}\\)\\.catch\\(e => console\\.log\\('EXCEPTION:', e\\.message\\)\\);\n\" 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

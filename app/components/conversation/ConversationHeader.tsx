@@ -20,6 +20,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Button from "@/app/components/button";
 import Alert from "@/app/components/alert";
 import HiveShareInvitePanel from "@/app/hives/components/HiveShareInvitePanel";
+import ConversationShareLinkPanel from "@/app/components/conversation/ConversationShareLinkPanel";
 
 interface ConversationHeaderProps {
   conversationId: string;
@@ -94,6 +95,7 @@ export default function ConversationHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareTab, setShareTab] = useState<"hive" | "anonymous">("hive");
   const [deleting, setDeleting] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -435,7 +437,37 @@ export default function ConversationHeader({
               </button>
             </div>
 
-            <HiveShareInvitePanel hiveKey={hiveKey} isAdmin={isAdmin} />
+            {/* Tab switcher */}
+            <div className="flex items-center gap-1 mb-4 border-b border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShareTab("hive")}
+                className={`px-3 py-2 text-subtitle transition-colors border-b-2 ${
+                  shareTab === "hive"
+                    ? "border-brand-primary text-brand-primary"
+                    : "border-transparent text-text-tertiary hover:text-text-secondary"
+                }`}
+              >
+                Invite to Hive
+              </button>
+              <button
+                type="button"
+                onClick={() => setShareTab("anonymous")}
+                className={`px-3 py-2 text-subtitle transition-colors border-b-2 ${
+                  shareTab === "anonymous"
+                    ? "border-brand-primary text-brand-primary"
+                    : "border-transparent text-text-tertiary hover:text-text-secondary"
+                }`}
+              >
+                Anonymous Link
+              </button>
+            </div>
+
+            {shareTab === "hive" ? (
+              <HiveShareInvitePanel hiveKey={hiveKey} isAdmin={isAdmin} />
+            ) : (
+              <ConversationShareLinkPanel conversationId={conversationId} />
+            )}
 
             <div className="mt-6 flex justify-end">
               <Button

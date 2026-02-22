@@ -344,3 +344,38 @@ Report generation API:
 - Responses API + anonymity: `app/tests/api/responses.test.ts`
 - CSV import: `lib/conversations/server/__tests__/importResponsesFromCsv.test.ts`
 - Wizard hook: `lib/conversations/react/__tests__/useNewSessionWizard.test.tsx`
+- Guest share link service: `lib/conversations/guest/__tests__/conversationShareLinkService.test.ts`
+- Guest session service: `lib/conversations/guest/__tests__/guestSessionService.test.ts`
+- Guest route guard: `lib/conversations/guest/__tests__/requireGuestSession.test.ts`
+- Share link API route: `app/tests/api/conversations/share-link.test.ts`
+- Guest session API route: `app/tests/api/guest/session.test.ts`
+
+## Guest Access (Anonymous Share Links)
+
+Allows hive members to share a temporary anonymous link to a conversation for workshop use cases. Guests can respond, like, and give feedback without creating an account.
+
+### Architecture
+
+- **DB tables**: `conversation_share_links` (migration 041), `guest_sessions` (migration 042)
+- **Route group**: `app/(guest)/respond/[token]` — outside protected prefixes, automatically public
+- **Guest identity**: "Guest N" per share link (auto-incremented), pseudo-anonymous
+- **Session**: httpOnly cookie with SHA-256 hashed token; no Supabase user created
+- **Response storage**: Uses system import user UUID (`c8661a31-3493-4c0f-9f14-0c08fcc68696`) as `user_id` (satisfies NOT NULL FK), paired with nullable `guest_session_id` for attribution
+
+### Key files
+
+- Services: `lib/conversations/guest/conversationShareLinkService.ts`, `guestSessionService.ts`
+- Guard: `lib/conversations/guest/requireGuestSession.ts`
+- Schemas: `lib/conversations/guest/schemas.ts`
+- Types: `types/guest-api.ts`
+- API client: `lib/conversations/guest/guestApiClient.ts`
+- API routes: `app/api/conversations/[conversationId]/share-link/route.ts`, `app/api/guest/[token]/*`
+- Guest UI: `app/(guest)/components/GuestNavbar.tsx`, `GuestConversationHeader.tsx`
+- Guest pages: `app/(guest)/respond/[token]/listen/page.tsx`, `understand/page.tsx`, `result/page.tsx`
+- Share modal: `app/components/conversation/ConversationShareLinkPanel.tsx` (within ConversationHeader tabbed modal)
+
+### Guest tabs (available)
+
+- **Listen**: Submit responses, view feed, like responses (10s polling)
+- **Understand**: View themes, submit feedback (agree/pass/disagree) (15s polling)
+- **Result**: View executive report HTML (20s polling)

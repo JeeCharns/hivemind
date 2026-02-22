@@ -48,11 +48,11 @@ export async function GET(
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
-    // 4. Fetch responses with profile data and is_anonymous flag
+    // 4. Fetch responses with profile data, is_anonymous flag, and guest_session info
     const { data: responses, error } = await supabase
       .from("conversation_responses")
       .select(
-        "id,response_text,tag,created_at,user_id,is_anonymous,profiles:user_id(display_name,avatar_path)"
+        "id,response_text,tag,created_at,user_id,is_anonymous,guest_session_id,profiles:user_id(display_name,avatar_path),guest_sessions:guest_session_id(guest_number)"
       )
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false });
@@ -116,27 +116,42 @@ export async function GET(
           created_at: string;
           user_id: string;
           is_anonymous?: boolean | null;
+          guest_session_id?: string | null;
           profiles?: {
             display_name?: string | null;
             avatar_path?: string | null;
           } | null;
+          guest_sessions?: {
+            guest_number?: number | null;
+          } | null;
         };
         const isAnonymous = row.is_anonymous ?? false;
+        const isGuest = !!row.guest_session_id;
+        const guestNumber = row.guest_sessions?.guest_number;
         const avatarPath = row.profiles?.avatar_path;
+
+        let displayName: string;
+        if (isGuest && guestNumber != null) {
+          displayName = `Guest ${guestNumber}`;
+        } else if (isAnonymous) {
+          displayName = "Anonymous";
+        } else {
+          displayName = row.profiles?.display_name || "Member";
+        }
+
         return {
           id: row.id,
           text: row.response_text,
           tag: row.tag,
           createdAt: row.created_at,
           user: {
-            name: isAnonymous
-              ? "Anonymous"
-              : row.profiles?.display_name || "Member",
-            avatarUrl: isAnonymous
-              ? null
-              : avatarPath
-                ? (avatarUrlMap.get(avatarPath) ?? null)
-                : null,
+            name: displayName,
+            avatarUrl:
+              isAnonymous || isGuest
+                ? null
+                : avatarPath
+                  ? (avatarUrlMap.get(avatarPath) ?? null)
+                  : null,
           },
           likeCount: likeCounts.get(row.id) ?? 0,
           likedByMe: userLikes.has(row.id),

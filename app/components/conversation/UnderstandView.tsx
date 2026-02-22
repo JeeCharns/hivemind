@@ -14,6 +14,7 @@ import type {
   ResponsePoint,
 } from "@/types/conversation-understand";
 import { useConversationFeedback } from "@/lib/conversations/react/useConversationFeedback";
+import type { IConversationFeedbackClient } from "@/lib/conversations/data/feedbackClient";
 import { getTagColors } from "@/lib/conversations/domain/tags";
 import Button from "@/app/components/button";
 import type { Feedback } from "@/types/conversation-understand";
@@ -110,6 +111,8 @@ export interface UnderstandViewProps {
   analysisInProgress?: boolean;
   analysisProgress?: AnalysisProgress | null;
   uiState?: AnalysisUiState;
+  /** Optional custom feedback client (e.g. for guest mode) */
+  feedbackClient?: IConversationFeedbackClient;
 }
 
 export default function UnderstandView({
@@ -118,6 +121,7 @@ export default function UnderstandView({
   analysisInProgress = false,
   analysisProgress = null,
   uiState = "idle",
+  feedbackClient,
 }: UnderstandViewProps) {
   // Determine if we should show skeletons (during loading_results state)
   const showSkeletons = uiState === "loading_results";
@@ -159,6 +163,7 @@ export default function UnderstandView({
   const { items, vote } = useConversationFeedback({
     conversationId,
     initialItems: feedbackItems,
+    feedbackClient,
   });
 
   const points = useMemo(() => scalePoints(responses), [responses]);
