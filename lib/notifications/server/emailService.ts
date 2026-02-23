@@ -29,7 +29,8 @@ function getEmailContent(
   body: string | null,
   linkPath: string
 ): EmailContent | null {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hivemind.com";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hiveonline.io";
   const fullLink = `${baseUrl}${linkPath}`;
 
   switch (type) {

@@ -35,6 +35,8 @@ interface MobileComposerProps {
   canSubmit: boolean;
   onSubmit: () => void;
   error: string | null;
+  /** When true, hides the "Post as" dropdown and shows a static guest label */
+  isGuest?: boolean;
 }
 
 export default function MobileComposer({
@@ -50,6 +52,7 @@ export default function MobileComposer({
   canSubmit,
   onSubmit,
   error,
+  isGuest = false,
 }: MobileComposerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [postAsOpen, setPostAsOpen] = useState(false);
@@ -207,60 +210,72 @@ export default function MobileComposer({
             )}
 
             {/* Post as dropdown */}
-            <div className="space-y-2">
-              <span className="text-label text-text-primary">Post as...</span>
-              <div className="relative" ref={postAsRef}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="w-full px-3 justify-between gap-2"
-                  onClick={() => setPostAsOpen((o) => !o)}
-                >
+            {isGuest ? (
+              <div className="space-y-2">
+                <span className="text-label text-text-primary">Posting as</span>
+                <span className="inline-flex items-center gap-2 h-8 px-3 border border-slate-200 bg-white text-label text-slate-700">
                   <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
-                    {postAs === "self"
-                      ? (displayName[0] ?? "M").toUpperCase()
-                      : "A"}
+                    G
                   </span>
-                  <span className="text-label flex-1 truncate text-left">
-                    {postAs === "self" ? displayName : "Anonymous"}
-                  </span>
-                  <CaretDown size={14} className="shrink-0 text-slate-500" />
-                </Button>
-                {postAsOpen && (
-                  <div className="absolute bottom-full mb-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
-                    {[
-                      {
-                        key: "self",
-                        label: displayName,
-                        badge: (displayName[0] ?? "M").toUpperCase() || "M",
-                      },
-                      { key: "anon", label: "Anonymous", badge: "A" },
-                    ].map((opt) => (
-                      <Button
-                        key={opt.key}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setPostAs(opt.key as "self" | "anon");
-                          setPostAsOpen(false);
-                        }}
-                        className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-body hover:bg-slate-50 ${
-                          postAs === opt.key
-                            ? "text-brand-primary bg-indigo-50"
-                            : "text-slate-700"
-                        }`}
-                      >
-                        <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
-                          {opt.badge}
-                        </span>
-                        <span className="text-label">{opt.label}</span>
-                      </Button>
-                    ))}
-                  </div>
-                )}
+                  {displayName}
+                </span>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <span className="text-label text-text-primary">Post as...</span>
+                <div className="relative" ref={postAsRef}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="w-full px-3 justify-between gap-2"
+                    onClick={() => setPostAsOpen((o) => !o)}
+                  >
+                    <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
+                      {postAs === "self"
+                        ? (displayName[0] ?? "M").toUpperCase()
+                        : "A"}
+                    </span>
+                    <span className="text-label flex-1 truncate text-left">
+                      {postAs === "self" ? displayName : "Anonymous"}
+                    </span>
+                    <CaretDown size={14} className="shrink-0 text-slate-500" />
+                  </Button>
+                  {postAsOpen && (
+                    <div className="absolute bottom-full mb-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
+                      {[
+                        {
+                          key: "self",
+                          label: displayName,
+                          badge: (displayName[0] ?? "M").toUpperCase() || "M",
+                        },
+                        { key: "anon", label: "Anonymous", badge: "A" },
+                      ].map((opt) => (
+                        <Button
+                          key={opt.key}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setPostAs(opt.key as "self" | "anon");
+                            setPostAsOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-body hover:bg-slate-50 ${
+                            postAs === opt.key
+                              ? "text-brand-primary bg-indigo-50"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
+                            {opt.badge}
+                          </span>
+                          <span className="text-label">{opt.label}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Error message */}
             {error && (

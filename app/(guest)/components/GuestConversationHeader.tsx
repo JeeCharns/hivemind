@@ -94,15 +94,16 @@ export default function GuestConversationHeader({
         </div>
 
         {/* Guest info banner */}
-        <div className="mt-3 rounded-lg bg-blue-50 border border-blue-100 px-4 py-2.5 text-body text-blue-700">
-          You&apos;re viewing this conversation as a guest.{" "}
+        <div className="mt-3 rounded-lg bg-brand-primary px-4 py-2.5 flex items-center justify-between gap-3">
+          <span className="text-body text-white">
+            You&apos;re viewing this conversation as a guest.
+          </span>
           <Link
             href="/login"
-            className="font-medium underline hover:text-blue-800"
+            className="inline-flex h-8 shrink-0 items-center rounded-lg bg-white px-4 text-subtitle text-brand-primary hover:bg-white/90 transition-colors"
           >
             Sign up
-          </Link>{" "}
-          to create your own conversations.
+          </Link>
         </div>
       </div>
     </div>

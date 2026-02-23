@@ -70,16 +70,9 @@ describe("conversationShareLinkService", () => {
       expect(guestUrl("abc")).toBe("https://app.example.com/respond/abc");
     });
 
-    it("falls back to VERCEL_URL with https prefix", () => {
+    it("falls back to app.hiveonline.io when NEXT_PUBLIC_SITE_URL not set", () => {
       delete process.env.NEXT_PUBLIC_SITE_URL;
-      process.env.VERCEL_URL = "my-app.vercel.app";
-      expect(guestUrl("abc")).toBe("https://my-app.vercel.app/respond/abc");
-    });
-
-    it("falls back to localhost when no env set", () => {
-      delete process.env.NEXT_PUBLIC_SITE_URL;
-      delete process.env.VERCEL_URL;
-      expect(guestUrl("abc")).toBe("http://localhost:3000/respond/abc");
+      expect(guestUrl("abc")).toBe("https://app.hiveonline.io/respond/abc");
     });
   });
 

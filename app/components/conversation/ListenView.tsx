@@ -69,6 +69,12 @@ export interface ListenViewProps {
   sourceReportConversationTitle?: string | null;
   conversationType?: "understand" | "decide";
   sourceConversationId?: string | null;
+  /** When set, renders in guest mode using guest API clients */
+  guestToken?: string;
+  /** Injected responses client (used for guest mode) */
+  responsesClient?: import("@/lib/conversations/data/responsesClient").IConversationResponsesClient;
+  /** Injected likes client (used for guest mode) */
+  likesClient?: import("@/lib/conversations/data/likesClient").IResponseLikesClient;
 }
 
 export default function ListenView({
@@ -78,11 +84,18 @@ export default function ListenView({
   sourceReportConversationTitle,
   conversationType = "understand",
   sourceConversationId,
+  guestToken,
+  responsesClient: injectedResponsesClient,
+  likesClient: injectedLikesClient,
 }: ListenViewProps) {
-  const { hiveId: hiveKey, conversationId: conversationKey } = useParams<{
+  const params = useParams<{
     hiveId: string;
     conversationId: string;
   }>();
+  const hiveKey = params?.hiveId;
+  const conversationKey = params?.conversationId;
+
+  const isGuest = !!guestToken;
 
   const isMobileOrTablet = useIsMobileOrTablet();
 
@@ -97,7 +110,13 @@ export default function ListenView({
     appendResponse,
     silentRefresh,
     updateResponseLikeCount,
-  } = useConversationFeed({ conversationId });
+  } = useConversationFeed({
+    conversationId,
+    ...(injectedResponsesClient
+      ? { responsesClient: injectedResponsesClient }
+      : {}),
+    ...(injectedLikesClient ? { likesClient: injectedLikesClient } : {}),
+  });
 
   const [text, setText] = useState("");
   const [tag, setTag] = useState<ListenTag | null>(null);
@@ -106,7 +125,9 @@ export default function ListenView({
     () => true,
     () => false
   );
-  const [postAs, setPostAs] = useState<"self" | "anon">("self");
+  const [postAs, setPostAs] = useState<"self" | "anon">(
+    isGuest ? "anon" : "self"
+  );
   const [postAsOpen, setPostAsOpen] = useState(false);
   const postAsRef = useRef<HTMLDivElement | null>(null);
 
@@ -142,7 +163,7 @@ export default function ListenView({
   // Track presence for viewer count (must be before realtime hook to determine paused state)
   const { viewerCount } = useConversationPresence({
     conversationId,
-    enabled: hasLoadedOnce,
+    enabled: hasLoadedOnce && !isGuest,
   });
 
   // Pause realtime when there are too many viewers (graceful degradation)
@@ -150,31 +171,34 @@ export default function ListenView({
 
   // Real-time subscription via broadcast channel (no loading state on updates)
   // Paused when high traffic to reduce connection load
+  // Disabled for guests (they use polling instead)
   const { status: realtimeStatus } = useConversationFeedRealtime({
     conversationId,
-    enabled: hasLoadedOnce,
+    enabled: hasLoadedOnce && !isGuest,
     paused: isHighTraffic,
     onNewResponse: handleNewResponse,
     onLikeUpdate: handleLikeUpdate,
   });
 
-  // Background sync every 30 seconds when tab is visible (eventual consistency)
+  // Background sync when tab is visible (eventual consistency)
+  // Guests poll every 10s since they don't have realtime; authenticated users sync every 30s
   useEffect(() => {
     if (!hasLoadedOnce) return;
 
+    const syncInterval = isGuest ? 10_000 : 30_000;
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") {
         silentRefresh();
       }
-    }, 30000);
+    }, syncInterval);
 
     return () => clearInterval(interval);
-  }, [hasLoadedOnce, silentRefresh]);
+  }, [hasLoadedOnce, silentRefresh, isGuest]);
 
-  // Poll for analysis status
+  // Poll for analysis status (disabled for guests — analysis is admin-triggered only)
   const { data: statusData } = useAnalysisStatus({
     conversationId,
-    enabled: feed.length >= 20,
+    enabled: feed.length >= 20 && !isGuest,
     interval: 5000,
   });
 
@@ -195,7 +219,7 @@ export default function ListenView({
     const input: SubmitResponseInput = {
       text: text.trim(),
       tag: isDecisionSession ? "proposal" : tag,
-      anonymous: postAs === "anon",
+      anonymous: isGuest ? true : postAs === "anon",
     };
 
     await submit(input);
@@ -378,7 +402,11 @@ export default function ListenView({
             </span>
           </div>
           <Link
-            href={`/hives/${hiveKey}/conversations/${conversationKey}/understand`}
+            href={
+              isGuest
+                ? `/respond/${guestToken}/understand`
+                : `/hives/${hiveKey}/conversations/${conversationKey}/understand`
+            }
             className="text-emerald-700 hover:text-emerald-800 text-subtitle underline"
           >
             View themes →
@@ -567,8 +595,8 @@ export default function ListenView({
                   )}
                 </div>
                 <div className="flex items-start gap-1 shrink-0">
-                  {/* Edit/delete buttons for own responses */}
-                  {resp.isMine && editingId !== resp.id && (
+                  {/* Edit/delete buttons for own responses (hidden for guests) */}
+                  {!isGuest && resp.isMine && editingId !== resp.id && (
                     <>
                       <button
                         type="button"
@@ -645,6 +673,7 @@ export default function ListenView({
             canSubmit={canSubmit}
             onSubmit={submitResponse}
             error={error}
+            isGuest={isGuest}
           />
         </>
       ) : (
@@ -719,66 +748,83 @@ export default function ListenView({
                   <div
                     className={`flex items-center gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}
                   >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-label text-text-primary">
-                        Post as...
-                      </span>
-                      <div className="relative" ref={postAsRef}>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          className="w-36 px-3 justify-between gap-2"
-                          onClick={() => setPostAsOpen((o) => !o)}
-                        >
+                    {isGuest ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-label text-text-primary">
+                          Posting as
+                        </span>
+                        <span className="inline-flex items-center gap-2 h-8 px-3 border border-slate-200 bg-white text-label text-slate-700">
                           <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
-                            {postAs === "self"
-                              ? (displayName[0] ?? "M").toUpperCase()
-                              : "A"}
+                            G
                           </span>
-                          <span className="text-label flex-1 truncate text-left">
-                            {postAs === "self" ? displayName : "Anonymous"}
-                          </span>
-                          <CaretDown
-                            size={14}
-                            className="shrink-0 text-slate-500"
-                          />
-                        </Button>
-                        {postAsOpen && (
-                          <div className="absolute mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
-                            {[
-                              {
-                                key: "self",
-                                label: displayName,
-                                badge:
-                                  (displayName[0] ?? "M").toUpperCase() || "M",
-                              },
-                              { key: "anon", label: "Anonymous", badge: "A" },
-                            ].map((opt) => (
-                              <Button
-                                key={opt.key}
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setPostAs(opt.key as "self" | "anon");
-                                  setPostAsOpen(false);
-                                }}
-                                className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-body hover:bg-slate-50 ${
-                                  postAs === opt.key
-                                    ? "text-brand-primary bg-indigo-50"
-                                    : "text-slate-700"
-                                }`}
-                              >
-                                <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
-                                  {opt.badge}
-                                </span>
-                                <span className="text-label">{opt.label}</span>
-                              </Button>
-                            ))}
-                          </div>
-                        )}
+                          {displayName}
+                        </span>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-label text-text-primary">
+                          Post as...
+                        </span>
+                        <div className="relative" ref={postAsRef}>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="w-36 px-3 justify-between gap-2"
+                            onClick={() => setPostAsOpen((o) => !o)}
+                          >
+                            <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
+                              {postAs === "self"
+                                ? (displayName[0] ?? "M").toUpperCase()
+                                : "A"}
+                            </span>
+                            <span className="text-label flex-1 truncate text-left">
+                              {postAs === "self" ? displayName : "Anonymous"}
+                            </span>
+                            <CaretDown
+                              size={14}
+                              className="shrink-0 text-slate-500"
+                            />
+                          </Button>
+                          {postAsOpen && (
+                            <div className="absolute mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
+                              {[
+                                {
+                                  key: "self",
+                                  label: displayName,
+                                  badge:
+                                    (displayName[0] ?? "M").toUpperCase() ||
+                                    "M",
+                                },
+                                { key: "anon", label: "Anonymous", badge: "A" },
+                              ].map((opt) => (
+                                <Button
+                                  key={opt.key}
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setPostAs(opt.key as "self" | "anon");
+                                    setPostAsOpen(false);
+                                  }}
+                                  className={`w-full px-3 py-2 justify-start flex items-center gap-2 text-left text-body hover:bg-slate-50 ${
+                                    postAs === opt.key
+                                      ? "text-brand-primary bg-indigo-50"
+                                      : "text-slate-700"
+                                  }`}
+                                >
+                                  <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
+                                    {opt.badge}
+                                  </span>
+                                  <span className="text-label">
+                                    {opt.label}
+                                  </span>
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

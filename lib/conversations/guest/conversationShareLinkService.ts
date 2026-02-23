@@ -39,10 +39,7 @@ function expiryToDate(expiresIn: ShareLinkExpiry): Date {
 
 /** Build the public guest URL for a share token. */
 export function guestUrl(token: string): string {
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.VERCEL_URL ??
-    "http://localhost:3000";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.hiveonline.io";
   const origin = base.startsWith("http") ? base : `https://${base}`;
   return `${origin}/respond/${token}`;
 }
