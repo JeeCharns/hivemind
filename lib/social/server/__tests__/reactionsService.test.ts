@@ -98,15 +98,32 @@ describe("reactionsService", () => {
       data: unknown[],
       error: Error | null = null
     ): SupabaseClient => {
-      return {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue({ data, error }),
-              }),
+      // Build the hive_reactions chain
+      const reactionsChain = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            order: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue({ data, error }),
             }),
           }),
+        }),
+      };
+
+      // Build the profiles chain (for user display name lookup)
+      const profilesData = data.map((r: unknown) => ({
+        id: (r as { user_id: string }).user_id,
+        display_name: `User ${(r as { user_id: string }).user_id}`,
+      }));
+      const profilesChain = {
+        select: jest.fn().mockReturnValue({
+          in: jest.fn().mockResolvedValue({ data: profilesData, error: null }),
+        }),
+      };
+
+      return {
+        from: jest.fn((table: string) => {
+          if (table === "profiles") return profilesChain;
+          return reactionsChain;
         }),
       } as unknown as SupabaseClient;
     };
@@ -132,6 +149,7 @@ describe("reactionsService", () => {
         id: "react-1",
         hiveId: mockHiveId,
         userId: mockUserId,
+        displayName: "User user-123",
         emoji: "👋",
         message: "Hi!",
         createdAt: "2026-02-19T10:00:00Z",

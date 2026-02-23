@@ -24,6 +24,11 @@ jest.mock("next/link", () => ({
   ),
 }));
 
+// Mock server actions that pull in next/cache (not available in jsdom)
+jest.mock("@/app/hives/[hiveId]/members/actions", () => ({
+  checkIsAdmin: jest.fn().mockResolvedValue(false),
+}));
+
 describe("PageSelector", () => {
   beforeEach(() => {
     usePathnameMock.mockReset();

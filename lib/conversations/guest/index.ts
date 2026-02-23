@@ -24,3 +24,24 @@ export type {
   GuestSessionRecord,
   ValidatedGuestSession,
 } from "./guestSessionService";
+
+export { requireGuestSession } from "./requireGuestSession";
+export type { GuestRouteContext } from "./requireGuestSession";
+
+export {
+  shareLinkExpirySchema,
+  createShareLinkSchema,
+  shareTokenSchema,
+  guestSessionCookieSchema,
+  guestCreateResponseSchema,
+  guestSubmitFeedbackSchema,
+} from "./schemas";
+
+export type {
+  ShareLinkExpiryInput,
+  CreateShareLinkInput,
+  GuestCreateResponseInput,
+  GuestSubmitFeedbackInput,
+} from "./schemas";
+
+export { GuestFeedbackClient } from "./guestFeedbackClient";

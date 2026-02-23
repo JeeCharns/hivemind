@@ -66,17 +66,28 @@ function parseAnalysisStatus(
 }
 
 /**
+ * Options for building the report view model.
+ * When `isGuest` is true, membership checks and report generation gating are skipped.
+ */
+export interface ReportViewModelOptions {
+  /** When true, skip membership check and force canGenerate=false */
+  isGuest?: boolean;
+}
+
+/**
  * Assembles the complete Report view model
  *
  * @param supabase - Supabase client with service role
  * @param conversationId - Conversation UUID
- * @param userId - Current user's UUID
+ * @param userId - Current user's UUID (or SYSTEM_USER_ID for guests)
+ * @param options - Optional flags (e.g. isGuest)
  * @returns Complete view model with report, versions, and gating
  */
 export async function getReportViewModel(
   supabase: SupabaseClient,
   conversationId: string,
-  userId: string
+  userId: string,
+  options: ReportViewModelOptions = {}
 ): Promise<ResultViewModel> {
   // 1. Fetch conversation
   const { data: conversation, error: convError } = await supabase
@@ -91,11 +102,13 @@ export async function getReportViewModel(
     throw new Error("Conversation not found");
   }
 
-  // 2. Verify membership
-  await requireHiveMember(supabase, userId, conversation.hive_id);
+  // 2. Verify membership (skip for guest access)
+  if (!options.isGuest) {
+    await requireHiveMember(supabase, userId, conversation.hive_id);
+  }
 
-  // 3. User is already verified as member (requireHiveMember above)
-  const isMember = true;
+  // 3. User is already verified as member (or guest)
+  const isMember = !options.isGuest;
 
   // 4. Fetch data in parallel
   const [

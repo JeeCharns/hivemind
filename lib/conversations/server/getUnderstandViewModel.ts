@@ -71,17 +71,31 @@ function parseAnalysisStatus(
 }
 
 /**
+ * Options for building the understand view model.
+ * When `isGuest` is true, membership checks are skipped and guest feedback
+ * is identified by `guestSessionId` instead of `userId`.
+ */
+export interface UnderstandViewModelOptions {
+  /** When true, skip membership check */
+  isGuest?: boolean;
+  /** Guest session ID — used to identify current user's feedback */
+  guestSessionId?: string;
+}
+
+/**
  * Assembles the complete Understand view model
  *
  * @param supabase - Supabase client with service role
  * @param conversationId - Conversation UUID
- * @param userId - Current user's UUID
+ * @param userId - Current user's UUID (or SYSTEM_USER_ID for guests)
+ * @param options - Optional flags (e.g. isGuest, guestSessionId)
  * @returns Complete view model with responses, themes, and feedback
  */
 export async function getUnderstandViewModel(
   supabase: SupabaseClient,
   conversationId: string,
-  userId: string
+  userId: string,
+  options: UnderstandViewModelOptions = {}
 ): Promise<UnderstandViewModel> {
   console.log(
     "[getUnderstandViewModel] START - conversationId:",
@@ -101,8 +115,10 @@ export async function getUnderstandViewModel(
     throw new Error("Conversation not found");
   }
 
-  // 2. Verify user is a member of the hive
-  await requireHiveMember(supabase, userId, conversation.hive_id);
+  // 2. Verify user is a member of the hive (skip for guest access)
+  if (!options.isGuest) {
+    await requireHiveMember(supabase, userId, conversation.hive_id);
+  }
 
   // 3. Fetch all data in parallel
   const [
@@ -275,6 +291,24 @@ export async function getUnderstandViewModel(
       existing.current = feedbackType;
     }
   });
+
+  // For guests, override current feedback using guestSessionId
+  if (options.isGuest && options.guestSessionId) {
+    const { data: guestFbRows } = await supabase
+      .from("response_feedback")
+      .select("response_id, feedback")
+      .eq("conversation_id", conversationId)
+      .eq("guest_session_id", options.guestSessionId);
+
+    (guestFbRows ?? []).forEach(
+      (row: { response_id: string | number; feedback: string }) => {
+        const existing = feedbackByResponse.get(String(row.response_id));
+        if (existing) {
+          existing.current = row.feedback as Feedback;
+        }
+      }
+    );
+  }
 
   // 8. Build feedback items
   const feedbackItems: FeedbackItem[] = normalizedResponses.map((r) => {

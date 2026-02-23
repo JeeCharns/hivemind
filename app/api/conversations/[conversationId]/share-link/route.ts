@@ -52,7 +52,10 @@ export async function POST(
     const { conversationId } = await params;
     const supabase = await supabaseServerClient();
 
-    const conversation = await resolveConversationHive(supabase, conversationId);
+    const conversation = await resolveConversationHive(
+      supabase,
+      conversationId
+    );
     if (!conversation) return jsonError("Conversation not found", 404);
 
     await requireHiveMember(supabase, session.user.id, conversation.hive_id);
@@ -94,7 +97,10 @@ export async function GET(
     const { conversationId } = await params;
     const supabase = await supabaseServerClient();
 
-    const conversation = await resolveConversationHive(supabase, conversationId);
+    const conversation = await resolveConversationHive(
+      supabase,
+      conversationId
+    );
     if (!conversation) return jsonError("Conversation not found", 404);
 
     await requireHiveMember(supabase, session.user.id, conversation.hive_id);
@@ -129,7 +135,10 @@ export async function DELETE(
     const { conversationId } = await params;
     const supabase = await supabaseServerClient();
 
-    const conversation = await resolveConversationHive(supabase, conversationId);
+    const conversation = await resolveConversationHive(
+      supabase,
+      conversationId
+    );
     if (!conversation) return jsonError("Conversation not found", 404);
 
     await requireHiveMember(supabase, session.user.id, conversation.hive_id);

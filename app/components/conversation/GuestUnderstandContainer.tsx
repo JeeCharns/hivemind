@@ -31,10 +31,7 @@ export default function GuestUnderstandContainer({
   const [error, setError] = useState<string | null>(null);
 
   // Stable feedback client instance
-  const feedbackClient = useMemo(
-    () => new GuestFeedbackClient(token),
-    [token]
-  );
+  const feedbackClient = useMemo(() => new GuestFeedbackClient(token), [token]);
 
   const fetchData = useCallback(async () => {
     try {

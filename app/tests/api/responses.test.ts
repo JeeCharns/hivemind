@@ -15,6 +15,11 @@ import { NextRequest } from "next/server";
 jest.mock("@/lib/supabase/serverClient");
 jest.mock("@/lib/auth/server/requireAuth");
 jest.mock("@/lib/conversations/server/requireHiveMember");
+jest.mock("@/lib/storage/server/getAvatarUrl", () => ({
+  getAvatarUrl: jest
+    .fn()
+    .mockResolvedValue("https://signed.example.com/avatar"),
+}));
 
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
@@ -185,7 +190,9 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
         is_anonymous: false,
       });
       expect(data.response.user.name).toBe("John Doe");
-      expect(data.response.user.avatarUrl).toBe("/avatar.jpg");
+      expect(data.response.user.avatarUrl).toBe(
+        "https://signed.example.com/avatar"
+      );
     });
 
     it("should default to is_anonymous=false when anonymous field not provided", async () => {
@@ -346,7 +353,9 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
 
       // Non-anonymous response should show identity
       expect(data.responses[1].user.name).toBe("Bob Smith");
-      expect(data.responses[1].user.avatarUrl).toBe("/bob.jpg");
+      expect(data.responses[1].user.avatarUrl).toBe(
+        "https://signed.example.com/avatar"
+      );
     });
 
     it("should handle responses without profiles gracefully", async () => {
@@ -432,7 +441,9 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
       expect(response.status).toBe(200);
       // Should default to showing identity when is_anonymous is missing
       expect(data.responses[0].user.name).toBe("Jane Doe");
-      expect(data.responses[0].user.avatarUrl).toBe("/jane.jpg");
+      expect(data.responses[0].user.avatarUrl).toBe(
+        "https://signed.example.com/avatar"
+      );
     });
   });
 });

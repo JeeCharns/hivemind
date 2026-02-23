@@ -1,4 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+// Force UTC timezone before any test worker spawns (deterministic date formatting)
+process.env.TZ = "UTC";
+
 const nextJest = require("next/jest");
 
 const createJestConfig = nextJest({

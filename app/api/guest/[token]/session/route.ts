@@ -35,9 +35,16 @@ export async function GET(
 
     const adminClient = supabaseAdminClient();
 
-    // 2. Check for existing valid session (returning visitor)
+    // 2. Resolve token → conversation (always validate the URL token first)
+    const resolved = await resolveShareToken(adminClient, token);
+
+    // 3. Check for existing valid session (returning visitor)
     const existingSession = await validateGuestSession(adminClient);
-    if (existingSession) {
+    if (
+      existingSession &&
+      resolved &&
+      existingSession.conversationId === resolved.conversationId
+    ) {
       const info: GuestSessionInfo = {
         guestSessionId: existingSession.guestSessionId,
         guestNumber: existingSession.guestNumber,
@@ -47,15 +54,14 @@ export async function GET(
         conversationType: existingSession.conversationType as
           | "understand"
           | "decide",
-        expiresAt: "", // Will be populated below
+        expiresAt: resolved.shareLink.expiresAt,
         tabs: ["listen", "understand", "result"],
       };
 
       return NextResponse.json({ session: info });
     }
 
-    // 3. Resolve token → conversation
-    const resolved = await resolveShareToken(adminClient, token);
+    // 4. No valid session for this token's conversation
     if (!resolved) {
       return jsonError(
         "Share link is invalid, expired, or revoked",
@@ -64,7 +70,7 @@ export async function GET(
       );
     }
 
-    // 4. Create a new guest session
+    // 5. Create a new guest session
     const guestSession = await createGuestSession(
       adminClient,
       resolved.shareLink.id,

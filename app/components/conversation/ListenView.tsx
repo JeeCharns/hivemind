@@ -52,6 +52,7 @@ import { useIsMobileOrTablet } from "@/lib/hooks/useIsMobile";
 import Button from "@/app/components/button";
 import MobileComposer from "@/app/components/conversation/MobileComposer";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { formatRelativeTimestamp } from "@/lib/formatters";
@@ -486,9 +487,11 @@ export default function ListenView({
                 {/* Avatar */}
                 <div className="shrink-0">
                   {resp.user?.avatarUrl ? (
-                    <img
+                    <Image
                       src={resp.user.avatarUrl}
                       alt={userName}
+                      width={32}
+                      height={32}
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (

@@ -17,7 +17,11 @@ import {
   revokeShareLink,
   guestUrl,
 } from "@/lib/conversations/guest/conversationShareLinkService";
-import { POST, GET, DELETE } from "@/app/api/conversations/[conversationId]/share-link/route";
+import {
+  POST,
+  GET,
+  DELETE,
+} from "@/app/api/conversations/[conversationId]/share-link/route";
 
 // ── Mocks ────────────────────────────────────────────────
 
@@ -75,11 +79,14 @@ const params = Promise.resolve({ conversationId: "conv-001" });
 // ── Helpers ──────────────────────────────────────────────
 
 function createRequest(body?: unknown): NextRequest {
-  return new NextRequest("http://localhost:3000/api/conversations/conv-001/share-link", {
-    method: body ? "POST" : "GET",
-    ...(body ? { body: JSON.stringify(body) } : {}),
-    headers: body ? { "Content-Type": "application/json" } : {},
-  });
+  return new NextRequest(
+    "http://localhost:3000/api/conversations/conv-001/share-link",
+    {
+      method: body ? "POST" : "GET",
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      headers: body ? { "Content-Type": "application/json" } : {},
+    }
+  );
 }
 
 // ── Tests ────────────────────────────────────────────────

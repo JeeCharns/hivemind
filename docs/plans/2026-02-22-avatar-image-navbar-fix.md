@@ -59,7 +59,9 @@ useEffect(() => {
     }
   };
   resolve();
-  return () => { cancelled = true; };
+  return () => {
+    cancelled = true;
+  };
 }, [hives]);
 ```
 
@@ -78,12 +80,12 @@ This eliminates the duplicated initials logic that previously existed in both `H
 
 ## Edge Cases
 
-| Case                              | Handling                                                          |
-| --------------------------------- | ----------------------------------------------------------------- |
-| Hive has no uploaded logo         | `logoUrl` is `null`; `HiveLogo` renders initials fallback         |
-| Signed URL resolution fails       | `getLogoSignedUrl` returns `null`; fallback initials are shown    |
-| Component unmounts during resolve | Cancellation flag prevents stale state updates                    |
-| Hive list changes (navigation)    | `useEffect` dependency on `hives` triggers re-resolution          |
+| Case                              | Handling                                                         |
+| --------------------------------- | ---------------------------------------------------------------- |
+| Hive has no uploaded logo         | `logoUrl` is `null`; `HiveLogo` renders initials fallback        |
+| Signed URL resolution fails       | `getLogoSignedUrl` returns `null`; fallback initials are shown   |
+| Component unmounts during resolve | Cancellation flag prevents stale state updates                   |
+| Hive list changes (navigation)    | `useEffect` dependency on `hives` triggers re-resolution         |
 | Empty hive name                   | `HiveLogo` defaults label to "Hive" and renders "HI" as initials |
 
 ## Trade-offs

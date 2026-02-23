@@ -60,6 +60,23 @@ describe("GET /api/guest/[token]/session", () => {
   it("resumes existing session when cookie is valid", async () => {
     const params = Promise.resolve({ token: VALID_TOKEN });
 
+    // The route now resolves the token first, then validates session matches
+    mockResolveShareToken.mockResolvedValue({
+      shareLink: {
+        id: "sl-001",
+        conversationId: "conv-001",
+        token: VALID_TOKEN,
+        expiresAt: "2025-12-31T00:00:00Z",
+        isActive: true,
+        createdBy: "user-123",
+        createdAt: "2025-01-01T00:00:00Z",
+      },
+      conversationId: "conv-001",
+      conversationTitle: "Workshop Q1",
+      conversationDescription: "Quarterly discussion",
+      conversationType: "understand",
+    });
+
     mockValidateGuestSession.mockResolvedValue({
       guestSessionId: "gs-001",
       guestNumber: 2,

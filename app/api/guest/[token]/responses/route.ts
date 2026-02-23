@@ -63,7 +63,13 @@ export async function GET(
           .from("response_likes")
           .select("response_id, user_id, guest_session_id")
           .in("response_id", responseIds)
-      : { data: [] as { response_id: string; user_id: string; guest_session_id: string | null }[] };
+      : {
+          data: [] as {
+            response_id: string;
+            user_id: string;
+            guest_session_id: string | null;
+          }[],
+        };
 
     const likeCounts = new Map<string, number>();
     const myLikes = new Set<string>();
@@ -89,7 +95,10 @@ export async function GET(
           user_id: string;
           is_anonymous?: boolean | null;
           guest_session_id: string | null;
-          profiles?: { display_name?: string | null; avatar_path?: string | null } | null;
+          profiles?: {
+            display_name?: string | null;
+            avatar_path?: string | null;
+          } | null;
           guest_sessions?: { guest_number?: number | null } | null;
         };
 
@@ -166,9 +175,24 @@ export async function POST(
       );
     }
 
+    // Check conversation phase — reject writes to closed/archived conversations
+    const { data: convo } = await adminClient
+      .from("conversations")
+      .select("phase")
+      .eq("id", conversationId)
+      .single();
+
+    if (convo?.phase === "closed" || convo?.phase === "archived") {
+      return jsonError(
+        "This conversation is no longer accepting responses",
+        403,
+        "CONVERSATION_CLOSED"
+      );
+    }
+
     // Validate input
-    const body = await request.json();
-    const parsed = guestCreateResponseSchema.safeParse(body);
+    const rawBody: unknown = await request.json().catch(() => null);
+    const parsed = guestCreateResponseSchema.safeParse(rawBody);
     if (!parsed.success) {
       return jsonError("Invalid request body", 400, "VALIDATION_ERROR");
     }

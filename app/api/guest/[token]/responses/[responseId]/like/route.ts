@@ -13,15 +13,29 @@ import { checkRateLimit, rateLimitResponse } from "@/lib/api/rateLimit";
 import { requireGuestSession } from "@/lib/conversations/guest/requireGuestSession";
 import { broadcastLikeUpdate } from "@/lib/conversations/server/broadcastLikeUpdate";
 import { SYSTEM_USER_ID } from "@/lib/conversations/constants";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+/** Validates responseId path parameter (numeric string or UUID). */
+const responseIdSchema = z
+  .union([z.string().regex(/^\d+$/), z.string().uuid()])
+  .transform(String);
 
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ token: string; responseId: string }> }
 ) {
   try {
-    const { token, responseId } = await params;
+    const { token, responseId: rawResponseId } = await params;
+
+    // Validate responseId format
+    const idResult = responseIdSchema.safeParse(rawResponseId);
+    if (!idResult.success) {
+      return jsonError("Invalid response ID", 400, "INVALID_RESPONSE_ID");
+    }
+    const responseId = idResult.data;
+
     const result = await requireGuestSession(token);
     if (!result.ok) return result.error;
 
@@ -97,7 +111,15 @@ export async function DELETE(
   { params }: { params: Promise<{ token: string; responseId: string }> }
 ) {
   try {
-    const { token, responseId } = await params;
+    const { token, responseId: rawResponseId } = await params;
+
+    // Validate responseId format
+    const idResult = responseIdSchema.safeParse(rawResponseId);
+    if (!idResult.success) {
+      return jsonError("Invalid response ID", 400, "INVALID_RESPONSE_ID");
+    }
+    const responseId = idResult.data;
+
     const result = await requireGuestSession(token);
     if (!result.ok) return result.error;
 

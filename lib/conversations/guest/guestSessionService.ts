@@ -62,58 +62,74 @@ export async function createGuestSession(
   shareLinkId: string,
   expiresAt: string
 ): Promise<GuestSessionRecord> {
-  // Get next guest number for this share link
-  const { data: maxRow } = await adminClient
-    .from("guest_sessions")
-    .select("guest_number")
-    .eq("share_link_id", shareLinkId)
-    .order("guest_number", { ascending: false })
-    .limit(1)
-    .single();
+  const MAX_RETRIES = 3;
 
-  const nextNumber = (maxRow?.guest_number ?? 0) + 1;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // Get next guest number for this share link
+    const { data: maxRow } = await adminClient
+      .from("guest_sessions")
+      .select("guest_number")
+      .eq("share_link_id", shareLinkId)
+      .order("guest_number", { ascending: false })
+      .limit(1)
+      .single();
 
-  const rawToken = generateSessionToken();
-  const tokenHash = hashToken(rawToken);
+    const nextNumber = (maxRow?.guest_number ?? 0) + 1;
 
-  const { data, error } = await adminClient
-    .from("guest_sessions")
-    .insert({
-      share_link_id: shareLinkId,
-      guest_number: nextNumber,
-      session_token_hash: tokenHash,
-      expires_at: expiresAt,
-    })
-    .select("id, share_link_id, guest_number, expires_at")
-    .single();
+    const rawToken = generateSessionToken();
+    const tokenHash = hashToken(rawToken);
 
-  if (error || !data) {
-    throw new Error(
-      `[createGuestSession] Failed: ${error?.message ?? "no data"}`
+    const { data, error } = await adminClient
+      .from("guest_sessions")
+      .insert({
+        share_link_id: shareLinkId,
+        guest_number: nextNumber,
+        session_token_hash: tokenHash,
+        expires_at: expiresAt,
+      })
+      .select("id, share_link_id, guest_number, expires_at")
+      .single();
+
+    if (error) {
+      // Unique constraint violation on (share_link_id, guest_number) — retry
+      if (error.code === "23505" && attempt < MAX_RETRIES) {
+        console.warn(
+          `[createGuestSession] Guest number ${nextNumber} conflict (attempt ${attempt}/${MAX_RETRIES}), retrying…`
+        );
+        continue;
+      }
+      throw new Error(`[createGuestSession] Failed: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error("[createGuestSession] Insert returned no data");
+    }
+
+    // Set the session cookie
+    const cookieStore = await cookies();
+    const maxAgeSeconds = Math.max(
+      0,
+      Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)
     );
+
+    cookieStore.set(GUEST_SESSION_COOKIE, rawToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: maxAgeSeconds,
+      path: "/",
+    });
+
+    return {
+      id: data.id,
+      shareLinkId: data.share_link_id,
+      guestNumber: data.guest_number,
+      expiresAt: data.expires_at,
+    };
   }
 
-  // Set the session cookie
-  const cookieStore = await cookies();
-  const maxAgeSeconds = Math.max(
-    0,
-    Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)
-  );
-
-  cookieStore.set(GUEST_SESSION_COOKIE, rawToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: maxAgeSeconds,
-    path: "/",
-  });
-
-  return {
-    id: data.id,
-    shareLinkId: data.share_link_id,
-    guestNumber: data.guest_number,
-    expiresAt: data.expires_at,
-  };
+  // Should not be reachable, but satisfies TypeScript
+  throw new Error("[createGuestSession] Exhausted retries");
 }
 
 /**
@@ -159,8 +175,22 @@ export async function validateGuestSession(
     return null;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const linkData = data.conversation_share_links as any;
+  // Type the joined data from the Supabase query
+  interface ShareLinkJoin {
+    id: string;
+    conversation_id: string;
+    is_active: boolean;
+    expires_at: string;
+    conversations: {
+      id: string;
+      title: string | null;
+      description: string | null;
+      type: string;
+    } | null;
+  }
+
+  const linkData =
+    data.conversation_share_links as unknown as ShareLinkJoin | null;
   if (!linkData || !linkData.is_active) {
     return null;
   }

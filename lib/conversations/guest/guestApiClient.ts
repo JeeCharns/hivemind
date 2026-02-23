@@ -6,7 +6,12 @@
  * but hits /api/guest/[token]/* instead.
  */
 
-import type { LiveResponse, ListenTag } from "@/lib/conversations/domain/listen.types";
+import type {
+  LiveResponse,
+  ListenTag,
+} from "@/lib/conversations/domain/listen.types";
+import type { UnderstandViewModel } from "@/types/conversation-understand";
+import type { ResultViewModel } from "@/types/conversation-report";
 
 // ── Responses ─────────────────────────────────────────────
 
@@ -47,13 +52,10 @@ export async function toggleGuestLike(
   responseId: string,
   liked: boolean
 ): Promise<{ liked: boolean; like_count: number }> {
-  const res = await fetch(
-    `/api/guest/${token}/responses/${responseId}/like`,
-    {
-      method: liked ? "DELETE" : "POST",
-      credentials: "include",
-    }
-  );
+  const res = await fetch(`/api/guest/${token}/responses/${responseId}/like`, {
+    method: liked ? "DELETE" : "POST",
+    credentials: "include",
+  });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(body?.error ?? "Failed to toggle like");
@@ -83,7 +85,9 @@ export async function submitGuestFeedback(
 
 // ── Understand ────────────────────────────────────────────
 
-export async function fetchGuestUnderstand(token: string): Promise<unknown> {
+export async function fetchGuestUnderstand(
+  token: string
+): Promise<UnderstandViewModel> {
   const res = await fetch(`/api/guest/${token}/understand`, {
     credentials: "include",
   });
@@ -98,7 +102,7 @@ export async function fetchGuestUnderstand(token: string): Promise<unknown> {
 
 export async function fetchGuestReport(
   token: string
-): Promise<{ report: { version: number; html: string; createdAt: string } | null }> {
+): Promise<ResultViewModel> {
   const res = await fetch(`/api/guest/${token}/report`, {
     credentials: "include",
   });

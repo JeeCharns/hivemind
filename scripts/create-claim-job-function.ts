@@ -7,8 +7,6 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "fs";
-import { join } from "path";
 
 async function main() {
   const supabaseUrl =
@@ -147,7 +145,7 @@ GRANT EXECUTE ON FUNCTION public.fetch_next_analysis_job(TIMESTAMPTZ) TO service
   // Alternative: Try to use a generic SQL executor if available
   console.log("🔍 Attempting to execute via RPC (if available)...");
 
-  const { data, error } = await supabase.rpc("exec_sql", { sql });
+  const { error } = await supabase.rpc("exec_sql", { sql });
 
   if (error) {
     console.warn(

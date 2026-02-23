@@ -10,7 +10,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import type { LiveResponse, ListenTag } from "@/lib/conversations/domain/listen.types";
+import type {
+  LiveResponse,
+  ListenTag,
+} from "@/lib/conversations/domain/listen.types";
 import {
   fetchGuestResponses,
   submitGuestResponse,
@@ -23,7 +26,11 @@ const TAG_OPTIONS: { value: ListenTag; label: string; colour: string }[] = [
   { value: "want", label: "Want", colour: "bg-purple-100 text-purple-700" },
   { value: "problem", label: "Problem", colour: "bg-red-100 text-red-700" },
   { value: "risk", label: "Risk", colour: "bg-amber-100 text-amber-700" },
-  { value: "proposal", label: "Proposal", colour: "bg-indigo-100 text-indigo-700" },
+  {
+    value: "proposal",
+    label: "Proposal",
+    colour: "bg-indigo-100 text-indigo-700",
+  },
 ];
 
 export default function GuestListenPage() {
@@ -165,7 +172,9 @@ export default function GuestListenPage() {
           type="button"
           onClick={() => setFeedSort("new")}
           className={`text-subtitle transition-colors ${
-            feedSort === "new" ? "text-brand-primary" : "text-text-tertiary hover:text-text-secondary"
+            feedSort === "new"
+              ? "text-brand-primary"
+              : "text-text-tertiary hover:text-text-secondary"
           }`}
         >
           Newest
@@ -175,7 +184,9 @@ export default function GuestListenPage() {
           type="button"
           onClick={() => setFeedSort("top")}
           className={`text-subtitle transition-colors ${
-            feedSort === "top" ? "text-brand-primary" : "text-text-tertiary hover:text-text-secondary"
+            feedSort === "top"
+              ? "text-brand-primary"
+              : "text-text-tertiary hover:text-text-secondary"
           }`}
         >
           Top

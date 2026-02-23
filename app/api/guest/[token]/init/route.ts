@@ -26,46 +26,53 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
-  const { token } = await params;
+  try {
+    const { token } = await params;
 
-  // 1. Validate token format
-  const tokenResult = shareTokenSchema.safeParse(token);
-  if (!tokenResult.success) {
-    console.warn("[GET guest/init] Invalid token format");
-    return NextResponse.redirect(
-      new URL("/login?error=share_link_expired", request.url)
+    // 1. Validate token format
+    const tokenResult = shareTokenSchema.safeParse(token);
+    if (!tokenResult.success) {
+      console.warn("[GET guest/init] Invalid token format");
+      return NextResponse.redirect(
+        new URL("/login?error=share_link_expired", request.url)
+      );
+    }
+
+    const adminClient = supabaseAdminClient();
+
+    // 2. Resolve token → conversation (fail early if invalid/expired)
+    const resolved = await resolveShareToken(adminClient, token);
+    if (!resolved) {
+      console.warn("[GET guest/init] Token resolution failed");
+      return NextResponse.redirect(
+        new URL("/login?error=share_link_expired", request.url)
+      );
+    }
+
+    // 3. Check if visitor already has a valid session for THIS conversation
+    const existing = await validateGuestSession(adminClient);
+    if (existing && existing.conversationId === resolved.conversationId) {
+      // Session exists for this conversation — skip creation, redirect directly
+      return NextResponse.redirect(
+        new URL(`/respond/${token}/listen`, request.url)
+      );
+    }
+
+    // 4. Create new guest session (sets httpOnly cookie — allowed in Route Handlers)
+    await createGuestSession(
+      adminClient,
+      resolved.shareLink.id,
+      resolved.shareLink.expiresAt
     );
-  }
 
-  const adminClient = supabaseAdminClient();
-
-  // 2. Resolve token → conversation (fail early if invalid/expired)
-  const resolved = await resolveShareToken(adminClient, token);
-  if (!resolved) {
-    console.warn("[GET guest/init] Token resolution failed");
-    return NextResponse.redirect(
-      new URL("/login?error=share_link_expired", request.url)
-    );
-  }
-
-  // 3. Check if visitor already has a valid session for THIS conversation
-  const existing = await validateGuestSession(adminClient);
-  if (existing && existing.conversationId === resolved.conversationId) {
-    // Session exists for this conversation — skip creation, redirect directly
+    // 5. Redirect to the guest conversation page
     return NextResponse.redirect(
       new URL(`/respond/${token}/listen`, request.url)
     );
+  } catch (err) {
+    console.error("[GET guest/init] Unexpected error:", err);
+    return NextResponse.redirect(
+      new URL("/login?error=share_link_expired", request.url)
+    );
   }
-
-  // 4. Create new guest session (sets httpOnly cookie — allowed in Route Handlers)
-  await createGuestSession(
-    adminClient,
-    resolved.shareLink.id,
-    resolved.shareLink.expiresAt
-  );
-
-  // 5. Redirect to the guest conversation page
-  return NextResponse.redirect(
-    new URL(`/respond/${token}/listen`, request.url)
-  );
 }

@@ -117,7 +117,9 @@ describe("conversationShareLinkService", () => {
       const result = await createShareLink(supabase, CONV_ID, USER_ID, "7d");
 
       expect(result.id).toBe("link-002");
-      expect((supabase as unknown as Record<string, jest.Mock>).insert).toHaveBeenCalled();
+      expect(
+        (supabase as unknown as Record<string, jest.Mock>).insert
+      ).toHaveBeenCalled();
     });
 
     it("throws when insert fails", async () => {
@@ -154,9 +156,7 @@ describe("conversationShareLinkService", () => {
 
     it("returns null when no active link", async () => {
       const supabase = createMockSupabase({
-        single: jest
-          .fn()
-          .mockResolvedValueOnce({ data: null, error: null }),
+        single: jest.fn().mockResolvedValueOnce({ data: null, error: null }),
       });
 
       const result = await getShareLink(supabase, CONV_ID);
@@ -170,7 +170,10 @@ describe("conversationShareLinkService", () => {
      * The second .eq is the terminal call (returns a promise).
      * We need a mock where the first .eq returns an object with another .eq.
      */
-    function createRevokeMock(result: { error: unknown; count: number | null }) {
+    function createRevokeMock(result: {
+      error: unknown;
+      count: number | null;
+    }) {
       const secondEq = jest.fn().mockResolvedValue(result);
       const firstEq = jest.fn().mockReturnValue({ eq: secondEq });
       const update = jest.fn().mockReturnValue({ eq: firstEq });

@@ -167,9 +167,6 @@ async function diagnoseClusterAssignment(conversationId: string) {
   console.log("⚠️  Potential Issues:\n");
 
   if (freedomResponse) {
-    const freedomCluster = freedomResponse.cluster_index;
-    const freedomTheme = themeByCluster.get(freedomCluster);
-
     // Check if there are other "freedom" related responses in different clusters
     const freedomRelated = responses.filter((r) =>
       r.response_text.toLowerCase().match(/free|freedom|liberty|quality.*life/i)

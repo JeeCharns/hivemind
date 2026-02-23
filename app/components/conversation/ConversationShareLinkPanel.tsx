@@ -127,13 +127,13 @@ export default function ConversationShareLinkPanel({
   if (url) {
     const expiresDate = expiresAt ? new Date(expiresAt) : null;
     const isExpiringSoon =
-      expiresDate &&
-      expiresDate.getTime() - Date.now() < 24 * 60 * 60 * 1000;
+      expiresDate && expiresDate.getTime() - Date.now() < 24 * 60 * 60 * 1000;
 
     return (
       <div className="flex flex-col gap-3">
         <p className="text-body text-text-secondary">
-          Anyone with this link can participate anonymously in this conversation.
+          Anyone with this link can participate anonymously in this
+          conversation.
         </p>
 
         {/* URL display */}
@@ -176,9 +176,7 @@ export default function ConversationShareLinkPanel({
           {revoking ? "Revoking…" : "Revoke link"}
         </button>
 
-        {error && (
-          <p className="text-caption text-red-600">{error}</p>
-        )}
+        {error && <p className="text-caption text-red-600">{error}</p>}
       </div>
     );
   }
@@ -222,9 +220,7 @@ export default function ConversationShareLinkPanel({
         {creating ? "Generating…" : "Generate anonymous link"}
       </button>
 
-      {error && (
-        <p className="text-caption text-red-600">{error}</p>
-      )}
+      {error && <p className="text-caption text-red-600">{error}</p>}
     </div>
   );
 }

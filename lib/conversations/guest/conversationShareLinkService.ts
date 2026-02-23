@@ -9,10 +9,7 @@
 
 import { randomBytes } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
-  ShareLinkExpiry,
-  ConversationShareLink,
-} from "@/types/guest-api";
+import type { ShareLinkExpiry, ConversationShareLink } from "@/types/guest-api";
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -163,7 +160,7 @@ export async function revokeShareLink(
     return false;
   }
 
-  return (count ?? 0) > 0 || !error;
+  return (count ?? 0) > 0;
 }
 
 /**
@@ -197,12 +194,9 @@ export async function resolveShareToken(
     .single();
 
   if (error || !data) {
-    console.error("[resolveShareToken] Failed to resolve token:", {
+    console.warn("[resolveShareToken] Failed to resolve token:", {
       error: error?.message,
       code: error?.code,
-      hint: error?.hint,
-      details: error?.details,
-      hasData: !!data,
       tokenLength: token.length,
     });
     return null;

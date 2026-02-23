@@ -275,9 +275,7 @@ describe("guestSessionService", () => {
   describe("clearGuestSessionCookie", () => {
     it("deletes the guest session cookie", async () => {
       await clearGuestSessionCookie();
-      expect(mockCookieStore.delete).toHaveBeenCalledWith(
-        GUEST_SESSION_COOKIE
-      );
+      expect(mockCookieStore.delete).toHaveBeenCalledWith(GUEST_SESSION_COOKIE);
     });
   });
 });
