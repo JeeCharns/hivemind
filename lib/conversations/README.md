@@ -374,6 +374,28 @@ Allows hive members to share a temporary anonymous link to a conversation for wo
 - Guest pages: `app/(guest)/respond/[token]/listen/page.tsx`, `understand/page.tsx`, `result/page.tsx`
 - Share modal: `app/components/conversation/ConversationShareLinkPanel.tsx` (within ConversationHeader tabbed modal)
 
+### Constants
+
+Centralised constants for guest operations in `lib/conversations/constants.ts`:
+
+- `SYSTEM_USER_ID` — System user UUID for guest operations (satisfies NOT NULL FK on user_id columns)
+- `GUEST_MAX_RESPONSES_PER_SESSION` — Maximum responses per guest session (default: 10)
+
+### Rate Limits
+
+Guest endpoints are rate-limited by guest session ID (see `lib/api/rateLimit.ts`):
+
+| Endpoint | Type | Limit |
+|----------|------|-------|
+| POST `/api/guest/[token]/responses` | `guest_response` | 5 req/min |
+| GET `/api/guest/[token]/responses` | `general` | 100 req/min |
+| POST `/api/guest/[token]/feedback` | `guest_feedback` | 15 req/min |
+| POST/DELETE `/api/guest/[token]/responses/[id]/like` | `guest_like` | 20 req/min |
+| GET `/api/guest/[token]/report` | `general` | 100 req/min |
+| GET `/api/guest/[token]/understand` | `general` | 100 req/min |
+
+Additionally, guests are limited to `GUEST_MAX_RESPONSES_PER_SESSION` (10) total responses per session.
+
 ### Guest tabs (available)
 
 - **Listen**: Submit responses, view feed, like responses (10s polling)

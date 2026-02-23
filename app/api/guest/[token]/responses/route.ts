@@ -9,14 +9,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimitResponse } from "@/lib/api/rateLimit";
 import { guestCreateResponseSchema } from "@/lib/conversations/guest/schemas";
 import { requireGuestSession } from "@/lib/conversations/guest/requireGuestSession";
 import { broadcastResponse } from "@/lib/conversations/server/broadcastResponse";
+import {
+  SYSTEM_USER_ID,
+  GUEST_MAX_RESPONSES_PER_SESSION,
+} from "@/lib/conversations/constants";
 
 export const dynamic = "force-dynamic";
-
-/** System import user UUID — used for guest responses (satisfies NOT NULL FK). */
-const SYSTEM_USER_ID = "c8661a31-3493-4c0f-9f14-0c08fcc68696";
 
 // ── GET — list responses ──────────────────────────────────
 
@@ -30,6 +32,15 @@ export async function GET(
     if (!result.ok) return result.error;
 
     const { adminClient, conversationId, session } = result.ctx;
+
+    // Rate limit by guest session ID
+    const rateLimitResult = await checkRateLimit(
+      session.guestSessionId,
+      "general"
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitResponse(rateLimitResult);
+    }
 
     // Fetch responses with guest_session info for "Guest N" display
     const { data: responses, error } = await adminClient
@@ -130,6 +141,30 @@ export async function POST(
     if (!result.ok) return result.error;
 
     const { adminClient, conversationId, session } = result.ctx;
+
+    // Rate limit by guest session ID
+    const rateLimitResult = await checkRateLimit(
+      session.guestSessionId,
+      "guest_response"
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitResponse(rateLimitResult);
+    }
+
+    // Check per-session response limit
+    const { count } = await adminClient
+      .from("conversation_responses")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversationId)
+      .eq("guest_session_id", session.guestSessionId);
+
+    if ((count ?? 0) >= GUEST_MAX_RESPONSES_PER_SESSION) {
+      return jsonError(
+        "Maximum responses reached",
+        429,
+        "RESPONSE_LIMIT_EXCEEDED"
+      );
+    }
 
     // Validate input
     const body = await request.json();

@@ -26,6 +26,12 @@ export const RATE_LIMITS = {
   vote: { requests: 30, window: "1 m" as const },
   // General API: 100 requests per minute per user
   general: { requests: 100, window: "1 m" as const },
+  // Guest feedback voting: 15 votes per minute per session
+  guest_feedback: { requests: 15, window: "1 m" as const },
+  // Guest like operations: 20 likes per minute per session
+  guest_like: { requests: 20, window: "1 m" as const },
+  // Guest response submission: 5 per minute per session
+  guest_response: { requests: 5, window: "1 m" as const },
 } as const;
 
 export type RateLimitType = keyof typeof RATE_LIMITS;

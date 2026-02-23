@@ -79,3 +79,4 @@ Always wrap `auth.uid()` and `auth.role()` calls in RLS policies with `(select .
 ## Notes
 
 - `008_allow_public_invite_preview.sql` was an interim migration that made invite links publicly readable; `009_remove_public_invite_preview_policy.sql` removes that policy. Invite preview is served via `GET /api/invites/[token]/preview` using the service role (server-side).
+- `042_create_guest_sessions.sql` is idempotent — safe to run multiple times. All `ADD CONSTRAINT` statements are wrapped in `IF NOT EXISTS` checks, and all `CREATE INDEX` statements use `IF NOT EXISTS`.

@@ -28,9 +28,10 @@ export async function GET(
 ) {
   const { token } = await params;
 
-  // Validate token format
+  // 1. Validate token format
   const tokenResult = shareTokenSchema.safeParse(token);
   if (!tokenResult.success) {
+    console.warn("[GET guest/init] Invalid token format");
     return NextResponse.redirect(
       new URL("/login?error=share_link_expired", request.url)
     );
@@ -38,30 +39,32 @@ export async function GET(
 
   const adminClient = supabaseAdminClient();
 
-  // Resolve token → conversation
+  // 2. Resolve token → conversation (fail early if invalid/expired)
   const resolved = await resolveShareToken(adminClient, token);
-
-  // If the visitor already has a valid session for THIS conversation, skip creation
-  const existing = await validateGuestSession(adminClient);
-  if (existing && resolved && existing.conversationId === resolved.conversationId) {
-    return NextResponse.redirect(
-      new URL(`/respond/${token}/listen`, request.url)
-    );
-  }
   if (!resolved) {
+    console.warn("[GET guest/init] Token resolution failed");
     return NextResponse.redirect(
       new URL("/login?error=share_link_expired", request.url)
     );
   }
 
-  // Create guest session (sets the httpOnly cookie — allowed in Route Handlers)
+  // 3. Check if visitor already has a valid session for THIS conversation
+  const existing = await validateGuestSession(adminClient);
+  if (existing && existing.conversationId === resolved.conversationId) {
+    // Session exists for this conversation — skip creation, redirect directly
+    return NextResponse.redirect(
+      new URL(`/respond/${token}/listen`, request.url)
+    );
+  }
+
+  // 4. Create new guest session (sets httpOnly cookie — allowed in Route Handlers)
   await createGuestSession(
     adminClient,
     resolved.shareLink.id,
     resolved.shareLink.expiresAt
   );
 
-  // Redirect back to the guest conversation page
+  // 5. Redirect to the guest conversation page
   return NextResponse.redirect(
     new URL(`/respond/${token}/listen`, request.url)
   );

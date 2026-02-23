@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimitResponse } from "@/lib/api/rateLimit";
 import { requireGuestSession } from "@/lib/conversations/guest/requireGuestSession";
 import type {
   UnderstandViewModel,
@@ -90,6 +91,15 @@ export async function GET(
     if (!result.ok) return result.error;
 
     const { adminClient, conversationId, session } = result.ctx;
+
+    // Rate limit by guest session ID
+    const rateLimitResult = await checkRateLimit(
+      session.guestSessionId,
+      "general"
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitResponse(rateLimitResult);
+    }
 
     // 1. Fetch conversation metadata
     const { data: convo, error: convoErr } = await adminClient

@@ -37,6 +37,7 @@ export async function requireGuestSession(
   // 1. Validate token format
   const tokenResult = shareTokenSchema.safeParse(token);
   if (!tokenResult.success) {
+    console.warn("[requireGuestSession] Invalid token format:", token);
     return { ok: false, error: jsonError("Invalid share link", 400, "INVALID_TOKEN") };
   }
 
@@ -45,6 +46,7 @@ export async function requireGuestSession(
   // 2. Validate guest session cookie
   const guestSession = await validateGuestSession(adminClient);
   if (!guestSession) {
+    console.warn("[requireGuestSession] No valid session cookie");
     return {
       ok: false,
       error: jsonError("Guest session expired or invalid", 401, "SESSION_INVALID"),
@@ -54,6 +56,7 @@ export async function requireGuestSession(
   // 3. Verify the token resolves and matches the session's conversation
   const resolved = await resolveShareToken(adminClient, token);
   if (!resolved) {
+    console.warn("[requireGuestSession] Token resolution failed:", token);
     return {
       ok: false,
       error: jsonError("Share link is invalid, expired, or revoked", 404, "LINK_NOT_FOUND"),
@@ -61,6 +64,12 @@ export async function requireGuestSession(
   }
 
   if (resolved.conversationId !== guestSession.conversationId) {
+    console.warn(
+      "[requireGuestSession] Scope mismatch - session conversation:",
+      guestSession.conversationId,
+      "token conversation:",
+      resolved.conversationId
+    );
     return {
       ok: false,
       error: jsonError("Session does not match this conversation", 403, "SCOPE_MISMATCH"),

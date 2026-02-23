@@ -9,13 +9,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimitResponse } from "@/lib/api/rateLimit";
 import { guestSubmitFeedbackSchema } from "@/lib/conversations/guest/schemas";
 import { requireGuestSession } from "@/lib/conversations/guest/requireGuestSession";
+import { SYSTEM_USER_ID } from "@/lib/conversations/constants";
 
 export const dynamic = "force-dynamic";
-
-/** System user for guest operations. */
-const SYSTEM_USER_ID = "c8661a31-3493-4c0f-9f14-0c08fcc68696";
 
 export async function POST(
   request: NextRequest,
@@ -27,6 +26,15 @@ export async function POST(
     if (!result.ok) return result.error;
 
     const { adminClient, conversationId, session } = result.ctx;
+
+    // Rate limit by guest session ID
+    const rateLimitResult = await checkRateLimit(
+      session.guestSessionId,
+      "guest_feedback"
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitResponse(rateLimitResult);
+    }
 
     // Check conversation type — feedback disabled for decision sessions
     const { data: convo } = await adminClient

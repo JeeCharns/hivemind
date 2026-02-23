@@ -1,5 +1,6 @@
 -- Migration: Create guest_sessions table + alter responses/likes/feedback for guest support
 -- Supports pseudo-anonymous "Guest N" identity for share link visitors
+-- NOTE: This migration is idempotent — safe to run multiple times.
 
 -- ============================================================
 -- Table: guest_sessions
@@ -20,10 +21,10 @@ CREATE TABLE IF NOT EXISTS "public"."guest_sessions" (
         REFERENCES "public"."conversation_share_links"("id") ON DELETE CASCADE
 );
 
--- Indexes
-CREATE INDEX idx_guest_sessions_share_link_id
+-- Indexes (idempotent)
+CREATE INDEX IF NOT EXISTS idx_guest_sessions_share_link_id
     ON "public"."guest_sessions" ("share_link_id");
-CREATE INDEX idx_guest_sessions_session_token_hash
+CREATE INDEX IF NOT EXISTS idx_guest_sessions_session_token_hash
     ON "public"."guest_sessions" ("session_token_hash");
 
 -- RLS: guest_sessions is server-only (via service role), no user policies
@@ -35,12 +36,19 @@ ALTER TABLE "public"."guest_sessions" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."conversation_responses"
     ADD COLUMN IF NOT EXISTS "guest_session_id" uuid;
 
-ALTER TABLE "public"."conversation_responses"
-    ADD CONSTRAINT "conversation_responses_guest_session_id_fkey"
-    FOREIGN KEY ("guest_session_id")
-    REFERENCES "public"."guest_sessions"("id") ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'conversation_responses_guest_session_id_fkey'
+  ) THEN
+    ALTER TABLE "public"."conversation_responses"
+      ADD CONSTRAINT "conversation_responses_guest_session_id_fkey"
+      FOREIGN KEY ("guest_session_id")
+      REFERENCES "public"."guest_sessions"("id") ON DELETE SET NULL;
+  END IF;
+END $$;
 
-CREATE INDEX idx_conversation_responses_guest_session_id
+CREATE INDEX IF NOT EXISTS idx_conversation_responses_guest_session_id
     ON "public"."conversation_responses" ("guest_session_id");
 
 -- ============================================================
@@ -49,17 +57,24 @@ CREATE INDEX idx_conversation_responses_guest_session_id
 ALTER TABLE "public"."response_likes"
     ADD COLUMN IF NOT EXISTS "guest_session_id" uuid;
 
-ALTER TABLE "public"."response_likes"
-    ADD CONSTRAINT "response_likes_guest_session_id_fkey"
-    FOREIGN KEY ("guest_session_id")
-    REFERENCES "public"."guest_sessions"("id") ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'response_likes_guest_session_id_fkey'
+  ) THEN
+    ALTER TABLE "public"."response_likes"
+      ADD CONSTRAINT "response_likes_guest_session_id_fkey"
+      FOREIGN KEY ("guest_session_id")
+      REFERENCES "public"."guest_sessions"("id") ON DELETE SET NULL;
+  END IF;
+END $$;
 
-CREATE INDEX idx_response_likes_guest_session_id
+CREATE INDEX IF NOT EXISTS idx_response_likes_guest_session_id
     ON "public"."response_likes" ("guest_session_id");
 
 -- For guest likes, we need a unique constraint on (response_id, guest_session_id)
 -- but only when guest_session_id is not null. Use a partial unique index.
-CREATE UNIQUE INDEX idx_response_likes_response_guest_unique
+CREATE UNIQUE INDEX IF NOT EXISTS idx_response_likes_response_guest_unique
     ON "public"."response_likes" ("response_id", "guest_session_id")
     WHERE "guest_session_id" IS NOT NULL;
 
@@ -69,15 +84,22 @@ CREATE UNIQUE INDEX idx_response_likes_response_guest_unique
 ALTER TABLE "public"."response_feedback"
     ADD COLUMN IF NOT EXISTS "guest_session_id" uuid;
 
-ALTER TABLE "public"."response_feedback"
-    ADD CONSTRAINT "response_feedback_guest_session_id_fkey"
-    FOREIGN KEY ("guest_session_id")
-    REFERENCES "public"."guest_sessions"("id") ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'response_feedback_guest_session_id_fkey'
+  ) THEN
+    ALTER TABLE "public"."response_feedback"
+      ADD CONSTRAINT "response_feedback_guest_session_id_fkey"
+      FOREIGN KEY ("guest_session_id")
+      REFERENCES "public"."guest_sessions"("id") ON DELETE SET NULL;
+  END IF;
+END $$;
 
-CREATE INDEX idx_response_feedback_guest_session_id
+CREATE INDEX IF NOT EXISTS idx_response_feedback_guest_session_id
     ON "public"."response_feedback" ("guest_session_id");
 
 -- For guest feedback, unique constraint on (conversation_id, response_id, guest_session_id)
-CREATE UNIQUE INDEX idx_response_feedback_conv_resp_guest_unique
+CREATE UNIQUE INDEX IF NOT EXISTS idx_response_feedback_conv_resp_guest_unique
     ON "public"."response_feedback" ("conversation_id", "response_id", "guest_session_id")
     WHERE "guest_session_id" IS NOT NULL;
