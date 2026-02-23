@@ -153,7 +153,8 @@ export default function GuestUnderstandContainer({
         </p>
         <Link
           href="/login"
-          className="inline-flex h-9 items-center rounded-lg bg-brand-primary px-4 text-subtitle text-white hover:bg-brand-primary/90 transition-colors"
+          className="inline-flex h-9 items-center rounded-lg bg-brand-primary px-4 text-subtitle hover:bg-brand-primary/90 transition-colors"
+          style={{ color: "white" }}
         >
           Sign up for Hive
         </Link>
