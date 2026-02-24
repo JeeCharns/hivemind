@@ -27,6 +27,8 @@ type QueryResultPromiseCatch = Promise<QueryResult>["catch"];
 type SupabaseBuilder = {
   select: jest.MockedFunction<() => SupabaseBuilder>;
   eq: jest.MockedFunction<() => SupabaseBuilder>;
+  insert: jest.MockedFunction<() => Promise<{ error: null }>>;
+  update: jest.MockedFunction<() => SupabaseBuilder>;
   upsert: jest.MockedFunction<() => Promise<{ error: null }>>;
   delete: jest.MockedFunction<() => SupabaseBuilder>;
   maybeSingle: jest.MockedFunction<() => Promise<QueryResult>>;
@@ -59,6 +61,8 @@ function createSupabaseMock() {
     const builder: SupabaseBuilder = {
       select: jest.fn(() => builder),
       eq: jest.fn(() => builder),
+      insert: jest.fn(async () => ({ error: null })),
+      update: jest.fn(() => builder),
       upsert: jest.fn(async () => ({ error: null })),
       delete: jest.fn(() => {
         isDeleteQuery = true;

@@ -128,24 +128,37 @@ export async function POST(
         return jsonError("Failed to withdraw feedback", 500);
       }
     } else {
-      // Otherwise, upsert feedback (handles both insert and update)
-      const { error: upsertError } = await supabase
-        .from("response_feedback")
-        .upsert(
-          {
+      // Insert or update feedback
+      // NOTE: We use conditional INSERT/UPDATE instead of upsert because
+      // migration 043 replaced the original unique constraint with a partial
+      // unique index (WHERE guest_session_id IS NULL), and PostgreSQL cannot
+      // infer a partial index for ON CONFLICT without a matching WHERE clause.
+      if (existingFeedback) {
+        const { error: updateError } = await supabase
+          .from("response_feedback")
+          .update({ feedback: feedback as Feedback })
+          .eq("conversation_id", conversationId)
+          .eq("response_id", responseId)
+          .eq("user_id", session.user.id);
+
+        if (updateError) {
+          console.error("[POST feedback] Update error:", updateError);
+          return jsonError("Failed to submit feedback", 500);
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from("response_feedback")
+          .insert({
             conversation_id: conversationId,
             response_id: responseId,
             user_id: session.user.id,
             feedback: feedback as Feedback,
-          },
-          {
-            onConflict: "conversation_id,response_id,user_id",
-          }
-        );
+          });
 
-      if (upsertError) {
-        console.error("[POST feedback] Upsert error:", upsertError);
-        return jsonError("Failed to submit feedback", 500);
+        if (insertError) {
+          console.error("[POST feedback] Insert error:", insertError);
+          return jsonError("Failed to submit feedback", 500);
+        }
       }
     }
 
