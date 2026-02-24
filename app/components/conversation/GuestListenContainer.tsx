@@ -51,10 +51,11 @@ export default function GuestListenContainer({
         throw new Error(body?.error ?? "Failed to load session");
       }
       const data = await res.json();
+      const sessionData = data.session ?? data;
       setSession({
-        conversationId: data.conversationId,
-        guestNumber: data.guestNumber,
-        conversationType: data.conversationType ?? "understand",
+        conversationId: sessionData.conversationId,
+        guestNumber: sessionData.guestNumber,
+        conversationType: sessionData.conversationType ?? "understand",
       });
       setError(null);
     } catch (err) {

@@ -13,6 +13,7 @@ import { NextRequest } from "next/server";
 
 // Mock dependencies
 jest.mock("@/lib/supabase/serverClient");
+jest.mock("@/lib/supabase/adminClient");
 jest.mock("@/lib/auth/server/requireAuth");
 jest.mock("@/lib/conversations/server/requireHiveMember");
 jest.mock("@/lib/storage/server/getAvatarUrl", () => ({
@@ -22,6 +23,7 @@ jest.mock("@/lib/storage/server/getAvatarUrl", () => ({
 }));
 
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 
@@ -260,8 +262,12 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
   const mockSupabaseServerClient = supabaseServerClient as jest.MockedFunction<
     typeof supabaseServerClient
   >;
+  const mockSupabaseAdminClient = supabaseAdminClient as jest.MockedFunction<
+    typeof supabaseAdminClient
+  >;
 
   let mockSupabase: SupabaseMock;
+  let mockAdminSupabase: SupabaseMock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -285,10 +291,26 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
       single: jest.fn(),
     };
 
+    // Create mock admin Supabase client (for guest_sessions lookup)
+    mockAdminSupabase = {
+      from: jest.fn(() => mockAdminSupabase),
+      select: jest.fn(() => mockAdminSupabase),
+      insert: jest.fn(() => mockAdminSupabase),
+      eq: jest.fn(() => mockAdminSupabase),
+      in: jest.fn(() => mockAdminSupabase),
+      order: jest.fn(() => mockAdminSupabase),
+      maybeSingle: jest.fn(),
+      single: jest.fn(),
+    };
+
     mockSupabaseServerClient.mockResolvedValue(
       mockSupabase as unknown as Awaited<
         ReturnType<typeof supabaseServerClient>
       >
+    );
+
+    mockSupabaseAdminClient.mockReturnValue(
+      mockAdminSupabase as unknown as ReturnType<typeof supabaseAdminClient>
     );
   });
 
@@ -444,6 +466,75 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
       expect(data.responses[0].user.avatarUrl).toBe(
         "https://signed.example.com/avatar"
       );
+    });
+
+    it("should display 'Guest N' for guest responses via admin client lookup", async () => {
+      // Mock conversation check
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
+        data: { hive_id: "hive-456" },
+        error: null,
+      });
+
+      // Mock responses fetch (guest responses have guest_session_id set)
+      mockSupabase.order.mockResolvedValueOnce({
+        data: [
+          {
+            id: "resp-1",
+            response_text: "Guest response",
+            tag: "need",
+            created_at: "2025-01-01T00:00:00Z",
+            user_id: "c8661a31-3493-4c0f-9f14-0c08fcc68696",
+            is_anonymous: true,
+            guest_session_id: "guest-session-abc",
+            profiles: null,
+          },
+          {
+            id: "resp-2",
+            response_text: "Another guest response",
+            tag: "data",
+            created_at: "2025-01-01T00:01:00Z",
+            user_id: "c8661a31-3493-4c0f-9f14-0c08fcc68696",
+            is_anonymous: true,
+            guest_session_id: "guest-session-def",
+            profiles: null,
+          },
+        ],
+        error: null,
+      });
+
+      // Mock likes fetch
+      mockSupabase.in.mockResolvedValueOnce({
+        data: [],
+      });
+
+      // Mock admin client guest_sessions lookup
+      mockAdminSupabase.in.mockResolvedValueOnce({
+        data: [
+          { id: "guest-session-abc", guest_number: 1 },
+          { id: "guest-session-def", guest_number: 2 },
+        ],
+      });
+
+      const request = new NextRequest(
+        "http://localhost/api/conversations/conv-123/responses"
+      );
+
+      const params = Promise.resolve({ conversationId: "conv-123" });
+      const response = await GET(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.responses).toHaveLength(2);
+
+      // Guest responses should show "Guest 1" / "Guest 2" not "Anonymous"
+      expect(data.responses[0].user.name).toBe("Guest 1");
+      expect(data.responses[0].user.avatarUrl).toBe(null);
+
+      expect(data.responses[1].user.name).toBe("Guest 2");
+      expect(data.responses[1].user.avatarUrl).toBe(null);
+
+      // Verify admin client was used for guest_sessions lookup
+      expect(mockAdminSupabase.from).toHaveBeenCalledWith("guest_sessions");
     });
   });
 });

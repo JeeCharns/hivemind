@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
 import { jsonError } from "@/lib/api/errors";
 import { createResponseSchema } from "@/lib/conversations/schemas";
@@ -48,11 +49,13 @@ export async function GET(
       return jsonError("Unauthorized: Not a member of this hive", 403);
     }
 
-    // 4. Fetch responses with profile data, is_anonymous flag, and guest_session info
+    // 4. Fetch responses with profile data, is_anonymous flag, and guest_session_id
+    //    Note: guest_sessions join is done separately via admin client because
+    //    guest_sessions has RLS with no user-facing SELECT policy.
     const { data: responses, error } = await supabase
       .from("conversation_responses")
       .select(
-        "id,response_text,tag,created_at,user_id,is_anonymous,guest_session_id,profiles:user_id(display_name,avatar_path),guest_sessions:guest_session_id(guest_number)"
+        "id,response_text,tag,created_at,user_id,is_anonymous,guest_session_id,profiles:user_id(display_name,avatar_path)"
       )
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false });
@@ -60,6 +63,29 @@ export async function GET(
     if (error) {
       console.error("[GET responses] Query error:", error);
       return jsonError("Failed to fetch responses", 500);
+    }
+
+    // 4b. Look up guest numbers via admin client (bypasses RLS on guest_sessions)
+    const guestSessionIds = [
+      ...new Set(
+        (responses ?? [])
+          .map((r) => (r as { guest_session_id?: string | null }).guest_session_id)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+    const guestNumberMap = new Map<string, number>();
+    if (guestSessionIds.length > 0) {
+      const adminClient = supabaseAdminClient();
+      const { data: guestRows } = await adminClient
+        .from("guest_sessions")
+        .select("id, guest_number")
+        .in("id", guestSessionIds);
+
+      guestRows?.forEach(
+        (row: { id: string; guest_number: number }) => {
+          guestNumberMap.set(row.id, row.guest_number);
+        }
+      );
     }
 
     // 5. Fetch like counts and user's likes
@@ -121,13 +147,12 @@ export async function GET(
             display_name?: string | null;
             avatar_path?: string | null;
           } | null;
-          guest_sessions?: {
-            guest_number?: number | null;
-          } | null;
         };
         const isAnonymous = row.is_anonymous ?? false;
         const isGuest = !!row.guest_session_id;
-        const guestNumber = row.guest_sessions?.guest_number;
+        const guestNumber = row.guest_session_id
+          ? guestNumberMap.get(row.guest_session_id) ?? null
+          : null;
         const avatarPath = row.profiles?.avatar_path;
 
         let displayName: string;

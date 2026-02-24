@@ -46,21 +46,20 @@ export async function POST(
       return jsonError("Response not found", 404);
     }
 
-    // 4. Insert like (upsert to handle duplicate likes gracefully)
-    const { error: insertError } = await supabase.from("response_likes").upsert(
-      {
+    // 4. Insert like (handle duplicate gracefully via 23505 unique violation)
+    const { error: insertError } = await supabase
+      .from("response_likes")
+      .insert({
         response_id: responseId,
         user_id: session.user.id,
-      },
-      {
-        onConflict: "response_id,user_id",
-        ignoreDuplicates: true,
-      }
-    );
+      });
 
     if (insertError) {
-      console.error("[POST like] Insert error:", insertError);
-      return jsonError("Failed to add like", 500);
+      // Duplicate like — ignore gracefully (partial index means upsert doesn't work)
+      if (insertError.code !== "23505") {
+        console.error("[POST like] Insert error:", insertError);
+        return jsonError("Failed to add like", 500);
+      }
     }
 
     // 4. Fetch updated like count using SQL COUNT (O(1) vs O(n) row fetch)
