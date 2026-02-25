@@ -36,16 +36,16 @@ describe("activityService", () => {
 
       await logActivity(supabase, {
         hiveId: "hive-123",
-        eventType: "response",
+        eventType: "conversation_created",
         userId: null,
-        metadata: { count: 1 },
+        metadata: { conversationId: "conv-1", conversationTitle: "Test" },
       });
 
       expect(supabase.from("hive_activity").insert).toHaveBeenCalledWith({
         hive_id: "hive-123",
-        event_type: "response",
+        event_type: "conversation_created",
         user_id: null,
-        metadata: { count: 1 },
+        metadata: { conversationId: "conv-1", conversationTitle: "Test" },
       });
     });
 
