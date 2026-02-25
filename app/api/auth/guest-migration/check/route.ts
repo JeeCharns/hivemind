@@ -26,8 +26,15 @@ export async function GET() {
     const guestSession = await getConvertibleGuestSession(adminClient);
 
     if (!guestSession) {
+      console.log("[guest-migration/check] No convertible session found");
       return NextResponse.json({ hasGuestSession: false });
     }
+
+    console.log("[guest-migration/check] Found session:", {
+      guestSessionId: guestSession.guestSessionId,
+      guestNumber: guestSession.guestNumber,
+      hiveKey: guestSession.hiveKey,
+    });
 
     // Get contribution counts
     const [responsesResult, likesResult, feedbackResult] = await Promise.all([
@@ -45,7 +52,7 @@ export async function GET() {
         .eq("guest_session_id", guestSession.guestSessionId),
     ]);
 
-    return NextResponse.json({
+    const response = {
       hasGuestSession: true,
       guestSessionId: guestSession.guestSessionId,
       guestNumber: guestSession.guestNumber,
@@ -54,7 +61,10 @@ export async function GET() {
       responsesCount: responsesResult.count ?? 0,
       likesCount: likesResult.count ?? 0,
       feedbackCount: feedbackResult.count ?? 0,
-    });
+    };
+
+    console.log("[guest-migration/check] Returning:", response);
+    return NextResponse.json(response);
   } catch (err) {
     console.error("[GET /api/auth/guest-migration/check]", err);
     return jsonError("Internal server error", 500);

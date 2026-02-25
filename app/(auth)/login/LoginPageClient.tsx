@@ -38,6 +38,7 @@ function LoginPageContent() {
     hiveKey: string;
   } | null>(null);
   const [migrating, setMigrating] = useState(false);
+  const [postAuthChecking, setPostAuthChecking] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const { sendOtp, verifyOtp, loading } = useAuth();
 
@@ -126,6 +127,8 @@ function LoginPageContent() {
   const handleVerifyOtp = async (code: string) => {
     try {
       setError(null);
+      // Set flag BEFORE verifyOtp to prevent GuestGuard from redirecting
+      setPostAuthChecking(true);
       await verifyOtp(submittedEmail, code);
 
       // Check for guest session to migrate
@@ -150,8 +153,10 @@ function LoginPageContent() {
       }
 
       // No migration needed - route normally
+      setPostAuthChecking(false);
       await routeAfterAuth();
     } catch (err) {
+      setPostAuthChecking(false);
       const parsed = getOtpError(err);
       setOtp(""); // Clear input on error
       setError(parsed.message);
@@ -249,6 +254,7 @@ function LoginPageContent() {
           <Spinner />
         </div>
       }
+      skipRedirect={postAuthChecking || !!migrationData}
     >
       {migrationData && (
         <GuestMigrationPrompt

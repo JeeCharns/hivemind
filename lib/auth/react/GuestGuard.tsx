@@ -15,6 +15,11 @@ interface GuestGuardProps {
    * Fallback to show while loading or redirecting
    */
   fallback?: ReactNode;
+  /**
+   * When true, prevents automatic redirect even if authenticated.
+   * Use this when the page needs to perform post-auth checks before routing.
+   */
+  skipRedirect?: boolean;
 }
 
 /**
@@ -26,6 +31,7 @@ export function GuestGuard({
   children,
   redirectTo,
   fallback,
+  skipRedirect = false,
 }: GuestGuardProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useSession();
@@ -90,6 +96,12 @@ export function GuestGuard({
       return;
     }
 
+    // Skip redirect if explicitly requested (e.g., during post-auth migration check)
+    if (skipRedirect) {
+      console.log("[GuestGuard] skipRedirect is true, not redirecting");
+      return;
+    }
+
     if (isAuthenticated && !isLoading) {
       console.log("[GuestGuard] User authenticated, redirecting...");
       // Check for return URL first
@@ -120,16 +132,19 @@ export function GuestGuard({
     hasNextParam,
     router,
     redirectTo,
+    skipRedirect,
   ]);
 
-  // Show fallback while loading or redirecting (but not if we just logged out or have a next param)
+  // Show fallback while loading or redirecting (but not if we just logged out, have a next param,
+  // or skipRedirect is true - in that case the page handles its own post-auth flow)
   // When hasNextParam is true, we're likely in a post-logout redirect scenario where middleware
   // redirected an unauthenticated request to /login?next=... - we should show the login form
   if (
     (isLoading || isAuthenticated) &&
     fallback &&
     !justLoggedOut &&
-    !hasNextParam
+    !hasNextParam &&
+    !skipRedirect
   ) {
     return <>{fallback}</>;
   }
