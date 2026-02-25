@@ -2,7 +2,12 @@
  * Types for social features: activity, reactions, presence.
  */
 
-export type ActivityEventType = "join" | "response" | "vote" | "phase_change";
+export type ActivityEventType =
+  | "join"
+  | "conversation_created"
+  | "analysis_complete"
+  | "report_generated"
+  | "round_closed";
 
 export interface ActivityEvent {
   id: string;
@@ -18,6 +23,14 @@ export interface ActivityEventInput {
   eventType: ActivityEventType;
   userId?: string | null;
   metadata?: Record<string, unknown>;
+}
+
+export interface ActivityEventMetadata {
+  conversationId?: string;
+  conversationTitle?: string;
+  conversationType?: "understand" | "decide";
+  version?: number;
+  roundId?: string;
 }
 
 export type ReactionEmoji = "👋" | "🎉" | "💡" | "❤️" | "🐝";
