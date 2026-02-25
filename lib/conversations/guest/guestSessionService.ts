@@ -275,7 +275,7 @@ export async function getConvertibleGuestSession(
           title,
           hives!conversations_hive_id_fkey (
             id,
-            key
+            slug
           )
         )
       )
@@ -311,7 +311,7 @@ export async function getConvertibleGuestSession(
       conversations: {
         id: string;
         title: string | null;
-        hives: { id: string; key: string } | null;
+        hives: { id: string; slug: string | null } | null;
       } | null;
     } | null;
   }
@@ -335,6 +335,6 @@ export async function getConvertibleGuestSession(
     conversationId: conv.id,
     conversationTitle: conv.title,
     hiveId: hive.id,
-    hiveKey: hive.key,
+    hiveKey: hive.slug || hive.id, // Fall back to ID if no slug
   };
 }
