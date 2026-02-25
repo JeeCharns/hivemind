@@ -39,15 +39,19 @@ export default async function GuestConversationLayout({
     redirect(`/api/guest/${token}/init`);
   }
 
-  // Verify that the session belongs to THIS token's conversation.
-  // If the guest previously visited a different share link, the cookie
-  // is for a different conversation — redirect to init to create a new one.
+  // Verify that the session belongs to THIS token's share link.
+  // If the guest previously visited a different share link (even for the same conversation),
+  // the cookie is for a different share link — redirect to init to create a new session.
+  // Each share link has its own set of guest numbers (Guest 1, 2, 3... per link).
   const resolved = await resolveShareToken(adminClient, token);
   if (!resolved) {
     redirect("/login?error=share_link_expired");
   }
 
-  if (resolved.conversationId !== guestSession.conversationId) {
+  if (
+    resolved.conversationId !== guestSession.conversationId ||
+    resolved.shareLink.id !== guestSession.shareLinkId
+  ) {
     redirect(`/api/guest/${token}/init`);
   }
 

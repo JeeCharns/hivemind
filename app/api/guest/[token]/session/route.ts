@@ -39,11 +39,14 @@ export async function GET(
     const resolved = await resolveShareToken(adminClient, token);
 
     // 3. Check for existing valid session (returning visitor)
+    // Important: check shareLinkId, not just conversationId, because each share link
+    // should have its own set of guest numbers (Guest 1, 2, 3... per link)
     const existingSession = await validateGuestSession(adminClient);
     if (
       existingSession &&
       resolved &&
-      existingSession.conversationId === resolved.conversationId
+      existingSession.conversationId === resolved.conversationId &&
+      existingSession.shareLinkId === resolved.shareLink.id
     ) {
       const info: GuestSessionInfo = {
         guestSessionId: existingSession.guestSessionId,

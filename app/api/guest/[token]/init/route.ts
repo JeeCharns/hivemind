@@ -49,10 +49,16 @@ export async function GET(
       );
     }
 
-    // 3. Check if visitor already has a valid session for THIS conversation
+    // 3. Check if visitor already has a valid session for THIS share link
+    // Important: check shareLinkId, not just conversationId, because each share link
+    // should have its own set of guest numbers (Guest 1, 2, 3... per link)
     const existing = await validateGuestSession(adminClient);
-    if (existing && existing.conversationId === resolved.conversationId) {
-      // Session exists for this conversation — skip creation, redirect directly
+    if (
+      existing &&
+      existing.conversationId === resolved.conversationId &&
+      existing.shareLinkId === resolved.shareLink.id
+    ) {
+      // Session exists for this exact share link — skip creation, redirect directly
       return NextResponse.redirect(
         new URL(`/respond/${token}/listen`, request.url)
       );
