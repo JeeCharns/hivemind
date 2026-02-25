@@ -77,6 +77,7 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 | Guest Result tab (report)                | `app/(guest)/respond/[token]/result/page.tsx`                                                                                                                                          | `app/api/guest/[token]/report/route.ts` (GET)                                                        | Returns latest report HTML; read-only; 20s polling; rate limit: `general` (100/min)                                                                                                                                                                                                                                                                                     | (covered by service tests; add integration tests if changing)                                                                                                           |
 | Guest navigation                         | `app/(guest)/components/GuestNavbar.tsx` (logo + "Guest N" badge + sign-up CTA); `app/(guest)/components/GuestConversationHeader.tsx` (title + tab switcher: Listen/Understand/Result) | (n/a)                                                                                                | Stripped-down nav: no hive selector, no user menu, no settings; info banner encourages sign-up; route group `(guest)` at `/respond/[token]` is outside protected prefixes (automatically public)                                                                                                                                                                        | (add UI tests if changing)                                                                                                                                              |
 | Guest N display in responses             | Hive member Listen tab (`app/components/conversation/ListenView.tsx`)                                                                                                                  | `app/api/conversations/[conversationId]/responses/route.ts` (existing GET updated)                   | Responses with `guest_session_id` show "Guest N" instead of "Anonymous"; joins `guest_sessions` table for guest_number lookup                                                                                                                                                                                                                                           | `app/tests/api/responses.test.ts`                                                                                                                                       |
+| Guest-to-user migration                  | `app/(auth)/login/LoginPageClient.tsx` (migration prompt after OTP), `app/(auth)/components/GuestMigrationPrompt.tsx` (modal)                                                          | `app/api/auth/guest-migration/check/route.ts` (GET), `app/api/auth/guest-migration/execute/route.ts` (POST) | After OTP, checks for convertible guest session; shows modal for attribution choice; migrates responses/likes/feedback to user account via `migrate_guest_session` RPC; auto-joins relevant hives; clears guest cookie; design: `docs/plans/2026-02-25-guest-to-user-conversion-design.md` | `lib/auth/server/__tests__/migrateGuestSession.test.ts`, `app/tests/api/auth/guest-migration-check.test.ts`, `app/tests/api/auth/guest-migration-execute.test.ts`       |
 
 ## Shared Types (Contracts)
 
@@ -115,14 +116,15 @@ When adding/changing behavior, prefer updating the `lib/**/server/*` service and
 
 ## Database Schema
 
-- Migrations: `supabase/migrations/` (latest: `042_create_guest_sessions.sql`)
+- Migrations: `supabase/migrations/` (latest: `044_guest_session_conversion.sql`)
 - Key additions for invite links:
   - `hive_invite_links` table (one token per hive, 'anyone' or 'invited_only' access modes)
-- Key additions for guest access (migrations 041–042):
+- Key additions for guest access (migrations 041–044):
   - `conversation_share_links` table (token, conversation_id, expires_at, is_active, created_by; RLS: hive members CRUD)
-  - `guest_sessions` table (share_link_id, guest_number, session_token_hash, expires_at; server-only RLS)
+  - `guest_sessions` table (share_link_id, guest_number, session_token_hash, expires_at, converted_to_user_id, converted_at; server-only RLS)
   - ALTERs: nullable `guest_session_id` FK added to `conversation_responses`, `response_likes`, `response_feedback`
   - Partial unique indexes for guest uniqueness on likes and feedback
+  - `migrate_guest_session()` RPC function (atomic migration of guest contributions to user account)
 - Key additions for decision sessions (migration 006):
   - `conversations.source_conversation_id` and `conversations.source_report_version` (link to problem space report)
   - `conversation_proposal_votes` table (userId, responseId, votes, quadratic voting)
