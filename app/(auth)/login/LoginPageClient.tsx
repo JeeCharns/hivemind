@@ -6,6 +6,7 @@ import LoginForm from "../components/LoginForm";
 import OtpInput from "../components/OtpInput";
 import { useAuth } from "../hooks/useAuth";
 import AuthError from "../components/AuthError";
+import GuestMigrationPrompt from "../components/GuestMigrationPrompt";
 import CenteredCard from "../../components/centered-card";
 import BrandLogo from "../../components/brand-logo";
 import Spinner from "../../components/spinner";
@@ -28,6 +29,15 @@ function LoginPageContent() {
   const [cooldownUntilMs, setCooldownUntilMs] = useState<number | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [hiveName, setHiveName] = useState<string | null>(hiveNameParam);
+  const [migrationData, setMigrationData] = useState<{
+    guestNumber: number;
+    responsesCount: number;
+    likesCount: number;
+    feedbackCount: number;
+    guestSessionId: string;
+    hiveKey: string;
+  } | null>(null);
+  const [migrating, setMigrating] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const { sendOtp, verifyOtp, loading } = useAuth();
 
@@ -118,12 +128,59 @@ function LoginPageContent() {
       setError(null);
       await verifyOtp(submittedEmail, code);
 
-      // Successful verification - route to appropriate destination
+      // Check for guest session to migrate
+      try {
+        const checkRes = await fetch("/api/auth/guest-migration/check");
+        if (checkRes.ok) {
+          const data = await checkRes.json();
+          if (data.hasGuestSession) {
+            setMigrationData({
+              guestNumber: data.guestNumber,
+              responsesCount: data.responsesCount,
+              likesCount: data.likesCount,
+              feedbackCount: data.feedbackCount,
+              guestSessionId: data.guestSessionId,
+              hiveKey: data.hiveKey,
+            });
+            return; // Don't route yet - show migration prompt
+          }
+        }
+      } catch {
+        // Migration check failed - continue with normal flow
+      }
+
+      // No migration needed - route normally
       await routeAfterAuth();
     } catch (err) {
       const parsed = getOtpError(err);
       setOtp(""); // Clear input on error
       setError(parsed.message);
+    }
+  };
+
+  const handleMigrationComplete = async (keepAnonymous: boolean) => {
+    if (!migrationData) return;
+
+    setMigrating(true);
+    try {
+      const res = await fetch("/api/auth/guest-migration/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keepAnonymous }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        router.push(data.redirectTo || "/hives");
+      } else {
+        // Migration failed - continue anyway
+        await routeAfterAuth();
+      }
+    } catch {
+      await routeAfterAuth();
+    } finally {
+      setMigrating(false);
+      setMigrationData(null);
     }
   };
 
@@ -193,6 +250,16 @@ function LoginPageContent() {
         </div>
       }
     >
+      {migrationData && (
+        <GuestMigrationPrompt
+          guestNumber={migrationData.guestNumber}
+          responsesCount={migrationData.responsesCount}
+          likesCount={migrationData.likesCount}
+          feedbackCount={migrationData.feedbackCount}
+          onComplete={handleMigrationComplete}
+          loading={migrating}
+        />
+      )}
       <div className="min-h-screen w-full bg-[#F0F0F5] flex flex-col items-center justify-center relative overflow-hidden px-4 py-12">
         <div className="mb-12">
           <BrandLogo size={32} />
