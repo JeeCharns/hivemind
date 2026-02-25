@@ -18,6 +18,7 @@ import {
   computeConsolidatedConsensusItems,
 } from "@/lib/conversations/domain/responseConsensus";
 import { getAnthropicClient } from "@/lib/ai/anthropic";
+import { logActivity } from "@/lib/social/server/activityService";
 
 interface ClusterBucketRow {
   id: string;
@@ -474,6 +475,18 @@ Reference specific vote data to support your points (e.g. "78% agreed that...").
       console.error("[POST report] Insert error:", insertError);
       return jsonError("Failed to save report", 500);
     }
+
+    // 13a. Log activity for hive feed
+    await logActivity(supabase, {
+      hiveId: conversation.hive_id,
+      eventType: "report_generated",
+      userId: session.user.id,
+      metadata: {
+        conversationId,
+        conversationTitle: conversation.title,
+        version: newReport.version,
+      },
+    });
 
     // 13. Update conversation.report_json with latest HTML
     await supabase
