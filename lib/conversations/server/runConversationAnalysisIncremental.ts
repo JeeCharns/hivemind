@@ -18,6 +18,7 @@ import {
   OUTLIER_MIN_CLUSTER_SIZE,
   OUTLIER_MAX_RATIO,
 } from "../domain/thresholds";
+import { logActivity } from "@/lib/social/server/activityService";
 
 interface ResponseData {
   id: string;
@@ -59,7 +60,7 @@ export async function runConversationAnalysisIncremental(
     // 2. Fetch analysis baseline timestamp
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
-      .select("analysis_updated_at, analysis_response_count")
+      .select("analysis_updated_at, analysis_response_count, title, hive_id")
       .eq("id", conversationId)
       .single();
 
@@ -280,6 +281,18 @@ export async function runConversationAnalysisIncremental(
         analysis_updated_at: new Date().toISOString(),
       })
       .eq("id", conversationId);
+
+    // 12a. Log activity for hive feed
+    if (conversation) {
+      await logActivity(supabase, {
+        hiveId: conversation.hive_id,
+        eventType: "analysis_complete",
+        metadata: {
+          conversationId,
+          conversationTitle: conversation.title,
+        },
+      });
+    }
 
     console.log(
       `[runConversationAnalysisIncremental] Incremental analysis complete for ${conversationId}`
