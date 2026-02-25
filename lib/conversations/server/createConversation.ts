@@ -9,6 +9,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ConversationType } from "@/types/conversations";
 import { requireHiveMember } from "./requireHiveMember";
+import { logActivity } from "@/lib/social/server/activityService";
 
 export interface CreateConversationParams {
   hiveId: string;
@@ -121,6 +122,18 @@ export async function createConversation(
   if (!data) {
     throw new Error("Failed to create conversation: no data returned");
   }
+
+  // Log activity for hive feed
+  await logActivity(supabase, {
+    hiveId,
+    eventType: "conversation_created",
+    userId,
+    metadata: {
+      conversationId: data.id,
+      conversationTitle: title,
+      conversationType: type,
+    },
+  });
 
   return {
     id: data.id,
