@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useHiveActivity } from "@/lib/social/hooks";
-import type { ActivityEvent } from "@/lib/social/types";
+import type { ActivityEvent, ActivityEventMetadata } from "@/lib/social/types";
 import { formatRelativeTimestamp } from "@/lib/formatters";
 
 const INITIAL_LIMIT = 3;
@@ -13,17 +13,22 @@ interface ActivitySidebarProps {
 }
 
 function getActivityText(event: ActivityEvent): string {
+  const meta = event.metadata as ActivityEventMetadata;
+  const title = meta.conversationTitle
+    ? `'${meta.conversationTitle}'`
+    : "a conversation";
+
   switch (event.eventType) {
     case "join":
       return "Someone joined";
-    case "response":
-      return "Someone shared an idea";
-    case "vote":
-      return "+1 vote";
-    case "phase_change":
-      return (
-        (event.metadata as { message?: string })?.message || "Phase changed"
-      );
+    case "conversation_created":
+      return `New conversation: ${title}`;
+    case "analysis_complete":
+      return `Analysis complete for ${title}`;
+    case "report_generated":
+      return `Report generated for ${title}`;
+    case "round_closed":
+      return `Voting closed for ${title}`;
     default:
       return "Activity";
   }
