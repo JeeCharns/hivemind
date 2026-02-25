@@ -50,7 +50,7 @@ export default async function HivePage({
     listHiveConversations(supabase, hiveId, session.user.id),
     supabase
       .from("profiles")
-      .select("display_name, avatar_url")
+      .select("display_name, avatar_path")
       .eq("id", session.user.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -82,7 +82,7 @@ export default async function HivePage({
       logoUrl={hive.logo_url}
       userId={session.user.id}
       displayName={profile?.display_name || "Anonymous"}
-      avatarUrl={profile?.avatar_url || null}
+      avatarUrl={profile?.avatar_path || null}
       initialActivity={activity}
       initialReactions={reactions}
       isWelcomeHive={isWelcomeHive}
