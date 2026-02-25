@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateDecisionResults } from "./generateDecisionResults";
+import { logActivity } from "@/lib/social/server/activityService";
 
 export interface CloseDecisionRoundResult {
   roundId: string;
@@ -25,7 +26,8 @@ export async function closeDecisionRound(
       conversation_id,
       status,
       conversations!inner (
-        hive_id
+        hive_id,
+        title
       )
     `
     )
@@ -42,7 +44,7 @@ export async function closeDecisionRound(
 
   // 2. Verify user is hive admin
   // Supabase returns joined relation as object (not array) when using !inner
-  const conversations = round.conversations as unknown as { hive_id: string };
+  const conversations = round.conversations as unknown as { hive_id: string; title: string };
   const hiveId = conversations.hive_id;
   const { data: membership } = await supabase
     .from("hive_members")
@@ -67,6 +69,18 @@ export async function closeDecisionRound(
   if (updateError) {
     throw new Error("Failed to close round");
   }
+
+  // 3a. Log activity for hive feed
+  await logActivity(supabase, {
+    hiveId,
+    eventType: "round_closed",
+    userId,
+    metadata: {
+      conversationId: round.conversation_id,
+      conversationTitle: conversations.title,
+      roundId,
+    },
+  });
 
   // 4. Generate results
   try {
