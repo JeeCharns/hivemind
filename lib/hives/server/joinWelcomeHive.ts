@@ -15,12 +15,26 @@ import { WELCOME_HIVE_ID } from "../constants";
  *
  * @param supabase - Supabase client
  * @param userId - User UUID
- * @throws Error if upsert fails
+ * @returns true if joined, false if Welcome Hive doesn't exist
+ * @throws Error if upsert fails for reasons other than missing hive
  */
 export async function joinWelcomeHive(
   supabase: SupabaseClient,
   userId: string
-): Promise<void> {
+): Promise<boolean> {
+  // Check if Welcome Hive exists first
+  const { data: hive } = await supabase
+    .from("hives")
+    .select("id")
+    .eq("id", WELCOME_HIVE_ID)
+    .maybeSingle();
+
+  if (!hive) {
+    // Welcome Hive not seeded - this is OK, just skip
+    console.log("[joinWelcomeHive] Welcome Hive not found, skipping auto-join");
+    return false;
+  }
+
   const { error } = await supabase.from("hive_members").upsert(
     {
       hive_id: WELCOME_HIVE_ID,
@@ -34,4 +48,6 @@ export async function joinWelcomeHive(
     console.error("[joinWelcomeHive] Error:", error);
     throw new Error("Failed to join Welcome Hive");
   }
+
+  return true;
 }
