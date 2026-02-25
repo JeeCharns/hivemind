@@ -10,7 +10,18 @@ export const metadata: Metadata = {
   },
   description: "Collective decision-making for communities",
   icons: {
-    icon: [{ url: "/HiveFavicon.png", type: "image/png" }],
+    icon: [
+      {
+        url: "/icon-light.png",
+        type: "image/png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/icon-dark.png",
+        type: "image/png",
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
     apple: "/apple-touch-icon.png",
   },
   openGraph: {

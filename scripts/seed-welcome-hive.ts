@@ -35,6 +35,7 @@ async function seedWelcomeHive() {
       name: "Welcome to Hive",
       visibility: "public", // Searchable and joinable by anyone
       is_system_hive: true,
+      logo_url: "https://app.hiveonline.io/welcome-hive-logo.svg",
     },
     { onConflict: "id" }
   );
