@@ -252,10 +252,15 @@ export async function getConvertibleGuestSession(
   const rawToken = cookieStore.get(GUEST_SESSION_COOKIE)?.value;
 
   if (!rawToken) {
+    console.log("[getConvertibleGuestSession] No guest session cookie found");
     return null;
   }
 
   const tokenHash = hashToken(rawToken);
+  console.log(
+    "[getConvertibleGuestSession] Looking up session with token hash:",
+    tokenHash.substring(0, 8) + "..."
+  );
 
   const { data, error } = await adminClient
     .from("guest_sessions")
@@ -281,9 +286,21 @@ export async function getConvertibleGuestSession(
     .gt("expires_at", new Date().toISOString())
     .single();
 
-  if (error || !data) {
+  if (error) {
+    console.error("[getConvertibleGuestSession] Query error:", error);
     return null;
   }
+
+  if (!data) {
+    console.log("[getConvertibleGuestSession] No matching session found");
+    return null;
+  }
+
+  console.log("[getConvertibleGuestSession] Found session:", {
+    id: data.id,
+    guest_number: data.guest_number,
+    hasShareLink: !!data.conversation_share_links,
+  });
 
   // Type the joined data
   interface JoinedData {
@@ -304,6 +321,11 @@ export async function getConvertibleGuestSession(
   const hive = conv?.hives;
 
   if (!conv || !hive) {
+    console.log("[getConvertibleGuestSession] Missing join data:", {
+      hasConv: !!conv,
+      hasHive: !!hive,
+      shareLinks: typed.conversation_share_links,
+    });
     return null;
   }
 
