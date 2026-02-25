@@ -176,16 +176,20 @@ function LoginPageContent() {
 
       if (res.ok) {
         const data = await res.json();
+        // Keep migrating=true to show loading state until redirect completes
         router.push(data.redirectTo || "/hives");
+        // Don't clear state - redirect will unmount this component
       } else {
-        // Migration failed - continue anyway
+        // Migration failed - clear state and continue anyway
+        setMigrating(false);
+        setMigrationData(null);
         await routeAfterAuth();
       }
     } catch {
-      await routeAfterAuth();
-    } finally {
+      // Migration failed - clear state and continue anyway
       setMigrating(false);
       setMigrationData(null);
+      await routeAfterAuth();
     }
   };
 
