@@ -294,7 +294,7 @@ describe("guestSessionService", () => {
             title: "Test Conversation",
             hives: {
               id: "hive-001",
-              key: "test-hive",
+              slug: "test-hive",
             },
           },
         },

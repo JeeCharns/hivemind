@@ -207,7 +207,7 @@ export async function POST(
 
       supabase
         .from("response_feedback")
-        .select("response_id, feedback")
+        .select("response_id, feedback, user_id")
         .eq("conversation_id", conversationId),
 
       // Fetch response texts for agreement/divisive summaries (no prompt limit)
@@ -340,16 +340,48 @@ export async function POST(
       .map((r) => `- "${r.response_text}"`)
       .join("\n");
 
+    // Build votable response IDs (only these count for vote coverage)
+    const votableResponseIds = new Set<string>();
+    if (hasConsolidatedData) {
+      // Add representative response from each bucket (first response)
+      for (const bucket of clusterBuckets) {
+        const members = bucket.conversation_cluster_bucket_members;
+        if (members.length > 0) {
+          votableResponseIds.add(String(members[0].response_id));
+        }
+      }
+      // Add unconsolidated responses
+      for (const row of unconsolidatedRows) {
+        if (row.conversation_responses?.[0]?.response_text) {
+          votableResponseIds.add(String(row.response_id));
+        }
+      }
+    } else {
+      // Legacy: all responses are votable
+      for (const r of summaryResponses) {
+        votableResponseIds.add(String(r.id));
+      }
+    }
+
+    // Filter feedback to only include votes on currently votable statements
+    const votableFeedbackRows = feedbackRows.filter(
+      (r: { response_id: number }) =>
+        votableResponseIds.has(String(r.response_id))
+    );
+
     // Compute participant stats for the prompt
     const totalParticipants = new Set([
       ...responses.map((r: { id: number }) => r.id),
-      ...feedbackRows.map((r) => r.response_id),
+      ...votableFeedbackRows.map((r: { user_id: string }) => r.user_id),
     ]).size;
-    const uniqueVoters = new Set(feedbackRows.map((r) => r.response_id)).size;
+    const uniqueVoters = new Set(
+      votableFeedbackRows.map((r: { user_id: string }) => r.user_id)
+    ).size;
     const totalStatements = consolidatedStatements.length;
     const statementsWithVotes = consolidatedStatements.filter(
       (s) => s.totalVotes > 0
     ).length;
+    // Use votes from consensus items (already filtered to votable statements)
     const totalVotesCast = consolidatedStatements.reduce(
       (sum, s) => sum + s.totalVotes,
       0

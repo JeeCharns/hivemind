@@ -279,23 +279,54 @@ export async function getReportViewModel(
   );
 
   // 8. Compute consensus metrics
-  // Total participants = unique users who participated (submitted responses OR voted)
+  // Build set of votable response IDs (only these count for vote coverage)
+  // - For consolidated: representative (first) response of each bucket + unconsolidated responses
+  // - For legacy: all individual responses
+  const votableResponseIds = new Set<string>();
+
+  if (hasConsolidatedData) {
+    // Add representative response from each bucket (first response)
+    for (const bucket of clusterBuckets) {
+      const members = bucket.conversation_cluster_bucket_members;
+      if (members.length > 0) {
+        votableResponseIds.add(String(members[0].response_id));
+      }
+    }
+    // Add unconsolidated responses
+    for (const row of unconsolidatedRows) {
+      if (row.conversation_responses?.[0]?.response_text) {
+        votableResponseIds.add(String(row.response_id));
+      }
+    }
+  } else {
+    // Legacy: all responses are votable
+    for (const r of responses) {
+      votableResponseIds.add(String(r.id));
+    }
+  }
+
+  // Filter feedback to only include votes on currently votable statements
+  const votableFeedbackRows = feedbackRows.filter((r) =>
+    votableResponseIds.has(String(r.response_id))
+  );
+
+  // Total participants = unique users who participated (submitted responses OR voted on votable statements)
   const uniqueRespondentIds = new Set(responses.map((r) => r.user_id));
-  const uniqueVoterIds = new Set(feedbackRows.map((r) => r.user_id));
+  const uniqueVoterIds = new Set(votableFeedbackRows.map((r) => r.user_id));
   const uniqueParticipantIds = new Set([
     ...uniqueRespondentIds,
     ...uniqueVoterIds,
   ]);
   const totalParticipants = uniqueParticipantIds.size;
 
-  // Unique voters = unique users who voted on at least one statement
+  // Unique voters = unique users who voted on at least one votable statement
   const uniqueVoters = uniqueVoterIds.size;
 
-  // Total statements in the matrix
+  // Total statements in the matrix (only statements with votable IDs)
   const totalStatements = consensusItems.length;
 
-  // Total votes
-  const totalVotes = totalInteractions;
+  // Total votes on votable statements only
+  const totalVotes = votableFeedbackRows.length;
 
   // % of participants who have voted on at least one statement
   const participantVotingPercent =
@@ -305,6 +336,7 @@ export async function getReportViewModel(
 
   // Vote coverage = (total votes / (voters * statements)) * 100
   // Use uniqueVoters (not totalParticipants) because voters may not have submitted responses
+  // Only count votes on currently votable statements to ensure coverage can't exceed 100%
   const maxPossibleVotes = uniqueVoters * totalStatements;
   const voteCoveragePercent =
     maxPossibleVotes > 0
