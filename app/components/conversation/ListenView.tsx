@@ -746,14 +746,14 @@ export default function ListenView({
                   )}
 
                   <div
-                    className={`flex items-center gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}
+                    className={`flex items-start gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}
                   >
                     {isGuest ? (
                       <div className="flex flex-col gap-1">
                         <span className="text-label text-text-primary">
                           Posting as
                         </span>
-                        <span className="inline-flex items-center gap-2 h-8 px-3 border border-slate-200 bg-white text-label text-slate-700">
+                        <span className="inline-flex items-center gap-2 h-8 px-3 border border-slate-200 bg-white text-label text-slate-700 whitespace-nowrap min-w-36">
                           <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
                             G
                           </span>

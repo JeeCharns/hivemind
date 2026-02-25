@@ -459,7 +459,7 @@ export default function ConversationHeader({
                     : "border-transparent text-text-tertiary hover:text-text-secondary"
                 }`}
               >
-                Anonymous Link
+                Guest Participation
               </button>
             </div>
 
