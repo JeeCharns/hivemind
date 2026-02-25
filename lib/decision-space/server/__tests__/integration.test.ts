@@ -804,6 +804,11 @@ describe("Decision Space Integration Tests", () => {
             insert: jest.fn().mockResolvedValue({ error: null }),
           };
         }
+        if (table === "hive_activity") {
+          return {
+            insert: jest.fn().mockResolvedValue({ error: null }),
+          };
+        }
         return { select: jest.fn().mockReturnThis() };
       });
 
