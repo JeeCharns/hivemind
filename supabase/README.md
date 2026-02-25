@@ -41,6 +41,7 @@ Supabase Dashboard → SQL Editor, run these in order:
 25. `supabase/migrations/037_add_system_hive_column.sql` (add is_system_hive column to hives table)
 26. `supabase/migrations/041_create_conversation_share_links.sql` (conversation anonymous share links: token, expiry, RLS for hive members)
 27. `supabase/migrations/042_create_guest_sessions.sql` (guest sessions: guest_number, session_token_hash; adds guest_session_id FK to conversation_responses, response_likes, response_feedback)
+28. `supabase/migrations/044_guest_session_conversion.sql` (guest-to-user conversion tracking: adds converted_to_user_id, converted_at columns to guest_sessions)
 
 ## What These Migrations Enable
 
@@ -60,6 +61,7 @@ Supabase Dashboard → SQL Editor, run these in order:
   - `conversation_share_links` table: temporary token-based links for conversations (expiry: 1d/7d/28d); RLS allows hive member CRUD
   - `guest_sessions` table: ephemeral sessions with auto-incremented "Guest N" numbers; SHA-256 hashed session tokens; server-only RLS
   - Added nullable `guest_session_id` FK to `conversation_responses`, `response_likes`, `response_feedback` with partial unique indexes
+  - Guest-to-user conversion tracking: `converted_to_user_id` and `converted_at` columns enable migrating guest contributions to user accounts upon sign-up
 
 ## Convention: Foreign Key Indexes
 
