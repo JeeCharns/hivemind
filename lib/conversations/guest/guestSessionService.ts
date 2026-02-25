@@ -50,6 +50,15 @@ export interface ValidatedGuestSession {
   conversationType: string;
 }
 
+export interface ConvertibleGuestSession {
+  guestSessionId: string;
+  guestNumber: number;
+  conversationId: string;
+  conversationTitle: string | null;
+  hiveId: string;
+  hiveKey: string;
+}
+
 // ── Public API ────────────────────────────────────────────
 
 /**
@@ -230,4 +239,80 @@ export async function getGuestSessionCookie(): Promise<string | null> {
 export async function clearGuestSessionCookie(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(GUEST_SESSION_COOKIE);
+}
+
+/**
+ * Get a guest session that can be converted to a user account.
+ * Returns null if no valid unconverted session exists.
+ */
+export async function getConvertibleGuestSession(
+  adminClient: SupabaseClient
+): Promise<ConvertibleGuestSession | null> {
+  const cookieStore = await cookies();
+  const rawToken = cookieStore.get(GUEST_SESSION_COOKIE)?.value;
+
+  if (!rawToken) {
+    return null;
+  }
+
+  const tokenHash = hashToken(rawToken);
+
+  const { data, error } = await adminClient
+    .from("guest_sessions")
+    .select(
+      `
+      id,
+      guest_number,
+      converted_to_user_id,
+      conversation_share_links!guest_sessions_share_link_id_fkey (
+        conversations!conversation_share_links_conversation_id_fkey (
+          id,
+          title,
+          hives!conversations_hive_id_fkey (
+            id,
+            key
+          )
+        )
+      )
+    `
+    )
+    .eq("session_token_hash", tokenHash)
+    .is("converted_to_user_id", null)
+    .gt("expires_at", new Date().toISOString())
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  // Type the joined data
+  interface JoinedData {
+    id: string;
+    guest_number: number;
+    converted_to_user_id: string | null;
+    conversation_share_links: {
+      conversations: {
+        id: string;
+        title: string | null;
+        hives: { id: string; key: string } | null;
+      } | null;
+    } | null;
+  }
+
+  const typed = data as unknown as JoinedData;
+  const conv = typed.conversation_share_links?.conversations;
+  const hive = conv?.hives;
+
+  if (!conv || !hive) {
+    return null;
+  }
+
+  return {
+    guestSessionId: typed.id,
+    guestNumber: typed.guest_number,
+    conversationId: conv.id,
+    conversationTitle: conv.title,
+    hiveId: hive.id,
+    hiveKey: hive.key,
+  };
 }

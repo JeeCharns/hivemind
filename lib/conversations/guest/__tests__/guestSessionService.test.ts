@@ -8,6 +8,7 @@ import {
   validateGuestSession,
   getGuestSessionCookie,
   clearGuestSessionCookie,
+  getConvertibleGuestSession,
   GUEST_SESSION_COOKIE,
 } from "../guestSessionService";
 
@@ -276,6 +277,105 @@ describe("guestSessionService", () => {
     it("deletes the guest session cookie", async () => {
       await clearGuestSessionCookie();
       expect(mockCookieStore.delete).toHaveBeenCalledWith(GUEST_SESSION_COOKIE);
+    });
+  });
+
+  describe("getConvertibleGuestSession", () => {
+    it("returns session data when cookie valid and not converted", async () => {
+      mockCookieStore.get.mockReturnValue({ value: "raw-session-token" });
+
+      const sessionRow = {
+        id: "gs-001",
+        guest_number: 2,
+        converted_to_user_id: null,
+        conversation_share_links: {
+          conversations: {
+            id: "conv-001",
+            title: "Test Conversation",
+            hives: {
+              id: "hive-001",
+              key: "test-hive",
+            },
+          },
+        },
+      };
+
+      const supabase = createMockSupabase({
+        single: jest
+          .fn()
+          .mockResolvedValueOnce({ data: sessionRow, error: null }),
+        is: jest.fn().mockReturnThis(),
+      });
+
+      const result = await getConvertibleGuestSession(supabase);
+
+      expect(result).not.toBeNull();
+      expect(result!.guestSessionId).toBe("gs-001");
+      expect(result!.guestNumber).toBe(2);
+      expect(result!.conversationId).toBe("conv-001");
+      expect(result!.conversationTitle).toBe("Test Conversation");
+      expect(result!.hiveId).toBe("hive-001");
+      expect(result!.hiveKey).toBe("test-hive");
+    });
+
+    it("returns null when session already converted", async () => {
+      mockCookieStore.get.mockReturnValue({ value: "raw-session-token" });
+
+      // When converted_to_user_id is set, the .is("converted_to_user_id", null)
+      // filter will exclude it, so the query returns no data
+      const supabase = createMockSupabase({
+        single: jest.fn().mockResolvedValueOnce({ data: null, error: null }),
+        is: jest.fn().mockReturnThis(),
+      });
+
+      const result = await getConvertibleGuestSession(supabase);
+      expect(result).toBeNull();
+    });
+
+    it("returns null when no cookie present", async () => {
+      mockCookieStore.get.mockReturnValue(undefined);
+
+      const supabase = createMockSupabase();
+      const result = await getConvertibleGuestSession(supabase);
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null when conversation or hive data is missing", async () => {
+      mockCookieStore.get.mockReturnValue({ value: "raw-session-token" });
+
+      const sessionRow = {
+        id: "gs-001",
+        guest_number: 2,
+        converted_to_user_id: null,
+        conversation_share_links: {
+          conversations: null, // No conversation linked
+        },
+      };
+
+      const supabase = createMockSupabase({
+        single: jest
+          .fn()
+          .mockResolvedValueOnce({ data: sessionRow, error: null }),
+        is: jest.fn().mockReturnThis(),
+      });
+
+      const result = await getConvertibleGuestSession(supabase);
+      expect(result).toBeNull();
+    });
+
+    it("returns null when DB query fails", async () => {
+      mockCookieStore.get.mockReturnValue({ value: "raw-session-token" });
+
+      const supabase = createMockSupabase({
+        single: jest
+          .fn()
+          .mockResolvedValueOnce({ data: null, error: { message: "err" } }),
+        is: jest.fn().mockReturnThis(),
+      });
+
+      const result = await getConvertibleGuestSession(supabase);
+      expect(result).toBeNull();
     });
   });
 });
