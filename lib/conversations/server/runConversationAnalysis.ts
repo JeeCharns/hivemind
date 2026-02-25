@@ -37,6 +37,7 @@ import {
   broadcastAnalysisStatus,
   broadcastAnalysisProgress,
 } from "./broadcastAnalysisStatus";
+import { logActivity } from "@/lib/social/server/activityService";
 
 interface ResponseData {
   id: string;
@@ -71,6 +72,13 @@ export async function runConversationAnalysis(
 
     // 4. Fetch responses
     const responses = await fetchResponses(supabase, conversationId);
+
+    // 4a. Fetch conversation metadata for activity logging
+    const { data: conversationData } = await supabase
+      .from("conversations")
+      .select("title, hive_id")
+      .eq("id", conversationId)
+      .single();
 
     if (responses.length === 0) {
       console.log(`[runConversationAnalysis] No responses to analyze`);
@@ -358,6 +366,18 @@ export async function runConversationAnalysis(
         analysis_updated_at: new Date().toISOString(),
       })
       .eq("id", conversationId);
+
+    // 21a. Log activity for hive feed
+    if (conversationData) {
+      await logActivity(supabase, {
+        hiveId: conversationData.hive_id,
+        eventType: "analysis_complete",
+        metadata: {
+          conversationId,
+          conversationTitle: conversationData.title,
+        },
+      });
+    }
 
     // 22. Broadcast complete
     await broadcastAnalysisProgress(conversationId, "complete");
