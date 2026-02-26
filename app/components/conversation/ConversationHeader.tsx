@@ -53,11 +53,11 @@ function ExpandableDescription({ text }: { text: string }) {
   }, [text]);
 
   return (
-    <div className="mt-1">
+    <div className="mt-1 flex items-baseline gap-1">
       <p
         ref={textRef}
         className={`text-body text-text-secondary ${
-          isExpanded ? "" : "line-clamp-2"
+          isExpanded ? "" : "line-clamp-1"
         }`}
       >
         {text}
@@ -66,7 +66,7 @@ function ExpandableDescription({ text }: { text: string }) {
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="text-body text-brand-primary hover:underline cursor-pointer mt-0.5"
+          className="text-body text-brand-primary hover:underline cursor-pointer shrink-0"
         >
           {isExpanded ? "Show less" : "Show more"}
         </button>
@@ -222,7 +222,7 @@ export default function ConversationHeader({
   };
 
   return (
-    <div className="pt-4 pb-4">
+    <div className="pt-14">
       <div className="mx-auto w-full max-w-7xl px-4 md:px-6 flex flex-col">
         <Link
           href={`/hives/${hiveKey}`}
@@ -235,7 +235,7 @@ export default function ConversationHeader({
         {/* Row 1: Title, description and menu */}
         <div className="flex flex-row items-start justify-between gap-4 md:gap-6">
           <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 max-w-[760px]">
               <h1 className="text-h3 md:text-h2 text-text-primary wrap-break-word">
                 {title}
               </h1>
@@ -243,12 +243,13 @@ export default function ConversationHeader({
                 <ExpandableDescription text={description.trim()} />
               )}
             </div>
-            <div className="relative shrink-0" ref={menuRef}>
+            {/* Mobile only: ellipsis menu */}
+            <div className="relative shrink-0 md:hidden" ref={menuRef}>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 rounded-full p-0 text-[#566888]"
+                className="h-8 w-8 p-0 text-[#566888]"
                 onClick={() => {
                   setMenuOpen((o) => !o);
                   setError(null);
@@ -261,12 +262,11 @@ export default function ConversationHeader({
                 />
               </Button>
               {menuOpen && (
-                <div className="absolute left-0 md:left-auto md:right-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
-                  {/* Share - visible in menu on mobile */}
+                <div className="absolute left-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50 md:hidden"
+                    className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50"
                     onClick={() => {
                       setMenuOpen(false);
                       setShareModalOpen(true);
@@ -318,7 +318,7 @@ export default function ConversationHeader({
           </div>
 
           {/* Desktop/Tablet: tabs + action buttons inline */}
-          <div className="hidden md:flex flex-nowrap items-center gap-4 shrink-0">
+          <div className="hidden md:flex flex-nowrap items-center gap-2 shrink-0">
             {tabs.length > 0 && (
               <div className="flex items-center gap-1 bg-white border border-white px-1 py-1 rounded-sm">
                 {tabs.map((tab) => {
@@ -327,10 +327,10 @@ export default function ConversationHeader({
                     <Link
                       key={tab.slug}
                       href={`${basePath}/${tab.slug}`}
-                      className={`inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle transition-colors ${
+                      className={`inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle font-display transition-colors ${
                         isActive
-                          ? "bg-[#EDEFFD] text-brand-primary"
-                          : "bg-[#FDFDFD] text-text-tertiary hover:text-brand-primary"
+                          ? "bg-[#EDEFFD] !text-[#3A1DC8]"
+                          : "bg-[#FDFDFD] text-text-tertiary hover:!text-[#3A1DC8]"
                       }`}
                     >
                       {tab.label}
@@ -360,12 +360,71 @@ export default function ConversationHeader({
             <Button
               variant="ghost"
               size="sm"
-              className="h-11 gap-2 text-[#9498B0] hover:text-[#3A1DC8]"
+              className="h-11 gap-2 font-display text-[#9498B0] hover:text-[#3A1DC8]"
               onClick={() => setShareModalOpen(true)}
             >
               <ExportIcon size={16} className="text-inherit" />
               Share
             </Button>
+
+            {/* Ellipsis menu for admin actions */}
+            <div className="relative" ref={menuRef}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-11 w-11 p-0 text-[#9498B0] hover:text-[#3A1DC8]"
+                onClick={() => {
+                  setMenuOpen((o) => !o);
+                  setError(null);
+                }}
+                aria-label="Conversation actions"
+              >
+                <DotsThreeOutlineVertical
+                  weight="fill"
+                  className="h-4 w-4 shrink-0 rotate-90"
+                />
+              </Button>
+              {menuOpen && (
+                <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
+                  {isAdmin && conversationType !== "decide" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        regenerateAnalysis();
+                      }}
+                      disabled={isRegeneratingState}
+                    >
+                      <span className="flex items-center gap-2">
+                        <ArrowsClockwise
+                          size={16}
+                          className={isRegeneratingState ? "animate-spin" : ""}
+                        />
+                        {isRegeneratingState
+                          ? "Regenerating..."
+                          : "Regenerate analysis"}
+                      </span>
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        setConfirmOpen(true);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Delete conversation
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -378,10 +437,10 @@ export default function ConversationHeader({
                 <Link
                   key={tab.slug}
                   href={`${basePath}/${tab.slug}`}
-                  className={`flex-1 inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle transition-colors ${
+                  className={`flex-1 inline-flex h-9 items-center justify-center rounded-sm px-3 text-subtitle font-display transition-colors ${
                     isActive
-                      ? "bg-[#EDEFFD] text-brand-primary"
-                      : "bg-[#FDFDFD] text-text-tertiary hover:text-brand-primary"
+                      ? "bg-[#EDEFFD] !text-[#3A1DC8]"
+                      : "bg-[#FDFDFD] text-text-tertiary hover:!text-[#3A1DC8]"
                   }`}
                 >
                   {tab.label}

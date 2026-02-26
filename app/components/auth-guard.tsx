@@ -39,7 +39,7 @@ export default function AuthGuard({
   // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F0F5]">
         <div className="flex flex-col items-center gap-4">
           <Spinner />
           <p className="text-sm text-[#566175]">Checking authentication...</p>
@@ -51,7 +51,7 @@ export default function AuthGuard({
   // Show loading state while redirecting
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F0F5]">
         <div className="flex flex-col items-center gap-4">
           <Spinner />
           <p className="text-sm text-[#566175]">Redirecting to login...</p>

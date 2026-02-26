@@ -203,7 +203,7 @@ export default function SettingsClient({
       {error && <Alert variant="error">{error}</Alert>}
 
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-slate-900">
+        <h2 className="text-lg font-semibold text-text-primary">
           Change hive logo
         </h2>
         <div className="flex items-center gap-4">
@@ -248,7 +248,7 @@ export default function SettingsClient({
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-slate-900">
+        <h2 className="text-lg font-semibold text-text-primary">
           Change hive name
         </h2>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -269,7 +269,7 @@ export default function SettingsClient({
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-slate-900">
+        <h2 className="text-lg font-semibold text-text-primary">
           Hive Visibility
         </h2>
         <p className="text-sm text-slate-600">
@@ -322,7 +322,7 @@ export default function SettingsClient({
       </div>
 
       <div className="pt-2">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">
+        <h2 className="text-lg font-semibold text-text-primary mb-2">
           Delete hive
         </h2>
         <p className="text-sm text-slate-600 mb-3">

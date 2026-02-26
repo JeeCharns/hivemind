@@ -88,7 +88,7 @@ export default function GuestUnderstandContainer({
   // ── Below threshold ─────────────────────────────────────
   if (responseCount < threshold) {
     return (
-      <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)]">
+      <div className="flex flex-col gap-6 pt-4 h-[calc(100vh-180px)]">
         <div className="bg-white rounded-2xl p-12 text-center">
           <div className="max-w-md mx-auto space-y-4">
             <div className="text-6xl mb-4">📊</div>

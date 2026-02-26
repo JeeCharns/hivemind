@@ -63,7 +63,7 @@ export default memo(function NotificationDropdown({
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-        <h3 className="font-medium text-slate-900">Notifications</h3>
+        <h3 className="font-medium text-text-primary">Notifications</h3>
         {notifications.length > 0 && (
           <button
             type="button"
@@ -97,7 +97,7 @@ export default memo(function NotificationDropdown({
                 {getNotificationIcon(notification.type as NotificationType)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">
+                <p className="text-sm font-medium text-text-primary truncate">
                   {notification.title}
                 </p>
                 {notification.body && (

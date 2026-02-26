@@ -48,7 +48,7 @@ export default function Page({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F0F5]">
         <Spinner />
       </div>
     );
@@ -56,7 +56,7 @@ export default function Page({
 
   if (error || !hive) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F0F5]">
         <div className="text-center">
           <p className="text-red-600 mb-4">
             {error?.message || "Hive not found"}
@@ -70,7 +70,7 @@ export default function Page({
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8FB] p-8">
+    <div className="min-h-screen bg-[#F0F0F5] p-8">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
           {/* Header */}

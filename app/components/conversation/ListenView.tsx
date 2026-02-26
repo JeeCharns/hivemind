@@ -326,9 +326,7 @@ export default function ListenView({
         const isSelected = tag === t;
         const active = isSelected
           ? getTagSelectedClasses(t)
-          : `bg-white text-slate-700 border-slate-200 py-0.5 ${getTagHoverClasses(
-              t
-            )}`;
+          : `bg-white text-[#9498b0] ${getTagHoverClasses(t)}`;
 
         return (
           <Button
@@ -337,7 +335,7 @@ export default function ListenView({
             size="sm"
             onClick={() => setTag((prev) => (prev === t ? null : t))}
             aria-pressed={isSelected}
-            className={`px-3 rounded-full text-button border transition ${active}`}
+            className={`px-2 py-0.5 rounded-full !text-[12px] font-display font-medium transition ${active}`}
           >
             {TAG_LABELS[t]}
           </Button>
@@ -432,7 +430,7 @@ export default function ListenView({
   // Shared feed component for both mobile and desktop
   const FeedContent = (
     <div
-      className={`bg-white border border-slate-200 rounded-2xl p-4 md:p-6 h-full overflow-y-auto ${isMobileOrTablet ? "max-h-none" : "max-h-[calc(100vh-220px)]"} space-y-4`}
+      className={`bg-white rounded-2xl p-4 md:p-6 h-full overflow-y-auto ${isMobileOrTablet ? "max-h-none" : "max-h-[calc(100vh-220px)]"} space-y-4`}
     >
       {/* High traffic alert - shown when realtime is paused */}
       {realtimeStatus === "paused" && (
@@ -449,7 +447,10 @@ export default function ListenView({
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-h4 text-slate-900">Live Feed</h3>
+          <h3 className="text-h4 text-text-primary">Live Feed</h3>
+          <span className="text-xs text-slate-500">
+            {feed.length} {feed.length === 1 ? "response" : "responses"}
+          </span>
           {viewerCount > 0 && (
             <span className="flex items-center gap-1 text-xs text-slate-500">
               <span
@@ -555,7 +556,7 @@ export default function ListenView({
                           setEditText(e.target.value.slice(0, MAX_LEN))
                         }
                         maxLength={MAX_LEN}
-                        className="w-full border border-slate-200 rounded-lg p-2 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                        className="w-full border border-slate-200 rounded-lg p-2 text-body text-text-primary focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                         rows={2}
                         autoFocus
                       />
@@ -643,7 +644,7 @@ export default function ListenView({
 
   return (
     <div
-      className={`pt-6 ${isMobileOrTablet ? "pb-20" : ""}`}
+      className={`pt-4 ${isMobileOrTablet ? "pb-20" : ""}`}
       suppressHydrationWarning
     >
       {!mounted ? (
@@ -713,7 +714,7 @@ export default function ListenView({
                   </Button>
                 </Link>
               )}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+              <div className="space-y-2">
                 <div className="relative">
                   <textarea
                     value={text}
@@ -725,19 +726,19 @@ export default function ListenView({
                       }
                     }}
                     maxLength={MAX_LEN}
-                    placeholder="Submit as many thoughts as you can! One at a time"
-                    className="w-full h-32 border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                    placeholder="Submit your thoughts, one at a time!"
+                    className="w-full h-36 bg-white border border-[#dadada] p-4 pb-8 text-body font-display font-medium text-text-primary placeholder:text-[#9ea3b8] focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                   />
                   <span className="absolute bottom-2 left-3 text-info text-slate-500">
                     {remaining} characters left
                   </span>
                 </div>
 
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start justify-between gap-4">
                   {!isDecisionSession && (
                     <div className="flex flex-col gap-1">
-                      <span className="text-label text-text-primary">
-                        Tag your response (optional)
+                      <span className="text-[12px] font-display font-medium text-text-primary">
+                        Tag your response for more clarity
                       </span>
                       <div className="flex flex-wrap items-center gap-2">
                         {TagButtons}
@@ -745,32 +746,30 @@ export default function ListenView({
                     </div>
                   )}
 
-                  <div
-                    className={`flex items-start gap-4 ${isDecisionSession ? "w-full lg:w-auto" : ""}`}
-                  >
+                  <div className="flex flex-col items-end gap-3 shrink-0">
                     {isGuest ? (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-label text-text-primary">
+                      <div className="flex flex-col">
+                        <span className="text-[12px] font-display font-medium text-text-primary">
                           Posting as
                         </span>
-                        <span className="inline-flex items-center gap-2 h-8 px-3 border border-slate-200 bg-white text-label text-slate-700 whitespace-nowrap min-w-36">
+                        <div className="flex items-center gap-1">
                           <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
                             G
                           </span>
-                          {displayName}
-                        </span>
+                          <span className="text-[12px] font-display font-medium text-[#9498b0]">
+                            {displayName}
+                          </span>
+                        </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-label text-text-primary">
+                      <div className="flex flex-col">
+                        <span className="text-[12px] font-display font-medium text-text-primary">
                           Post as...
                         </span>
                         <div className="relative" ref={postAsRef}>
-                          <Button
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="sm"
-                            className="w-36 px-3 justify-between gap-2"
+                            className="flex items-center gap-1"
                             onClick={() => setPostAsOpen((o) => !o)}
                           >
                             <span className="w-6 h-6 shrink-0 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
@@ -778,23 +777,22 @@ export default function ListenView({
                                 ? (displayName[0] ?? "M").toUpperCase()
                                 : "A"}
                             </span>
-                            <span className="text-label flex-1 truncate text-left">
+                            <span className="text-[12px] font-display font-medium text-[#9498b0]">
                               {postAs === "self" ? displayName : "Anonymous"}
                             </span>
                             <CaretDown
-                              size={14}
+                              size={12}
                               className="shrink-0 text-slate-500"
                             />
-                          </Button>
+                          </button>
                           {postAsOpen && (
-                            <div className="absolute mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-sm z-20">
+                            <div className="absolute mt-1 w-36 rounded-lg border border-slate-200 bg-white shadow-sm z-20">
                               {[
                                 {
                                   key: "self",
                                   label: displayName,
                                   badge:
-                                    (displayName[0] ?? "M").toUpperCase() ||
-                                    "M",
+                                    (displayName[0] ?? "M").toUpperCase() || "M",
                                 },
                                 { key: "anon", label: "Anonymous", badge: "A" },
                               ].map((opt) => (
@@ -815,9 +813,7 @@ export default function ListenView({
                                   <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
                                     {opt.badge}
                                   </span>
-                                  <span className="text-label">
-                                    {opt.label}
-                                  </span>
+                                  <span className="text-label">{opt.label}</span>
                                 </Button>
                               ))}
                             </div>
@@ -825,24 +821,25 @@ export default function ListenView({
                         </div>
                       </div>
                     )}
-                  </div>
-                </div>
 
-                <div className="flex justify-end items-center gap-3">
-                  <span className="text-xs text-slate-400">
-                    {typeof navigator !== "undefined" &&
-                    navigator.platform?.toLowerCase().includes("mac")
-                      ? "⌘ Enter"
-                      : "Ctrl + Enter"}
-                  </span>
-                  <Button
-                    disabled={!canSubmit || isSubmitting}
-                    onClick={submitResponse}
-                    className="gap-2"
-                  >
-                    <PaperPlaneTilt size={16} />
-                    Submit
-                  </Button>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-400">
+                        {typeof navigator !== "undefined" &&
+                        navigator.platform?.toLowerCase().includes("mac")
+                          ? "⌘ Enter"
+                          : "Ctrl + Enter"}
+                      </span>
+
+                      <Button
+                        disabled={!canSubmit || isSubmitting}
+                        onClick={submitResponse}
+                        className="gap-2"
+                      >
+                        <PaperPlaneTilt size={16} />
+                        Submit
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
 

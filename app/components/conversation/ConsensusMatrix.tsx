@@ -121,15 +121,15 @@ function ConsensusMatrixContent({
     <div className="flex-1 flex flex-col gap-6">
       {/* Metrics boxes */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
-          <div className="text-display-sm md:text-display-md text-slate-900 mb-1 tabular-nums">
+        <div className="bg-white p-4 md:p-6 rounded-2xl transition-colors">
+          <div className="text-display-sm md:text-display-md text-text-primary mb-1 tabular-nums">
             {metrics.totalVotes}
           </div>
           <div className="text-slate-500 text-label md:text-body">
             Total Votes
           </div>
         </div>
-        <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
+        <div className="bg-white p-4 md:p-6 rounded-2xl transition-colors">
           {(() => {
             const needsSmallerFont =
               metrics.uniqueVoters >= 100 || metrics.totalParticipants >= 100;
@@ -137,7 +137,7 @@ function ConsensusMatrixContent({
               ? "text-h2 md:text-display-sm"
               : "text-display-sm md:text-display-md";
             return (
-              <div className="text-slate-900 mb-1 tabular-nums">
+              <div className="text-text-primary mb-1 tabular-nums">
                 <span className={numClass}>{metrics.uniqueVoters}</span>
                 <span className="text-slate-500 text-label md:text-body">
                   {" "}
@@ -151,8 +151,8 @@ function ConsensusMatrixContent({
             Participants Voting
           </div>
         </div>
-        <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
-          <div className="text-display-sm md:text-display-md text-slate-900 mb-1 tabular-nums">
+        <div className="bg-white p-4 md:p-6 rounded-2xl transition-colors">
+          <div className="text-display-sm md:text-display-md text-text-primary mb-1 tabular-nums">
             {metrics.voteCoveragePercent}%
           </div>
           <div className="text-slate-500 text-label md:text-body">
@@ -161,9 +161,9 @@ function ConsensusMatrixContent({
         </div>
       </div>
 
-      <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors">
+      <div className="bg-white p-4 md:p-6 rounded-2xl transition-colors">
         <div className="flex items-center justify-between gap-3 mb-6">
-          <h3 className="text-h4 text-slate-900">{title}</h3>
+          <h3 className="text-h4 text-text-primary">{title}</h3>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -254,7 +254,7 @@ function ConsensusMatrixContent({
 
               <div className="hidden group-hover:block absolute z-20 left-[46%] right-0 bottom-full mb-2">
                 <div className="max-w-xl rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg">
-                  <div className="text-subtitle text-slate-900">
+                  <div className="text-subtitle text-text-primary">
                     {row.responseText}
                   </div>
                   <div className="mt-1 text-info text-slate-500">

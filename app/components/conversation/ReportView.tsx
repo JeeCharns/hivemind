@@ -70,20 +70,20 @@ export default function ReportView({ viewModel }: ReportViewProps) {
   };
 
   return (
-    <div className="pt-10">
+    <div className="pt-4">
       <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left column: Analysis placeholder */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             {shouldShowAnalysisPlaceholder ? (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col justify-center items-center min-h-[200px]">
+              <div className="bg-white rounded-xl p-6 flex flex-col justify-center items-center min-h-[200px]">
                 <Handshake size={56} className="text-[#9498B0]" />
                 <p className="mt-4 text-body text-text-secondary">
                   Analysis of the most agreed-upon themes will appear here.
                 </p>
               </div>
             ) : shouldShowFeedbackEmptyState ? (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col justify-center items-center min-h-[200px]">
+              <div className="bg-white rounded-xl p-6 flex flex-col justify-center items-center min-h-[200px]">
                 <Handshake size={56} className="text-[#9498B0]" />
                 <p className="mt-4 text-body text-text-secondary">
                   No feedback yet. Vote on responses to see where people agree
@@ -100,8 +100,8 @@ export default function ReportView({ viewModel }: ReportViewProps) {
           </div>
 
           {/* Right column: Report viewer */}
-          <div className="lg:col-span-2 w-full bg-white text-slate-900 rounded-2xl overflow-hidden flex flex-col shadow-xl border border-slate-200 max-h-180">
-            <div className="bg-slate-50 p-5 border-b border-slate-200 flex justify-between items-center">
+          <div className="lg:col-span-2 w-full bg-white text-text-primary rounded-2xl overflow-hidden flex flex-col max-h-180">
+            <div className="bg-slate-50 p-5 flex justify-between items-center">
               <div className="flex items-center gap-2 text-slate-800">
                 <FileText size={18} className="text-brand-primary" />
                 <span className="text-subtitle">Executive Summary</span>

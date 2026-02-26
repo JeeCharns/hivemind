@@ -108,7 +108,7 @@ export default function VoteView({
             <Wallet size={24} className="text-indigo-600" weight="fill" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="text-lg font-semibold text-text-primary">
               Voting Credits
             </h3>
             <p className="text-sm text-slate-600">
@@ -146,7 +146,7 @@ export default function VoteView({
                 <div className="flex items-start justify-between gap-4">
                   {/* Proposal Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-base text-slate-900 mb-3">
+                    <p className="text-base text-text-primary mb-3">
                       {proposal.text}
                     </p>
                     <div className="flex items-center gap-2 text-sm text-slate-500">

@@ -82,7 +82,7 @@ export default function MemberRow({
 
         {/* Name & Role */}
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-slate-900">{name}</span>
+          <span className="text-sm font-medium text-text-primary">{name}</span>
           <span className="text-xs text-slate-500 capitalize">{role}</span>
         </div>
       </div>

@@ -255,7 +255,7 @@ export default function NewSessionWizard({
                   <PlusIcon size={24} />
                 </div>
                 <div className="text-center">
-                  <p className="text-subtitle text-slate-900">
+                  <p className="text-subtitle text-text-primary">
                     Drag & drop CSV
                   </p>
                   <p className="text-body text-slate-500">

@@ -170,8 +170,8 @@ export default function MobileComposer({
                   }
                 }}
                 maxLength={MAX_LEN}
-                placeholder="Submit as many thoughts as you can! One at a time"
-                className="w-full min-h-[120px] border border-slate-200 rounded-lg p-3 pb-8 text-body text-slate-900 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                placeholder="Submit your thoughts, one at a time!"
+                className="w-full min-h-[120px] border border-slate-200 rounded-lg p-3 pb-8 text-body text-text-primary focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                 style={{ height: "auto" }}
               />
               <span className="absolute bottom-2 left-3 text-info text-slate-500">
@@ -183,14 +183,14 @@ export default function MobileComposer({
             {!isDecisionSession && (
               <div className="space-y-2">
                 <span className="text-label text-text-primary">
-                  Tag your response (optional)
+                  Tag your response for more clarity
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {LISTEN_TAGS.map((t) => {
                     const isSelected = tag === t;
                     const active = isSelected
                       ? getTagSelectedClasses(t)
-                      : `bg-white text-slate-700 border-slate-200 py-0.5 ${getTagHoverClasses(t)}`;
+                      : `bg-white text-[#9498b0] ${getTagHoverClasses(t)}`;
 
                     return (
                       <Button
@@ -199,7 +199,7 @@ export default function MobileComposer({
                         size="sm"
                         onClick={() => setTag(tag === t ? null : t)}
                         aria-pressed={isSelected}
-                        className={`px-3 rounded-full text-button border transition ${active}`}
+                        className={`px-2 py-0.5 rounded-full !text-[12px] font-display font-medium transition ${active}`}
                       >
                         {TAG_LABELS[t]}
                       </Button>

@@ -76,10 +76,10 @@ export default function ConversationCard({
         </span>
       </div>
 
-      <h3 className="text-xl font-medium font-display text-slate-900 mb-2 line-clamp-2 transition-colors group-hover:text-indigo-600">
+      <h3 className="text-xl font-medium font-display text-text-primary mb-2 leading-tight transition-colors group-hover:text-indigo-600 overflow-hidden line-clamp-2">
         {title}
       </h3>
-      <p className="text-slate-500 text-sm mb-6 line-clamp-3 leading-relaxed">
+      <p className="text-slate-500 text-sm leading-relaxed overflow-hidden line-clamp-3 flex-1">
         {description}
       </p>
 

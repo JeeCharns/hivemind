@@ -28,11 +28,11 @@ export default async function SettingsPage() {
 
   // 3. Render settings form
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-12 bg-slate-50">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-12 bg-[#F0F0F5]">
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-h1 text-slate-900">Account Settings</h1>
+          <h1 className="text-h1 text-text-primary">Account Settings</h1>
           <p className="mt-2 text-body text-slate-600">
             Manage your profile and account preferences
           </p>

@@ -106,8 +106,8 @@ export default function HiveHome({
             size={64}
             className="w-8 h-8 md:w-16 md:h-16 shrink-0"
           />
-          <div className="flex flex-col gap-0.5 md:gap-2 min-w-0">
-            <h1 className="text-h4 md:text-h1 text-text-primary truncate">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <h1 className="text-[32px] leading-[1.2] font-display font-medium text-text-primary truncate">
               {hiveName}
             </h1>
             <p className="text-body text-text-secondary hidden md:block">

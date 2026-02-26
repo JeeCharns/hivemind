@@ -62,7 +62,7 @@ export default async function HiveInvitePage({
 // Error Component
 function HiveNotFound({ hiveKey }: { hiveKey: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
+    <div className="min-h-screen flex items-center justify-center bg-[#F0F0F5]">
       <div className="text-center max-w-md">
         <h1 className="text-2xl font-semibold text-[#172847] mb-4">
           Hive Not Found

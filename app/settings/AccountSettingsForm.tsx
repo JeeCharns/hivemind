@@ -80,7 +80,7 @@ export default function AccountSettingsForm({
     <div className="space-y-8">
       {/* Account Section - Email (Read-only) */}
       <div className="space-y-4">
-        <h2 className="text-h4 text-slate-900">Account</h2>
+        <h2 className="text-h4 text-text-primary">Account</h2>
         <div className="space-y-2">
           <label className="block text-subtitle text-slate-700">
             Email Address
@@ -99,7 +99,7 @@ export default function AccountSettingsForm({
 
       {/* Profile Section - Display Name + Avatar */}
       <div className="space-y-4">
-        <h2 className="text-h4 text-slate-900">Profile</h2>
+        <h2 className="text-h4 text-text-primary">Profile</h2>
         <ProfileForm
           initialDisplayName={initialDisplayName}
           initialAvatarUrl={initialAvatarUrl}
@@ -113,7 +113,7 @@ export default function AccountSettingsForm({
 
       {/* Email Notifications Section */}
       <div className="space-y-4">
-        <h2 className="text-h4 text-slate-900">Email Notifications</h2>
+        <h2 className="text-h4 text-text-primary">Email Notifications</h2>
         <NotificationPreferencesSection />
       </div>
     </div>

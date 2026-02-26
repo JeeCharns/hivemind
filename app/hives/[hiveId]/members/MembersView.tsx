@@ -94,7 +94,7 @@ export default function MembersView({
     return (
       <div className="space-y-4">
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">Members</h2>
+          <h2 className="text-xl font-semibold text-text-primary mb-4">Members</h2>
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center justify-between py-3">
@@ -123,7 +123,7 @@ export default function MembersView({
       {/* Members List */}
       <div className="bg-white rounded-xl border border-slate-200 p-6">
         <div className="mb-4">
-          <h2 className="text-xl font-semibold text-slate-900">Members</h2>
+          <h2 className="text-xl font-semibold text-text-primary">Members</h2>
           <p className="text-sm text-slate-500 mt-1">
             {members.length} {members.length === 1 ? "member" : "members"} •{" "}
             {adminCount} {adminCount === 1 ? "admin" : "admins"}

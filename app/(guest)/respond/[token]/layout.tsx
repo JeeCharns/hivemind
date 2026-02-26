@@ -56,7 +56,7 @@ export default async function GuestConversationLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
+    <div className="min-h-screen bg-[#F0F0F5]">
       <GuestNavbar guestNumber={guestSession.guestNumber} />
 
       {/* Main content with top padding for fixed navbar */}

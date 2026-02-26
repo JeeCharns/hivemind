@@ -323,7 +323,7 @@ export default function UnderstandViewContainer({
       : "Once you reach the minimum responses, an admin can generate a theme map from this tab.";
 
     return (
-      <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)]">
+      <div className="flex flex-col gap-6 pt-4 h-[calc(100vh-180px)]">
         <div className="bg-white rounded-2xl p-12 text-center">
           <div className="max-w-md mx-auto space-y-4">
             <div className="text-6xl mb-4">📊</div>
@@ -351,7 +351,7 @@ export default function UnderstandViewContainer({
 
   if (analysisInProgress && hasNoExistingAnalysis) {
     return (
-      <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)]">
+      <div className="flex flex-col gap-6 pt-4 h-[calc(100vh-180px)]">
         <div className="bg-white rounded-2xl p-12 text-center">
           <div className="max-w-md mx-auto space-y-6">
             <h2 className="text-2xl font-semibold text-slate-800">
@@ -404,7 +404,7 @@ export default function UnderstandViewContainer({
     };
 
     return (
-      <div className="flex flex-col gap-6 pt-6 h-[calc(100vh-180px)]">
+      <div className="flex flex-col gap-6 pt-4 h-[calc(100vh-180px)]">
         <div className="bg-white rounded-2xl p-12 text-center">
           <div className="max-w-md mx-auto space-y-4">
             <div className="text-6xl mb-4">⚠️</div>

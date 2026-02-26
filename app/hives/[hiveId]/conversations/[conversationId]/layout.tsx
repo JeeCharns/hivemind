@@ -66,7 +66,7 @@ export default async function ConversationLayout({
 
   // 5. Render with header
   return (
-    <div className="min-h-screen bg-[#F7F8FB]">
+    <div className="min-h-screen bg-[#F0F0F5]">
       <div className="w-full">
         <ConversationHeader
           conversationId={conversation.id}

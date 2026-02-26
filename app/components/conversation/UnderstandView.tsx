@@ -30,14 +30,14 @@ import AnalysisProgressSteps from "./AnalysisProgressSteps";
 import type { AnalysisProgressStage } from "@/lib/conversations/server/broadcastAnalysisStatus";
 
 const palette = [
-  "#4F46E5",
-  "#0EA5E9",
-  "#22C55E",
-  "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
+  "#5A54D4", // soft indigo
+  "#2A9BD4", // soft blue
+  "#36B86A", // soft green
+  "#E8A832", // soft amber
+  "#E05858", // soft red
+  "#8E6FE8", // soft purple
+  "#E0609A", // soft pink
+  "#28B0A0", // soft teal
 ];
 
 const MISC_COLOR = "#94a3b8"; // slate-400
@@ -451,10 +451,10 @@ export default function UnderstandView({
   }, [selectedTheme, themes]);
 
   return (
-    <div className="flex flex-col gap-6 pt-6 md:h-[calc(100vh-180px)] md:overflow-hidden">
+    <div className="flex flex-col gap-6 pt-4 md:h-[calc(100vh-180px)] md:overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-[minmax(200px,1fr)_minmax(320px,1fr)] gap-6 items-start md:flex-1 md:overflow-hidden">
         {/* Left column: Theme map - shrinks on tablet, square on mobile */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 relative aspect-square w-full md:aspect-auto md:h-full md:min-h-[300px]">
+        <div className="bg-white rounded-2xl overflow-hidden relative aspect-square w-full md:aspect-auto md:h-full md:min-h-[300px]">
           {/* Skeleton overlay for loading_results state */}
           {showSkeletons && (
             <div className="absolute inset-0 z-30">
@@ -712,7 +712,7 @@ export default function UnderstandView({
         </div>
 
         {/* Right column: Response list - maintains readable width */}
-        <div className="bg-white space-y-4 p-4 md:p-6 lg:p-8 rounded-2xl shadow-sm border border-slate-100 md:h-full md:overflow-y-auto">
+        <div className="bg-white space-y-4 p-4 md:p-6 lg:p-8 rounded-2xl md:h-full md:overflow-y-auto">
           {/* Skeleton loading for loading_results state */}
           {showSkeletons && <ClusterListSkeleton count={4} />}
           {/* Analysis in progress indicator for starting/analysing states */}

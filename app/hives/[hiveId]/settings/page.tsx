@@ -61,7 +61,7 @@ export default async function HiveSettingsPage({
 
     // Show error page
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F0F5] p-4">
         <div className="max-w-md w-full">
           <Alert variant="error">{error}</Alert>
           <div className="mt-4 text-center">
@@ -76,7 +76,7 @@ export default async function HiveSettingsPage({
 
   // 4. Render with data
   return (
-    <div className="min-h-screen bg-[#F7F8FB] p-4 md:p-8">
+    <div className="min-h-screen bg-[#F0F0F5] p-4 md:p-8">
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-6">
           <Link href={`/hives/${hiveKey}`}>
@@ -87,7 +87,7 @@ export default async function HiveSettingsPage({
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm w-full">
-          <h1 className="text-2xl font-semibold text-slate-900 mb-6">
+          <h1 className="text-2xl font-semibold text-text-primary mb-6">
             Settings
           </h1>
           <SettingsClient
@@ -105,7 +105,7 @@ export default async function HiveSettingsPage({
 // Error Components
 function HiveNotFound({ hiveKey }: { hiveKey: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F8FB]">
+    <div className="min-h-screen flex items-center justify-center bg-[#F0F0F5]">
       <div className="text-center max-w-md">
         <h1 className="text-2xl font-semibold text-[#172847] mb-4">
           Hive Not Found

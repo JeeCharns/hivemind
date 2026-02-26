@@ -24,7 +24,7 @@ export default function InviteShareClient({
   initialError,
 }: InviteShareClientProps) {
   return (
-    <div className="min-h-screen bg-[#F7F8FB] p-4 md:p-8">
+    <div className="min-h-screen bg-[#F0F0F5] p-4 md:p-8">
       <div className="max-w-lg mx-auto">
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
           <div className="mb-6">

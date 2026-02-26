@@ -284,7 +284,7 @@ export default function DecisionView({
       {showCloseConfirm && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            <h3 className="text-lg font-semibold text-text-primary mb-2">
               Close voting round?
             </h3>
             <p className="text-slate-600 mb-4">
@@ -337,7 +337,7 @@ export default function DecisionView({
                 <Wallet size={24} className="text-indigo-600" weight="fill" />
               </div>
               <div>
-                <h3 className="text-base md:text-lg font-semibold text-slate-900">
+                <h3 className="text-base md:text-lg font-semibold text-text-primary">
                   Voting Credits
                 </h3>
                 <p className="text-sm text-slate-600">
@@ -384,7 +384,7 @@ export default function DecisionView({
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-4">
                       {/* Proposal Content */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-base text-slate-900 mb-2">
+                        <p className="text-base text-text-primary mb-2">
                           {proposal.statementText}
                         </p>
                         {proposal.originalAgreePercent !== null && (
@@ -534,7 +534,7 @@ export default function DecisionView({
               <div className="bg-white rounded-xl border border-slate-200 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Trophy size={24} className="text-amber-500" weight="fill" />
-                  <h2 className="text-xl font-semibold text-slate-900">
+                  <h2 className="text-xl font-semibold text-text-primary">
                     Round {viewModel.results.roundNumber} Results
                   </h2>
                 </div>
@@ -569,7 +569,7 @@ export default function DecisionView({
                             {ranking.rank}
                           </div>
                           <div className="flex-1">
-                            <p className="text-slate-900">
+                            <p className="text-text-primary">
                               {ranking.statementText}
                             </p>
                             {ranking.changeFromPrevious !== undefined && (
@@ -626,7 +626,7 @@ export default function DecisionView({
                       className="text-indigo-600"
                       weight="fill"
                     />
-                    <h2 className="text-xl font-semibold text-slate-900">
+                    <h2 className="text-xl font-semibold text-text-primary">
                       Analysis
                     </h2>
                   </div>
