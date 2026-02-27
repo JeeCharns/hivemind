@@ -21,7 +21,9 @@ export interface ExploreReportPromptData {
   sampleResponses: string[];
 }
 
-export function buildExploreReportPrompt(data: ExploreReportPromptData): string {
+export function buildExploreReportPrompt(
+  data: ExploreReportPromptData
+): string {
   const themesText = data.themes
     .map(
       (t) =>

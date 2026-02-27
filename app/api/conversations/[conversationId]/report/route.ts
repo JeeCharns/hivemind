@@ -414,7 +414,8 @@ export async function POST(
         })),
         consolidatedStatements: clusterBuckets.map((bucket) => ({
           statement: bucket.consolidated_statement,
-          responseCount: bucket.conversation_cluster_bucket_members?.length || 1,
+          responseCount:
+            bucket.conversation_cluster_bucket_members?.length || 1,
         })),
         sampleResponses: sampleResponses.map((r) => r.response_text),
       };

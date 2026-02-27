@@ -13,16 +13,19 @@
 ## Task 1: Add "explore" to ConversationType
 
 **Files:**
+
 - Modify: `types/conversations.ts:8`
 
 **Step 1: Update the type definition**
 
 In `types/conversations.ts`, change line 8 from:
+
 ```typescript
 export type ConversationType = "understand" | "decide";
 ```
 
 to:
+
 ```typescript
 export type ConversationType = "understand" | "explore" | "decide";
 ```
@@ -44,12 +47,14 @@ git commit -m "feat: add 'explore' conversation type"
 ## Task 2: Create Feature Flags Module
 
 **Files:**
+
 - Create: `lib/feature-flags.ts`
 - Test: `lib/__tests__/feature-flags.test.ts`
 
 **Step 1: Write the test**
 
 Create `lib/__tests__/feature-flags.test.ts`:
+
 ```typescript
 import { FEATURE_FLAGS } from "../feature-flags";
 
@@ -72,6 +77,7 @@ Expected: FAIL with "Cannot find module"
 **Step 3: Write the implementation**
 
 Create `lib/feature-flags.ts`:
+
 ```typescript
 /**
  * Feature Flags
@@ -106,12 +112,14 @@ git commit -m "feat: add feature flags module with ENABLE_CONSENSUS_THRESHOLD"
 ## Task 3: Update Statement Ordering (Response Count Descending)
 
 **Files:**
+
 - Modify: `lib/conversations/domain/responseConsensus.ts:101-228`
 - Test: `lib/conversations/domain/__tests__/responseConsensus.test.ts`
 
 **Step 1: Write/update the test**
 
 Add to the existing test file or create `lib/conversations/domain/__tests__/responseConsensus.test.ts`:
+
 ```typescript
 import {
   computeConsolidatedConsensusItems,
@@ -268,7 +276,9 @@ export function computeConsolidatedConsensusItems(
       item.disagreePercent = clampPercent(
         Math.round((totalDisagree / totalVotes) * 100)
       );
-      item.passPercent = clampPercent(100 - item.agreePercent - item.disagreePercent);
+      item.passPercent = clampPercent(
+        100 - item.agreePercent - item.disagreePercent
+      );
       votedItems.push(item);
     } else {
       unvotedItems.push(item);
@@ -304,7 +314,9 @@ export function computeConsolidatedConsensusItems(
       item.disagreePercent = clampPercent(
         Math.round((counts.disagree / totalVotes) * 100)
       );
-      item.passPercent = clampPercent(100 - item.agreePercent - item.disagreePercent);
+      item.passPercent = clampPercent(
+        100 - item.agreePercent - item.disagreePercent
+      );
       votedItems.push(item);
     } else {
       unvotedItems.push(item);
@@ -346,11 +358,13 @@ git commit -m "feat: sort consolidated statements by response count descending"
 ## Task 4: Create Session Type Selector Modal
 
 **Files:**
+
 - Create: `app/components/session-type-selector.tsx`
 
 **Step 1: Create the component**
 
 Create `app/components/session-type-selector.tsx`:
+
 ```typescript
 "use client";
 
@@ -512,11 +526,13 @@ git commit -m "feat: add session type selector modal with tabs"
 ## Task 5: Update New Session Launcher to Use Session Type Selector
 
 **Files:**
+
 - Modify: `app/components/new-session-launcher.tsx`
 
 **Step 1: Update the launcher**
 
 Replace `app/components/new-session-launcher.tsx`:
+
 ```typescript
 "use client";
 
@@ -643,6 +659,7 @@ git commit -m "feat: integrate session type selector into launcher"
 ## Task 6: Update New Session Wizard to Accept Type Prop
 
 **Files:**
+
 - Modify: `app/components/new-session-wizard.tsx`
 - Modify: `lib/conversations/react/useNewSessionWizard.ts`
 
@@ -651,6 +668,7 @@ git commit -m "feat: integrate session type selector into launcher"
 In `lib/conversations/react/useNewSessionWizard.ts`:
 
 1. Add `initialType` to props:
+
 ```typescript
 export interface UseNewSessionWizardProps {
   hiveId: string;
@@ -661,6 +679,7 @@ export interface UseNewSessionWizardProps {
 ```
 
 2. Update the hook implementation to use `initialType`:
+
 ```typescript
 export function useNewSessionWizard({
   hiveId,
@@ -685,6 +704,7 @@ export function useNewSessionWizard({
 In `app/components/new-session-wizard.tsx`:
 
 1. Add `type` prop:
+
 ```typescript
 export default function NewSessionWizard({
   open,
@@ -702,8 +722,11 @@ export default function NewSessionWizard({
 ```
 
 2. Pass it to the hook:
+
 ```typescript
-const { /* ... */ } = useNewSessionWizard({
+const {
+  /* ... */
+} = useNewSessionWizard({
   hiveId,
   hiveSlug,
   open,
@@ -714,6 +737,7 @@ const { /* ... */ } = useNewSessionWizard({
 3. Remove the type selection UI from step 1 (the grid with "Discuss a Problem" / "Make a Decision" buttons).
 
 4. Update the step 2 rendering to handle `explore` type (show CSV upload like `understand`):
+
 ```typescript
 {step === 2 && (type === "understand" || type === "explore") && (
   // ... existing CSV upload UI
@@ -742,6 +766,7 @@ git commit -m "feat: update new session wizard to accept type prop, remove type 
 ## Task 7: Hide Consensus Threshold Behind Feature Flag
 
 **Files:**
+
 - Modify: `app/components/decision-setup-wizard.tsx:384-407`
 
 **Step 1: Import feature flag and wrap the slider**
@@ -749,11 +774,13 @@ git commit -m "feat: update new session wizard to accept type prop, remove type 
 In `app/components/decision-setup-wizard.tsx`:
 
 1. Add import:
+
 ```typescript
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
 ```
 
 2. Wrap the consensus threshold UI in Step 3 with the feature flag:
+
 ```typescript
 {/* Step 3: Statement Selection */}
 {step === 3 && (
@@ -790,6 +817,7 @@ import { FEATURE_FLAGS } from "@/lib/feature-flags";
 ```
 
 3. Also hide the consensus threshold from the Step 5 summary:
+
 ```typescript
 {/* Only show consensus threshold in summary if feature is enabled */}
 {FEATURE_FLAGS.ENABLE_CONSENSUS_THRESHOLD && (
@@ -821,6 +849,7 @@ git commit -m "feat: hide consensus threshold slider behind feature flag"
 ## Task 8: Hide Feedback/Voting UI for Explore Conversations
 
 **Files:**
+
 - Modify: `app/components/conversation/ClusterBucketCard.tsx:35,114-115`
 - Modify: `app/components/conversation/UnderstandView.tsx` (multiple locations)
 
@@ -829,12 +858,14 @@ git commit -m "feat: hide consensus threshold slider behind feature flag"
 In `app/components/conversation/ClusterBucketCard.tsx`:
 
 1. Update the prop type:
+
 ```typescript
 /** Conversation type determines if voting is enabled */
 conversationType?: "understand" | "explore" | "decide";
 ```
 
 2. Update the `showVoting` condition:
+
 ```typescript
 const showVoting =
   conversationType === "understand" && onVote && representativeId;
@@ -847,6 +878,7 @@ const showVoting =
 In `app/components/conversation/UnderstandView.tsx`:
 
 1. Add `conversationType` prop:
+
 ```typescript
 export interface UnderstandViewProps {
   // ... existing props
@@ -857,6 +889,7 @@ export interface UnderstandViewProps {
 2. Pass it through and conditionally hide feedback buttons:
 
 Find the section rendering feedback buttons (around line 896) and wrap with condition:
+
 ```typescript
 {conversationType !== "explore" && (
   <div className="flex gap-1.5 mt-2">
@@ -868,6 +901,7 @@ Find the section rendering feedback buttons (around line 896) and wrap with cond
 ```
 
 Also hide the vote counts display:
+
 ```typescript
 {conversationType !== "explore" && resp.counts.agree + resp.counts.pass + resp.counts.disagree > 0 && (
   <span className="text-info text-slate-500">
@@ -877,6 +911,7 @@ Also hide the vote counts display:
 ```
 
 3. Update ClusterBucketCard usage:
+
 ```typescript
 <ClusterBucketCard
   // ... existing props
@@ -914,6 +949,7 @@ git commit -m "feat: hide feedback/voting UI for explore conversations"
 ## Task 9: Update Results Tab for Explore Conversations
 
 **Files:**
+
 - Modify: `app/components/conversation/ReportView.tsx`
 - Modify: `app/hives/[hiveId]/conversations/[conversationId]/result/page.tsx`
 - Modify: `lib/conversations/server/getReportViewModel.ts` (if needed to pass conversationType)
@@ -921,6 +957,7 @@ git commit -m "feat: hide feedback/voting UI for explore conversations"
 **Step 1: Update ResultViewModel type to include conversationType**
 
 In `types/conversation-report.ts`, add:
+
 ```typescript
 export interface ResultViewModel {
   // ... existing fields
@@ -931,6 +968,7 @@ export interface ResultViewModel {
 **Step 2: Update getReportViewModel to include conversationType**
 
 In `lib/conversations/server/getReportViewModel.ts`, add to the return:
+
 ```typescript
 return {
   // ... existing fields
@@ -1032,12 +1070,14 @@ git commit -m "feat: add recommended next steps section for explore results tab"
 ## Task 10: Create Explore Report Prompt
 
 **Files:**
+
 - Create: `lib/conversations/prompts/exploreReportPrompt.ts`
 - Modify: `app/api/conversations/[conversationId]/report/route.ts`
 
 **Step 1: Create the explore report prompt**
 
 Create `lib/conversations/prompts/exploreReportPrompt.ts`:
+
 ```typescript
 /**
  * Explore Report Prompt
@@ -1062,7 +1102,9 @@ export interface ExploreReportPromptData {
   sampleResponses: string[];
 }
 
-export function buildExploreReportPrompt(data: ExploreReportPromptData): string {
+export function buildExploreReportPrompt(
+  data: ExploreReportPromptData
+): string {
   const themesText = data.themes
     .map(
       (t) =>
@@ -1112,7 +1154,7 @@ Use whatever writing style best communicates each point — narrative prose, lis
 }
 
 export const EXPLORE_REPORT_SYSTEM_PROMPT =
-  'You are a skilled analyst writing for participants of a collective conversation. Your role is to help them understand what the group collectively expressed. Write in a natural narrative style — not a list of results, but a cohesive document that synthesises findings, draws connections between themes, and surfaces meaningful insights. Use a neutral, evidence-grounded tone. Output valid HTML only — no markdown, no code fences, no preamble. Scale the depth and length of your writing to match the complexity of the data: a small simple conversation warrants a focused summary, a large complex one warrants deeper analysis.';
+  "You are a skilled analyst writing for participants of a collective conversation. Your role is to help them understand what the group collectively expressed. Write in a natural narrative style — not a list of results, but a cohesive document that synthesises findings, draws connections between themes, and surfaces meaningful insights. Use a neutral, evidence-grounded tone. Output valid HTML only — no markdown, no code fences, no preamble. Scale the depth and length of your writing to match the complexity of the data: a small simple conversation warrants a focused summary, a large complex one warrants deeper analysis.";
 ```
 
 **Step 2: Update the report route to branch on conversation type**
@@ -1120,6 +1162,7 @@ export const EXPLORE_REPORT_SYSTEM_PROMPT =
 In `app/api/conversations/[conversationId]/report/route.ts`:
 
 1. Add import:
+
 ```typescript
 import {
   buildExploreReportPrompt,
@@ -1128,6 +1171,7 @@ import {
 ```
 
 2. Update the type validation (line 148-152) to allow "explore":
+
 ```typescript
 if (conversation.type !== "understand" && conversation.type !== "explore") {
   return jsonError(
@@ -1138,6 +1182,7 @@ if (conversation.type !== "understand" && conversation.type !== "explore") {
 ```
 
 3. After building the data, branch on conversation type:
+
 ```typescript
 // Build prompt based on conversation type
 let userMessage: string;
@@ -1195,11 +1240,13 @@ git commit -m "feat: add separate report prompt for explore conversations"
 ## Task 11: Update Report Gating for Explore Type
 
 **Files:**
+
 - Modify: `lib/conversations/domain/reportRules.ts`
 
 **Step 1: Allow explore type in canGenerateReport**
 
 In `lib/conversations/domain/reportRules.ts`, update the type check:
+
 ```typescript
 export function canGenerateReport(
   isMember: boolean,
@@ -1208,7 +1255,8 @@ export function canGenerateReport(
   gate: { allowed: boolean }
 ): boolean {
   if (!isMember) return false;
-  if (conversationType !== "understand" && conversationType !== "explore") return false;
+  if (conversationType !== "understand" && conversationType !== "explore")
+    return false;
   if (analysisStatus !== "ready") return false;
   return gate.allowed;
 }
@@ -1271,21 +1319,21 @@ git commit -m "chore: final cleanup and formatting for new session flow"
 
 ## Summary of All Changes
 
-| File | Change |
-|------|--------|
-| `types/conversations.ts` | Add "explore" type |
-| `lib/feature-flags.ts` | New file with ENABLE_CONSENSUS_THRESHOLD |
-| `lib/conversations/domain/responseConsensus.ts` | Sort by response count descending |
-| `app/components/session-type-selector.tsx` | New tabbed modal component |
-| `app/components/new-session-launcher.tsx` | Integrate session type selector |
-| `app/components/new-session-wizard.tsx` | Accept type prop, remove type selection |
-| `lib/conversations/react/useNewSessionWizard.ts` | Accept initialType prop |
-| `app/components/decision-setup-wizard.tsx` | Feature flag consensus slider |
-| `app/components/conversation/ClusterBucketCard.tsx` | Hide voting for explore |
-| `app/components/conversation/UnderstandView.tsx` | Hide feedback for explore |
-| `app/components/conversation/ReportView.tsx` | Recommended next steps for explore |
-| `types/conversation-report.ts` | Add conversationType to ResultViewModel |
-| `lib/conversations/server/getReportViewModel.ts` | Include conversationType |
-| `lib/conversations/prompts/exploreReportPrompt.ts` | New explore report prompt |
-| `app/api/conversations/[conversationId]/report/route.ts` | Branch on type for prompt |
-| `lib/conversations/domain/reportRules.ts` | Allow explore in canGenerateReport |
+| File                                                     | Change                                   |
+| -------------------------------------------------------- | ---------------------------------------- |
+| `types/conversations.ts`                                 | Add "explore" type                       |
+| `lib/feature-flags.ts`                                   | New file with ENABLE_CONSENSUS_THRESHOLD |
+| `lib/conversations/domain/responseConsensus.ts`          | Sort by response count descending        |
+| `app/components/session-type-selector.tsx`               | New tabbed modal component               |
+| `app/components/new-session-launcher.tsx`                | Integrate session type selector          |
+| `app/components/new-session-wizard.tsx`                  | Accept type prop, remove type selection  |
+| `lib/conversations/react/useNewSessionWizard.ts`         | Accept initialType prop                  |
+| `app/components/decision-setup-wizard.tsx`               | Feature flag consensus slider            |
+| `app/components/conversation/ClusterBucketCard.tsx`      | Hide voting for explore                  |
+| `app/components/conversation/UnderstandView.tsx`         | Hide feedback for explore                |
+| `app/components/conversation/ReportView.tsx`             | Recommended next steps for explore       |
+| `types/conversation-report.ts`                           | Add conversationType to ResultViewModel  |
+| `lib/conversations/server/getReportViewModel.ts`         | Include conversationType                 |
+| `lib/conversations/prompts/exploreReportPrompt.ts`       | New explore report prompt                |
+| `app/api/conversations/[conversationId]/report/route.ts` | Branch on type for prompt                |
+| `lib/conversations/domain/reportRules.ts`                | Allow explore in canGenerateReport       |

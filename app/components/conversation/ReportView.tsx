@@ -114,8 +114,8 @@ export default function ReportView({ viewModel }: ReportViewProps) {
                   <div className="bg-white rounded-xl p-6 flex flex-col justify-center items-center min-h-[200px]">
                     <Handshake size={56} className="text-[#9498B0]" />
                     <p className="mt-4 text-body text-text-secondary">
-                      No feedback yet. Vote on responses to see where people agree
-                      or disagree.
+                      No feedback yet. Vote on responses to see where people
+                      agree or disagree.
                     </p>
                   </div>
                 ) : null}

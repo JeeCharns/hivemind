@@ -257,7 +257,11 @@ describe("computeConsolidatedConsensusItems", () => {
       ];
       const feedbackRows = [{ responseId: "r1", feedback: "agree" }];
 
-      const result = computeConsolidatedConsensusItems(buckets, [], feedbackRows);
+      const result = computeConsolidatedConsensusItems(
+        buckets,
+        [],
+        feedbackRows
+      );
 
       expect(result[0].id).toBe("small-voted"); // voted first
       expect(result[1].id).toBe("large-unvoted"); // 4 responses

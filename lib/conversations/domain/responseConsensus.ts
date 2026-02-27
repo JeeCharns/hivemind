@@ -91,7 +91,9 @@ export function computeResponseConsensusItems(
  * Internal type for tracking responseCount during processing.
  * The _responseCount field is stripped from the final output.
  */
-type ConsensusItemWithResponseCount = ConsensusItem & { _responseCount: number };
+type ConsensusItemWithResponseCount = ConsensusItem & {
+  _responseCount: number;
+};
 
 /**
  * Computes consensus items from consolidated statements (cluster buckets).

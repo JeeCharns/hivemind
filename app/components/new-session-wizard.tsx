@@ -168,10 +168,7 @@ export default function NewSessionWizard({
               <Button variant="secondary" onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                disabled={!title.trim() || loading}
-                onClick={onContinue}
-              >
+              <Button disabled={!title.trim() || loading} onClick={onContinue}>
                 Continue
               </Button>
             </div>
