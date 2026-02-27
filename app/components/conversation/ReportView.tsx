@@ -43,6 +43,8 @@ export default function ReportView({ viewModel }: ReportViewProps) {
     viewModel.responseCount >= MIN_RESPONSES_FOR_REPORT;
   const hasFeedbackData = consensusItems.length > 0;
 
+  const isExplore = viewModel.conversationType === "explore";
+
   const shouldShowAnalysisPlaceholder = viewModel.analysisStatus !== "ready";
   const shouldShowFeedbackEmptyState =
     viewModel.analysisStatus === "ready" && !hasFeedbackData;
@@ -73,30 +75,58 @@ export default function ReportView({ viewModel }: ReportViewProps) {
     <div className="pt-4">
       <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left column: Analysis placeholder */}
+          {/* Left column: Analysis placeholder or Recommended Next Steps for explore */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            {shouldShowAnalysisPlaceholder ? (
-              <div className="bg-white rounded-xl p-6 flex flex-col justify-center items-center min-h-[200px]">
-                <Handshake size={56} className="text-[#9498B0]" />
-                <p className="mt-4 text-body text-text-secondary">
-                  Analysis of the most agreed-upon themes will appear here.
-                </p>
+            {isExplore ? (
+              <div className="bg-white rounded-xl p-6">
+                <h3 className="text-subtitle text-text-primary mb-4">
+                  Recommended Next Steps
+                </h3>
+                <div className="space-y-4">
+                  <div className="p-4 bg-slate-50 rounded-lg">
+                    <p className="text-body text-text-secondary mb-3">
+                      Create a new deliberate conversation using these topics
+                    </p>
+                    <Button
+                      variant="secondary"
+                      disabled
+                      title="Coming soon"
+                      className="w-full"
+                    >
+                      Continue conversation
+                      <span className="ml-2 text-xs font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                        Coming soon
+                      </span>
+                    </Button>
+                  </div>
+                </div>
               </div>
-            ) : shouldShowFeedbackEmptyState ? (
-              <div className="bg-white rounded-xl p-6 flex flex-col justify-center items-center min-h-[200px]">
-                <Handshake size={56} className="text-[#9498B0]" />
-                <p className="mt-4 text-body text-text-secondary">
-                  No feedback yet. Vote on responses to see where people agree
-                  or disagree.
-                </p>
-              </div>
-            ) : null}
-            {hasFeedbackData ? (
-              <ConsensusMatrix
-                items={consensusItems}
-                metrics={consensusMetrics}
-              />
-            ) : null}
+            ) : (
+              <>
+                {shouldShowAnalysisPlaceholder ? (
+                  <div className="bg-white rounded-xl p-6 flex flex-col justify-center items-center min-h-[200px]">
+                    <Handshake size={56} className="text-[#9498B0]" />
+                    <p className="mt-4 text-body text-text-secondary">
+                      Analysis of the most agreed-upon themes will appear here.
+                    </p>
+                  </div>
+                ) : shouldShowFeedbackEmptyState ? (
+                  <div className="bg-white rounded-xl p-6 flex flex-col justify-center items-center min-h-[200px]">
+                    <Handshake size={56} className="text-[#9498B0]" />
+                    <p className="mt-4 text-body text-text-secondary">
+                      No feedback yet. Vote on responses to see where people agree
+                      or disagree.
+                    </p>
+                  </div>
+                ) : null}
+                {hasFeedbackData ? (
+                  <ConsensusMatrix
+                    items={consensusItems}
+                    metrics={consensusMetrics}
+                  />
+                ) : null}
+              </>
+            )}
           </div>
 
           {/* Right column: Report viewer */}

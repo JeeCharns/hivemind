@@ -98,4 +98,5 @@ export interface ResultViewModel {
     | "error"
     | null;
   analysisError?: string | null;
+  conversationType?: "understand" | "explore" | "decide";
 }

@@ -366,5 +366,6 @@ export async function getReportViewModel(
     consensusMetrics,
     analysisStatus: parseAnalysisStatus(conversation.analysis_status),
     analysisError: conversation.analysis_error,
+    conversationType: conversation.type as "understand" | "explore" | "decide",
   };
 }
