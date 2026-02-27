@@ -88,15 +88,22 @@ export function computeResponseConsensusItems(
 }
 
 /**
+ * Internal type for tracking responseCount during processing.
+ * The _responseCount field is stripped from the final output.
+ */
+type ConsensusItemWithResponseCount = ConsensusItem & { _responseCount: number };
+
+/**
  * Computes consensus items from consolidated statements (cluster buckets).
  * Aggregates feedback from all responses in each bucket.
  * Also includes unconsolidated responses as individual items.
- * Items with votes appear first, items with no votes appear at the end.
+ * Items with votes appear first (sorted by totalVotes descending),
+ * then items with no votes sorted by responseCount descending.
  *
  * @param buckets - Cluster buckets with consolidated statements and their member response IDs
  * @param unconsolidatedResponses - Individual responses not part of any bucket
  * @param feedbackRows - All feedback rows for the conversation
- * @returns ConsensusItem[] with voted items first, then unvoted items
+ * @returns ConsensusItem[] with voted items first, then unvoted items sorted by responseCount
  */
 export function computeConsolidatedConsensusItems(
   buckets: ConsensusBucketRow[],
@@ -123,8 +130,8 @@ export function computeConsolidatedConsensusItems(
     else if (row.feedback === "disagree") counts.disagree++;
   });
 
-  const votedItems: ConsensusItem[] = [];
-  const unvotedItems: ConsensusItem[] = [];
+  const votedItems: ConsensusItemWithResponseCount[] = [];
+  const unvotedItems: ConsensusItemWithResponseCount[] = [];
 
   // Process consolidated statements (buckets)
   for (const bucket of buckets) {
@@ -140,6 +147,7 @@ export function computeConsolidatedConsensusItems(
     const totalDisagree = counts?.disagree ?? 0;
 
     const totalVotes = totalAgree + totalPass + totalDisagree;
+    const responseCount = bucket.responseIds.length;
 
     if (totalVotes > 0) {
       const agreePercent = clampPercent(
@@ -160,6 +168,7 @@ export function computeConsolidatedConsensusItems(
         passVotes: totalPass,
         disagreeVotes: totalDisagree,
         totalVotes,
+        _responseCount: responseCount,
       });
     } else {
       // Include items with no votes
@@ -173,6 +182,7 @@ export function computeConsolidatedConsensusItems(
         passVotes: 0,
         disagreeVotes: 0,
         totalVotes: 0,
+        _responseCount: responseCount,
       });
     }
   }
@@ -186,6 +196,8 @@ export function computeConsolidatedConsensusItems(
     };
 
     const totalVotes = counts.agree + counts.pass + counts.disagree;
+    // Unconsolidated responses always have responseCount of 1
+    const responseCount = 1;
 
     if (totalVotes > 0) {
       const agreePercent = clampPercent(
@@ -206,6 +218,7 @@ export function computeConsolidatedConsensusItems(
         passVotes: counts.pass,
         disagreeVotes: counts.disagree,
         totalVotes,
+        _responseCount: responseCount,
       });
     } else {
       // Include items with no votes
@@ -219,10 +232,25 @@ export function computeConsolidatedConsensusItems(
         passVotes: 0,
         disagreeVotes: 0,
         totalVotes: 0,
+        _responseCount: responseCount,
       });
     }
   }
 
-  // Return voted items first, then unvoted items
-  return [...votedItems, ...unvotedItems];
+  // Sort unvoted items by responseCount descending (largest buckets first)
+  unvotedItems.sort((a, b) => b._responseCount - a._responseCount);
+
+  // Strip _responseCount from final output and return voted items first, then sorted unvoted items
+  const stripResponseCount = (
+    item: ConsensusItemWithResponseCount
+  ): ConsensusItem => {
+    const { _responseCount, ...rest } = item;
+    void _responseCount; // Mark as intentionally unused
+    return rest;
+  };
+
+  return [
+    ...votedItems.map(stripResponseCount),
+    ...unvotedItems.map(stripResponseCount),
+  ];
 }

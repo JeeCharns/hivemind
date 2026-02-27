@@ -210,4 +210,83 @@ describe("computeConsolidatedConsensusItems", () => {
     expect(items[2].id).toBe("r3");
     expect(items[2].totalVotes).toBe(0);
   });
+
+  describe("ordering by responseCount", () => {
+    it("should sort unvoted buckets by responseCount descending", () => {
+      const buckets = [
+        {
+          bucketId: "small",
+          consolidatedStatement: "Small",
+          responseIds: ["r1", "r2"],
+        },
+        {
+          bucketId: "large",
+          consolidatedStatement: "Large",
+          responseIds: ["r3", "r4", "r5", "r6", "r7"],
+        },
+        {
+          bucketId: "medium",
+          consolidatedStatement: "Medium",
+          responseIds: ["r8", "r9", "r10"],
+        },
+      ];
+      const result = computeConsolidatedConsensusItems(buckets, [], []);
+
+      expect(result[0].id).toBe("large"); // 5 responses
+      expect(result[1].id).toBe("medium"); // 3 responses
+      expect(result[2].id).toBe("small"); // 2 responses
+    });
+
+    it("should put voted items first, then unvoted sorted by responseCount", () => {
+      const buckets = [
+        {
+          bucketId: "small-voted",
+          consolidatedStatement: "Small voted",
+          responseIds: ["r1"],
+        },
+        {
+          bucketId: "large-unvoted",
+          consolidatedStatement: "Large unvoted",
+          responseIds: ["r2", "r3", "r4", "r5"],
+        },
+        {
+          bucketId: "medium-unvoted",
+          consolidatedStatement: "Medium unvoted",
+          responseIds: ["r6", "r7"],
+        },
+      ];
+      const feedbackRows = [{ responseId: "r1", feedback: "agree" }];
+
+      const result = computeConsolidatedConsensusItems(buckets, [], feedbackRows);
+
+      expect(result[0].id).toBe("small-voted"); // voted first
+      expect(result[1].id).toBe("large-unvoted"); // 4 responses
+      expect(result[2].id).toBe("medium-unvoted"); // 2 responses
+    });
+
+    it("should sort unconsolidated responses by responseCount (always 1) after buckets", () => {
+      const buckets = [
+        {
+          bucketId: "bucket-large",
+          consolidatedStatement: "Large bucket",
+          responseIds: ["r1", "r2", "r3"],
+        },
+      ];
+      const unconsolidatedResponses = [
+        { responseId: "r4", responseText: "Single response 1" },
+        { responseId: "r5", responseText: "Single response 2" },
+      ];
+
+      const result = computeConsolidatedConsensusItems(
+        buckets,
+        unconsolidatedResponses,
+        []
+      );
+
+      // Bucket with 3 responses should be first, then single responses
+      expect(result[0].id).toBe("bucket-large");
+      expect(result[1].id).toBe("r4");
+      expect(result[2].id).toBe("r5");
+    });
+  });
 });
