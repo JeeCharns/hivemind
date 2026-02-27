@@ -23,9 +23,8 @@ const TAB_CONTENT: Record<SessionTab, TabContent> = {
   deliberate: {
     title: "Deliberate",
     description:
-      "See where there's agreement, tension or divergence. Understand root causes.",
-    disabled: true,
-    comingSoon: true,
+      "Gather sentiment on statements with a 5-point scale. See where there's agreement, tension or divergence.",
+    disabled: false,
   },
   decide: {
     title: "Decide",
@@ -39,6 +38,7 @@ export interface SessionTypeSelectorProps {
   open: boolean;
   onClose: () => void;
   onSelectUnderstand: () => void;
+  onSelectDeliberate: () => void;
   onSelectDecide: () => void;
 }
 
@@ -46,6 +46,7 @@ export default function SessionTypeSelector({
   open,
   onClose,
   onSelectUnderstand,
+  onSelectDeliberate,
   onSelectDecide,
 }: SessionTypeSelectorProps) {
   const [activeTab, setActiveTab] = useState<SessionTab>("understand");
@@ -57,6 +58,8 @@ export default function SessionTypeSelector({
   const handleCreateSession = () => {
     if (activeTab === "understand") {
       onSelectUnderstand();
+    } else if (activeTab === "deliberate") {
+      onSelectDeliberate();
     } else if (activeTab === "decide") {
       onSelectDecide();
     }

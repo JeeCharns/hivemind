@@ -6,6 +6,7 @@ import Button from "@/app/components/button";
 import SessionTypeSelector from "./session-type-selector";
 import NewSessionWizard from "./new-session-wizard";
 import DecisionSetupWizard from "./decision-setup-wizard";
+import DeliberateSetupWizard from "./deliberate-setup-wizard";
 
 export default function NewSessionLauncher({
   asCard = false,
@@ -18,11 +19,17 @@ export default function NewSessionLauncher({
 }) {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [understandWizardOpen, setUnderstandWizardOpen] = useState(false);
+  const [deliberateWizardOpen, setDeliberateWizardOpen] = useState(false);
   const [decideWizardOpen, setDecideWizardOpen] = useState(false);
 
   const handleSelectUnderstand = () => {
     setSelectorOpen(false);
     setUnderstandWizardOpen(true);
+  };
+
+  const handleSelectDeliberate = () => {
+    setSelectorOpen(false);
+    setDeliberateWizardOpen(true);
   };
 
   const handleSelectDecide = () => {
@@ -32,6 +39,10 @@ export default function NewSessionLauncher({
 
   const handleCloseUnderstand = () => {
     setUnderstandWizardOpen(false);
+  };
+
+  const handleCloseDeliberate = () => {
+    setDeliberateWizardOpen(false);
   };
 
   const handleCloseDecide = () => {
@@ -55,6 +66,7 @@ export default function NewSessionLauncher({
           open={selectorOpen}
           onClose={() => setSelectorOpen(false)}
           onSelectUnderstand={handleSelectUnderstand}
+          onSelectDeliberate={handleSelectDeliberate}
           onSelectDecide={handleSelectDecide}
         />
         <NewSessionWizard
@@ -63,6 +75,12 @@ export default function NewSessionLauncher({
           hiveId={hiveId}
           hiveSlug={hiveSlug}
           type="explore"
+        />
+        <DeliberateSetupWizard
+          open={deliberateWizardOpen}
+          onClose={handleCloseDeliberate}
+          hiveId={hiveId}
+          hiveSlug={hiveSlug}
         />
         <DecisionSetupWizard
           open={decideWizardOpen}
@@ -86,6 +104,7 @@ export default function NewSessionLauncher({
         open={selectorOpen}
         onClose={() => setSelectorOpen(false)}
         onSelectUnderstand={handleSelectUnderstand}
+        onSelectDeliberate={handleSelectDeliberate}
         onSelectDecide={handleSelectDecide}
       />
       <NewSessionWizard
@@ -94,6 +113,12 @@ export default function NewSessionLauncher({
         hiveId={hiveId}
         hiveSlug={hiveSlug}
         type="explore"
+      />
+      <DeliberateSetupWizard
+        open={deliberateWizardOpen}
+        onClose={handleCloseDeliberate}
+        hiveId={hiveId}
+        hiveSlug={hiveSlug}
       />
       <DecisionSetupWizard
         open={decideWizardOpen}
