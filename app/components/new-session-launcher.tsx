@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import NewSessionWizard from "./new-session-wizard";
 import { PlusIcon } from "@phosphor-icons/react";
 import Button from "@/app/components/button";
+import SessionTypeSelector from "./session-type-selector";
+import NewSessionWizard from "./new-session-wizard";
+import DecisionSetupWizard from "./decision-setup-wizard";
 
 export default function NewSessionLauncher({
   asCard = false,
@@ -14,7 +16,27 @@ export default function NewSessionLauncher({
   hiveId: string;
   hiveSlug?: string | null;
 }) {
-  const [open, setOpen] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [understandWizardOpen, setUnderstandWizardOpen] = useState(false);
+  const [decideWizardOpen, setDecideWizardOpen] = useState(false);
+
+  const handleSelectUnderstand = () => {
+    setSelectorOpen(false);
+    setUnderstandWizardOpen(true);
+  };
+
+  const handleSelectDecide = () => {
+    setSelectorOpen(false);
+    setDecideWizardOpen(true);
+  };
+
+  const handleCloseUnderstand = () => {
+    setUnderstandWizardOpen(false);
+  };
+
+  const handleCloseDecide = () => {
+    setDecideWizardOpen(false);
+  };
 
   if (asCard) {
     return (
@@ -22,16 +44,29 @@ export default function NewSessionLauncher({
         <Button
           variant="secondary"
           className="w-full flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-[#D7E0F0] p-10 h-64 bg-white/60 text-[#566888] hover:border-[#b8c7e6] hover:text-[#3A1DC8] transition-colors"
-          onClick={() => setOpen(true)}
+          onClick={() => setSelectorOpen(true)}
         >
           <span className="w-14 h-14 rounded-lg bg-[#DADDE1] flex items-center justify-center">
             <PlusIcon size={24} className="text-[#566888]" />
           </span>
           <span className="text-sm font-medium">Create New Session</span>
         </Button>
+        <SessionTypeSelector
+          open={selectorOpen}
+          onClose={() => setSelectorOpen(false)}
+          onSelectUnderstand={handleSelectUnderstand}
+          onSelectDecide={handleSelectDecide}
+        />
         <NewSessionWizard
-          open={open}
-          onClose={() => setOpen(false)}
+          open={understandWizardOpen}
+          onClose={handleCloseUnderstand}
+          hiveId={hiveId}
+          hiveSlug={hiveSlug}
+          type="explore"
+        />
+        <DecisionSetupWizard
+          open={decideWizardOpen}
+          onClose={handleCloseDecide}
           hiveId={hiveId}
           hiveSlug={hiveSlug}
         />
@@ -42,14 +77,27 @@ export default function NewSessionLauncher({
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
+        onClick={() => setSelectorOpen(true)}
         className="h-10 w-[117px] whitespace-nowrap"
       >
         New Session
       </Button>
+      <SessionTypeSelector
+        open={selectorOpen}
+        onClose={() => setSelectorOpen(false)}
+        onSelectUnderstand={handleSelectUnderstand}
+        onSelectDecide={handleSelectDecide}
+      />
       <NewSessionWizard
-        open={open}
-        onClose={() => setOpen(false)}
+        open={understandWizardOpen}
+        onClose={handleCloseUnderstand}
+        hiveId={hiveId}
+        hiveSlug={hiveSlug}
+        type="explore"
+      />
+      <DecisionSetupWizard
+        open={decideWizardOpen}
+        onClose={handleCloseDecide}
         hiveId={hiveId}
         hiveSlug={hiveSlug}
       />
