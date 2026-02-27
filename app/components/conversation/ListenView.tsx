@@ -552,7 +552,7 @@ export default function ListenView({
             const firstInitial = userName.charAt(0).toUpperCase();
 
             return (
-              <div key={resp.id} className="rounded-lg flex gap-3">
+              <div key={resp.id} className="rounded-lg flex gap-3 group">
                 {/* Avatar */}
                 <div className="shrink-0">
                   {resp.user?.avatarUrl ? (
@@ -636,50 +636,53 @@ export default function ListenView({
                   )}
                 </div>
                 <div className="flex items-start gap-1 shrink-0">
-                  {/* Edit/delete buttons for own responses (hidden for guests) */}
-                  {!isGuest && resp.isMine && editingId !== resp.id && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => startEdit(resp.id, resp.text)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
-                        title="Edit"
-                      >
-                        <PencilSimple size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteId(resp.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
-                        title="Delete"
-                      >
-                        <Trash size={16} />
-                      </button>
-                    </>
-                  )}
-                  {/* Moderate button for admins */}
-                  {!isGuest && isAdmin && editingId !== resp.id && (
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setModeratingId(
-                            moderatingId === resp.id ? null : resp.id
-                          )
-                        }
-                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition"
-                        title="Moderate"
-                      >
-                        <Flag size={16} />
-                      </button>
-                      <ModerationFlagMenu
-                        isOpen={moderatingId === resp.id}
-                        onClose={() => setModeratingId(null)}
-                        onSelect={(flag) => moderateResponse(resp.id, flag)}
-                        isLoading={isModerating}
-                      />
-                    </div>
-                  )}
+                  {/* Edit/delete/moderate buttons - only visible on hover */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Edit/delete buttons for own responses (hidden for guests) */}
+                    {!isGuest && resp.isMine && editingId !== resp.id && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => startEdit(resp.id, resp.text)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                          title="Edit"
+                        >
+                          <PencilSimple size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(resp.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          title="Delete"
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </>
+                    )}
+                    {/* Moderate button for admins */}
+                    {!isGuest && isAdmin && editingId !== resp.id && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setModeratingId(
+                              moderatingId === resp.id ? null : resp.id
+                            )
+                          }
+                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition"
+                          title="Moderate"
+                        >
+                          <Flag size={16} />
+                        </button>
+                        <ModerationFlagMenu
+                          isOpen={moderatingId === resp.id}
+                          onClose={() => setModeratingId(null)}
+                          onSelect={(flag) => moderateResponse(resp.id, flag)}
+                          isLoading={isModerating}
+                        />
+                      </div>
+                    )}
+                  </div>
                   <Button
                     variant="secondary"
                     size="sm"

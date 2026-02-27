@@ -148,8 +148,8 @@ export default function ModerationHistoryView({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <h2 className="text-h3 text-text-primary">Moderation History</h2>
+      <div className="bg-white rounded-2xl p-6">
+        <h2 className="text-h3 text-text-primary mb-4">Moderation History</h2>
         <div className="h-32 bg-slate-100 rounded-lg animate-pulse" />
       </div>
     );
@@ -157,8 +157,8 @@ export default function ModerationHistoryView({
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <h2 className="text-h3 text-text-primary">Moderation History</h2>
+      <div className="bg-white rounded-2xl p-6">
+        <h2 className="text-h3 text-text-primary mb-4">Moderation History</h2>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           {error}
         </div>
@@ -169,8 +169,8 @@ export default function ModerationHistoryView({
   const hasAnyEntries = Object.keys(groupedByFlag).length > 0;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-h3 text-text-primary">Moderation History</h2>
+    <div className="bg-white rounded-2xl p-6">
+      <h2 className="text-h3 text-text-primary mb-6">Moderation History</h2>
 
       {!hasAnyEntries ? (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 text-center text-slate-600">
@@ -196,7 +196,7 @@ export default function ModerationHistoryView({
                   {entries.map(({ entry, isReinstated, reinstatedAt }) => (
                     <div
                       key={entry.id}
-                      className={`bg-white border rounded-lg p-4 ${
+                      className={`bg-slate-50 border rounded-lg p-4 ${
                         isReinstated ? "border-slate-200 opacity-75" : "border-slate-300"
                       }`}
                     >
@@ -210,7 +210,7 @@ export default function ModerationHistoryView({
                           </span>
                           <span>by {entry.performedBy.name}</span>
                           {isReinstated && reinstatedAt && (
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
+                            <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded text-xs">
                               Reinstated {formatDate(reinstatedAt)}
                             </span>
                           )}
