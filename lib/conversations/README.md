@@ -401,3 +401,44 @@ Additionally, guests are limited to `GUEST_MAX_RESPONSES_PER_SESSION` (10) total
 - **Listen**: Submit responses, view feed, like responses (10s polling)
 - **Understand**: View themes, submit feedback (agree/pass/disagree) (15s polling)
 - **Result**: View executive report HTML (20s polling)
+
+## Moderation
+
+Hive admins can moderate responses to remove inappropriate content while maintaining an audit trail.
+
+### Key Concepts
+
+- **Moderation flags**: `antisocial`, `misleading`, `illegal`, `spam`, `doxing` (defined in `types/moderation.ts`)
+- **Visibility**: Moderated responses are hidden from the live feed and excluded from analysis
+- **Audit trail**: All moderation actions (moderate/reinstate) are logged with timestamp and admin info
+- **Transparency**: Any hive member can view the moderation history; only admins can moderate/reinstate
+
+### API Endpoints
+
+| Method | Endpoint                                                     | Access       | Description                       |
+| ------ | ------------------------------------------------------------ | ------------ | --------------------------------- |
+| POST   | `/api/conversations/[id]/responses/[responseId]/moderate`    | Admin only   | Moderate a response with a flag   |
+| POST   | `/api/conversations/[id]/responses/[responseId]/reinstate`   | Admin only   | Reinstate a moderated response    |
+| GET    | `/api/conversations/[id]/moderation`                         | Hive members | Get moderation history            |
+
+### Database Schema
+
+- Migration: `supabase/migrations/047_add_moderation_support.sql`
+- `conversation_responses.moderation_flag`: enum (null if not moderated)
+- `conversation_responses.moderated_at`: timestamp of moderation
+- `conversation_responses.moderated_by`: UUID of moderating admin
+- `response_moderation_log`: Audit log table with all moderation/reinstatement actions
+
+### UI Components
+
+- **ListenView**: Flag button (admin-only) with popover menu for selecting moderation flag
+- **ConversationHeader**: "Moderation History" link in dropdown menu (all users)
+- **ModerationHistoryView**: Displays history grouped by flag category with reinstate option (admin-only)
+- **Page**: `app/hives/[hiveId]/conversations/[conversationId]/moderation/page.tsx`
+
+### Key Files
+
+- Types: `types/moderation.ts`
+- API routes: `app/api/conversations/[conversationId]/responses/[responseId]/moderate/route.ts`, `reinstate/route.ts`
+- History API: `app/api/conversations/[conversationId]/moderation/route.ts`
+- UI: `app/components/conversation/ModerationFlagMenu.tsx`, `ModerationHistoryView.tsx`
