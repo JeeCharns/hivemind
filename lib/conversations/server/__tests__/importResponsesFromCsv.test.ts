@@ -238,7 +238,7 @@ describe("importResponsesFromCsv", () => {
 
     await expect(
       importResponsesFromCsv(mockSupabase, conversationId, userId, file)
-    ).rejects.toThrow("CSV import is only supported for 'understand' sessions");
+    ).rejects.toThrow("CSV import is only supported for 'understand' or 'explore' sessions");
   });
 
   it("should skip empty response rows", async () => {
