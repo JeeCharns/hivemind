@@ -29,7 +29,7 @@ interface ConversationHeaderProps {
   conversationKey: string;
   title: string;
   description?: string | null;
-  conversationType?: "understand" | "decide";
+  conversationType?: "understand" | "decide" | "deliberate";
   isAdmin?: boolean;
   showRegenerateButton?: boolean;
   isRegenerating?: boolean;
@@ -109,11 +109,17 @@ export default function ConversationHeader({
           { slug: "decide?tab=vote", label: "Vote" },
           { slug: "decide?tab=results", label: "Results" },
         ]
-      : [
-          { slug: "listen", label: "Listen" },
-          { slug: "understand", label: "Understand" },
-          { slug: "result", label: "Result" },
-        ];
+      : conversationType === "deliberate"
+        ? [
+            { slug: "discuss", label: "Discuss" },
+            { slug: "analysis", label: "Analysis" },
+            { slug: "result", label: "Result" },
+          ]
+        : [
+            { slug: "listen", label: "Listen" },
+            { slug: "understand", label: "Understand" },
+            { slug: "result", label: "Result" },
+          ];
 
   const basePath = `/hives/${hiveKey}/conversations/${conversationKey}`;
 
