@@ -1,6 +1,6 @@
 import type { ApiErrorShape } from "./api";
 
-export type ConversationType = "understand" | "explore" | "decide";
+export type ConversationType = "understand" | "explore" | "decide" | "deliberate";
 
 export type CreateConversationRequest = {
   hiveId: string;

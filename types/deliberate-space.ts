@@ -1,0 +1,111 @@
+/**
+ * Deliberate Space Types
+ *
+ * Types for deliberate conversations with 5-point sentiment voting
+ */
+
+// VOTE LABELS
+export const VOTE_LABELS = {
+  5: "Deeply resonates",
+  4: "Mostly resonates",
+  3: "Mixed reaction",
+  2: "It's complicated",
+  1: "Strong aversion",
+} as const;
+
+export type VoteValue = 1 | 2 | 3 | 4 | 5;
+
+// STATEMENT TYPES
+export interface DeliberateStatement {
+  id: string;
+  clusterIndex: number | null;
+  clusterName: string | null;
+  statementText: string;
+  sourceBucketId: string | null;
+  displayOrder: number;
+  voteCount: number;
+  averageVote: number | null;
+  commentCount: number;
+}
+
+export interface ManualStatement {
+  text: string;
+  clusterName?: string;
+}
+
+// VIEW MODEL
+export interface DeliberateViewModel {
+  conversationId: string;
+  hiveKey: string;
+  conversationKey: string;
+  statements: DeliberateStatement[];
+  userVotes: Record<string, VoteValue | null>;
+  clusters: DeliberateCluster[];
+}
+
+export interface DeliberateCluster {
+  index: number | null;
+  name: string | null;
+  statementCount: number;
+}
+
+// COMMENT TYPES
+export interface DeliberateComment {
+  id: string;
+  statementId: string;
+  text: string;
+  isAnonymous: boolean;
+  createdAt: string;
+  user: {
+    id: string | null;
+    name: string;
+    avatarUrl: string | null;
+  };
+  isMine: boolean;
+}
+
+// WIZARD STATE
+export type DeliberateWizardMode = "from-understand" | "from-scratch";
+
+export interface ClusterSelectionItem {
+  clusterIndex: number;
+  name: string;
+  description: string;
+  statementCount: number;
+  selected: boolean;
+}
+
+export interface StatementSelectionItem {
+  bucketId: string;
+  clusterIndex: number;
+  clusterName: string;
+  statementText: string;
+  selected: boolean;
+}
+
+// API TYPES
+export interface CreateDeliberateSessionInput {
+  hiveId: string;
+  mode: DeliberateWizardMode;
+  title: string;
+  description?: string;
+  sourceConversationId?: string;
+  selectedStatements?: StatementSelectionItem[];
+  manualStatements?: ManualStatement[];
+}
+
+export interface CreateDeliberateSessionResult {
+  conversationId: string;
+  slug: string | null;
+}
+
+export interface VoteOnStatementInput {
+  statementId: string;
+  voteValue: VoteValue | null;
+}
+
+export interface AddCommentInput {
+  statementId: string;
+  text: string;
+  isAnonymous?: boolean;
+}

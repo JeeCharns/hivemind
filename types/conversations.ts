@@ -5,7 +5,7 @@
  * Follows SRP: types are separate from logic
  */
 
-export type ConversationType = "understand" | "explore" | "decide";
+export type ConversationType = "understand" | "explore" | "decide" | "deliberate";
 
 export type ConversationPhase =
   | "listen_open"
