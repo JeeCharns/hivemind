@@ -15,7 +15,12 @@ CREATE INDEX idx_conversation_responses_moderation_flag
   ON conversation_responses (conversation_id)
   WHERE moderation_flag IS NULL;
 
--- 4. Create moderation audit log table
+-- 4. Create FK index for moderated_by
+CREATE INDEX idx_conversation_responses_moderated_by
+  ON conversation_responses (moderated_by)
+  WHERE moderated_by IS NOT NULL;
+
+-- 5. Create moderation audit log table
 CREATE TABLE response_moderation_log (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   response_id BIGINT NOT NULL REFERENCES conversation_responses(id) ON DELETE CASCADE,
@@ -25,17 +30,20 @@ CREATE TABLE response_moderation_log (
   performed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 5. Create index for fetching moderation history by conversation
+-- 6. Create index for fetching moderation history by response
 CREATE INDEX idx_response_moderation_log_response_id ON response_moderation_log(response_id);
 
--- 6. Enable RLS on moderation log
+-- 7. Create FK index for performed_by
+CREATE INDEX idx_response_moderation_log_performed_by ON response_moderation_log(performed_by);
+
+-- 8. Enable RLS on moderation log
 ALTER TABLE response_moderation_log ENABLE ROW LEVEL SECURITY;
 
--- 7. RLS policy: Anyone can read moderation logs (per design requirement)
+-- 9. RLS policy: Anyone can read moderation logs (per design requirement)
 CREATE POLICY "response_moderation_log_select" ON response_moderation_log
   FOR SELECT USING (true);
 
--- 8. RLS policy: Only admins can insert (enforced at API level, but defense in depth)
--- Note: Actual admin check happens in API; this just requires authenticated user
+-- 10. RLS policy: Authenticated users can insert (admin check enforced at API level)
+-- RLS ensures performed_by matches the authenticated user; API enforces admin role
 CREATE POLICY "response_moderation_log_insert" ON response_moderation_log
   FOR INSERT WITH CHECK (auth.uid() = performed_by);
