@@ -14,7 +14,7 @@ import type { ListenTag } from "@/lib/conversations/domain/listen.types";
  */
 export const createConversationSchema = z.object({
   hiveId: z.string().uuid(),
-  type: z.enum(["understand", "decide"]),
+  type: z.enum(["understand", "explore", "decide"]),
   title: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
   // Solution space (decision session) fields
