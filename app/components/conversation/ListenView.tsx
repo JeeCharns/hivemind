@@ -31,7 +31,10 @@ import {
   Trash,
   Check,
   X,
+  Flag,
 } from "@phosphor-icons/react";
+import ModerationFlagMenu from "@/app/components/conversation/ModerationFlagMenu";
+import type { ModerationFlag } from "@/types/moderation";
 import {
   getTagColors,
   getTagHoverClasses,
@@ -75,6 +78,8 @@ export interface ListenViewProps {
   responsesClient?: import("@/lib/conversations/data/responsesClient").IConversationResponsesClient;
   /** Injected likes client (used for guest mode) */
   likesClient?: import("@/lib/conversations/data/likesClient").IResponseLikesClient;
+  /** Whether the current user is an admin (can moderate responses) */
+  isAdmin?: boolean;
 }
 
 export default function ListenView({
@@ -87,6 +92,7 @@ export default function ListenView({
   guestToken,
   responsesClient: injectedResponsesClient,
   likesClient: injectedLikesClient,
+  isAdmin = false,
 }: ListenViewProps) {
   const params = useParams<{
     hiveId: string;
@@ -141,6 +147,10 @@ export default function ListenView({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Moderation state
+  const [moderatingId, setModeratingId] = useState<string | null>(null);
+  const [isModerating, setIsModerating] = useState(false);
 
   const displayName = currentUserDisplayName || "User";
 
@@ -304,6 +314,36 @@ export default function ListenView({
       console.error("Delete failed:", err);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // Moderate a response
+  const moderateResponse = async (responseId: string, flag: ModerationFlag) => {
+    setIsModerating(true);
+
+    try {
+      const res = await fetch(
+        `/api/conversations/${conversationId}/responses/${responseId}/moderate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ flag }),
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("Moderate failed:", data.error);
+        return;
+      }
+
+      // Refresh feed to remove moderated response
+      silentRefresh();
+      setModeratingId(null);
+    } catch (err) {
+      console.error("Moderate failed:", err);
+    } finally {
+      setIsModerating(false);
     }
   };
 
@@ -616,6 +656,29 @@ export default function ListenView({
                         <Trash size={16} />
                       </button>
                     </>
+                  )}
+                  {/* Moderate button for admins */}
+                  {!isGuest && isAdmin && editingId !== resp.id && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setModeratingId(
+                            moderatingId === resp.id ? null : resp.id
+                          )
+                        }
+                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition"
+                        title="Moderate"
+                      >
+                        <Flag size={16} />
+                      </button>
+                      <ModerationFlagMenu
+                        isOpen={moderatingId === resp.id}
+                        onClose={() => setModeratingId(null)}
+                        onSelect={(flag) => moderateResponse(resp.id, flag)}
+                        isLoading={isModerating}
+                      />
+                    </div>
                   )}
                   <Button
                     variant="secondary"
