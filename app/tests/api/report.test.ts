@@ -187,7 +187,7 @@ describe("POST /api/conversations/[conversationId]/report", () => {
 
       expect(response.status).toBe(409);
       const data = await response.json();
-      expect(data.error).toContain("'understand' conversations");
+      expect(data.error).toContain("'understand' or 'explore' conversations");
     });
 
     it("should return 409 when analysis is not ready", async () => {

@@ -19,6 +19,11 @@ import {
 } from "@/lib/conversations/domain/responseConsensus";
 import { getAnthropicClient } from "@/lib/ai/anthropic";
 import { logActivity } from "@/lib/social/server/activityService";
+import {
+  buildExploreReportPrompt,
+  EXPLORE_REPORT_SYSTEM_PROMPT,
+  type ExploreReportPromptData,
+} from "@/lib/conversations/prompts/exploreReportPrompt";
 
 interface ClusterBucketRow {
   id: string;
@@ -145,9 +150,9 @@ export async function POST(
     }
 
     // 4. Validate conversation type
-    if (conversation.type !== "understand") {
+    if (conversation.type !== "understand" && conversation.type !== "explore") {
       return jsonError(
-        "Reports can only be generated for 'understand' conversations",
+        "Reports can only be generated for 'understand' or 'explore' conversations",
         409
       );
     }
@@ -392,7 +397,32 @@ export async function POST(
         ? Math.round((totalVotesCast / maxPossibleVotes) * 100)
         : 0;
 
-    const userMessage = `# Conversation: ${conversation.title || "Untitled Conversation"}
+    // Build prompt based on conversation type
+    let userMessage: string;
+    let systemPrompt: string;
+
+    if (conversation.type === "explore") {
+      // Build explore-specific prompt (no voting data)
+      const exploreData: ExploreReportPromptData = {
+        title: conversation.title || "Untitled Conversation",
+        responseCount: responseCount || 0,
+        participantCount: totalParticipants,
+        themes: themes.map((t) => ({
+          name: t.name || "Untitled",
+          description: t.description || "",
+          size: t.size || 0,
+        })),
+        consolidatedStatements: clusterBuckets.map((bucket) => ({
+          statement: bucket.consolidated_statement,
+          responseCount: bucket.conversation_cluster_bucket_members?.length || 1,
+        })),
+        sampleResponses: sampleResponses.map((r) => r.response_text),
+      };
+      userMessage = buildExploreReportPrompt(exploreData);
+      systemPrompt = EXPLORE_REPORT_SYSTEM_PROMPT;
+    } else {
+      // Existing understand prompt with voting data
+      userMessage = `# Conversation: ${conversation.title || "Untitled Conversation"}
 
 ## Participants
 - ${totalParticipants} total participants
@@ -428,6 +458,9 @@ Structure the document with the following sections (using HTML headings):
 
 Use whatever writing style best communicates each point — narrative prose, lists, or a mix.
 Reference specific vote data to support your points (e.g. "78% agreed that...").`;
+      systemPrompt =
+        'You are a skilled analyst writing for participants of a collective conversation. Your role is to help them understand what the group collectively expressed. Write in a natural narrative style — not a list of results, but a cohesive document that synthesises findings, draws connections between themes, and surfaces meaningful insights. Use a neutral, evidence-grounded tone that shifts to empathetic warmth when discussing points of genuine concern or division. Always reference specific vote data to support your narrative (e.g. "78% agreed that..."). Output valid HTML only — no markdown, no code fences, no preamble. Scale the depth and length of your writing to match the complexity of the data: a small simple conversation warrants a focused summary, a large complex one warrants deeper analysis.';
+    }
 
     // 11. Call Claude Sonnet 4
     let anthropic;
@@ -441,8 +474,7 @@ Reference specific vote data to support your points (e.g. "78% agreed that...").
       model: "claude-sonnet-4-20250514",
       max_tokens: 8000,
       temperature: 0.4,
-      system:
-        'You are a skilled analyst writing for participants of a collective conversation. Your role is to help them understand what the group collectively expressed. Write in a natural narrative style — not a list of results, but a cohesive document that synthesises findings, draws connections between themes, and surfaces meaningful insights. Use a neutral, evidence-grounded tone that shifts to empathetic warmth when discussing points of genuine concern or division. Always reference specific vote data to support your narrative (e.g. "78% agreed that..."). Output valid HTML only — no markdown, no code fences, no preamble. Scale the depth and length of your writing to match the complexity of the data: a small simple conversation warrants a focused summary, a large complex one warrants deeper analysis.',
+      system: systemPrompt,
       messages: [
         {
           role: "user",
