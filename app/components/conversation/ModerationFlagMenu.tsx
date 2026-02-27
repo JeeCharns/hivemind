@@ -50,7 +50,7 @@ export default function ModerationFlagMenu({
   return (
     <div
       ref={menuRef}
-      className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex gap-1"
+      className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg p-3 flex gap-2"
     >
       {MODERATION_FLAGS.map((flag) => {
         const { emoji, label } = MODERATION_FLAG_LABELS[flag];
@@ -60,10 +60,10 @@ export default function ModerationFlagMenu({
             type="button"
             onClick={() => onSelect(flag)}
             disabled={isLoading}
-            title={label}
-            className="w-9 h-9 flex items-center justify-center text-lg hover:bg-slate-100 rounded transition disabled:opacity-50"
+            className="flex flex-col items-center gap-1 px-2 py-1.5 hover:bg-slate-100 rounded transition disabled:opacity-50"
           >
-            {emoji}
+            <span className="text-xl">{emoji}</span>
+            <span className="text-xs text-slate-600">{label}</span>
           </button>
         );
       })}
