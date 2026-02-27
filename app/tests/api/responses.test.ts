@@ -32,6 +32,7 @@ type SupabaseMock = {
   select: jest.Mock;
   insert: jest.Mock;
   eq: jest.Mock;
+  is: jest.Mock;
   in: jest.Mock;
   order: jest.Mock;
   maybeSingle: jest.Mock;
@@ -67,6 +68,7 @@ describe("POST /api/conversations/[conversationId]/responses", () => {
       select: jest.fn(() => mockSupabase),
       insert: jest.fn(() => mockSupabase),
       eq: jest.fn(() => mockSupabase),
+      is: jest.fn(() => mockSupabase),
       in: jest.fn(() => mockSupabase),
       order: jest.fn(() => mockSupabase),
       maybeSingle: jest.fn(),
@@ -285,6 +287,7 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
       select: jest.fn(() => mockSupabase),
       insert: jest.fn(() => mockSupabase),
       eq: jest.fn(() => mockSupabase),
+      is: jest.fn(() => mockSupabase),
       in: jest.fn(() => mockSupabase),
       order: jest.fn(() => mockSupabase),
       maybeSingle: jest.fn(),
