@@ -57,7 +57,7 @@ export function canOpenReport(
  * Requirements:
  * - Must pass canOpenReport gate
  * - User must be a hive member
- * - Conversation type must be "understand"
+ * - Conversation type must be "understand" or "explore"
  * - Analysis status must be "ready"
  *
  * @param isMember - Whether user is a member of the hive
@@ -74,7 +74,8 @@ export function canGenerateReport(
 ): boolean {
   if (!gate.allowed) return false;
   if (!isMember) return false;
-  if (conversationType !== "understand") return false;
+  if (conversationType !== "understand" && conversationType !== "explore")
+    return false;
   if (analysisStatus !== "ready") return false;
 
   return true;
