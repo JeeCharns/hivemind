@@ -19,6 +19,7 @@ export interface UseNewSessionWizardProps {
   hiveId: string;
   hiveSlug?: string | null;
   open: boolean;
+  initialType?: "understand" | "explore";
 }
 
 export interface UseNewSessionWizardReturn {
@@ -68,6 +69,7 @@ export function useNewSessionWizard({
   hiveId,
   hiveSlug,
   open,
+  initialType = "explore",
 }: UseNewSessionWizardProps): UseNewSessionWizardReturn {
   const router = useRouter();
 
@@ -80,7 +82,7 @@ export function useNewSessionWizard({
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Form fields
-  const [type, setType] = useState<ConversationType>("understand");
+  const [type, setType] = useState<ConversationType>(initialType);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -103,7 +105,7 @@ export function useNewSessionWizard({
     if (!open) return;
 
     setStep(1);
-    setType("understand");
+    setType(initialType);
     setWizardError(null);
     setTitleError(null);
     setTypeError(null);
@@ -115,7 +117,7 @@ export function useNewSessionWizard({
     setUploadError(null);
     setSelectedReportConversationId(null);
     setSelectedReportVersion(null);
-  }, [open]);
+  }, [open, initialType]);
 
   /**
    * Validate file before setting

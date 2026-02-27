@@ -3,7 +3,6 @@
 import { PlusIcon } from "@phosphor-icons/react";
 import Button from "@/app/components/button";
 import { useNewSessionWizard } from "@/lib/conversations/react/useNewSessionWizard";
-import type { ConversationType } from "@/types/conversations";
 import { fetchProblemReports } from "@/lib/conversations/client/problemReportsApi";
 import { useState, useEffect } from "react";
 import type { ProblemReportListItem } from "@/lib/conversations/schemas";
@@ -14,18 +13,19 @@ export default function NewSessionWizard({
   onClose,
   hiveId,
   hiveSlug,
+  type: initialType = "explore",
 }: {
   open: boolean;
   onClose: () => void;
   hiveId: string;
   hiveSlug?: string | null;
+  type?: "understand" | "explore";
 }) {
   const {
     step,
     loading,
     wizardError,
     titleError,
-    typeError,
     type,
     title,
     description,
@@ -34,7 +34,6 @@ export default function NewSessionWizard({
     uploadStatus,
     selectedReportConversationId,
     selectedReportVersion,
-    setType,
     setTitle,
     setDescription,
     setSelectedReport,
@@ -44,7 +43,7 @@ export default function NewSessionWizard({
     onFileDropped,
     onSkipImport,
     onFinish,
-  } = useNewSessionWizard({ hiveId, hiveSlug, open });
+  } = useNewSessionWizard({ hiveId, hiveSlug, open, initialType });
 
   // State for decision setup wizard
   const [showDecisionWizard, setShowDecisionWizard] = useState(false);
@@ -136,83 +135,32 @@ export default function NewSessionWizard({
 
         {step === 1 && (
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  {
-                    key: "understand",
-                    title: "Discuss a Problem",
-                    desc: "Collect signals to clarify a problem space.",
-                    disabled: false,
-                  },
-                  {
-                    key: "decide",
-                    title: "Make a Decision",
-                    desc: "Gather inputs to choose between options.",
-                    disabled: false,
-                  },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() =>
-                      !opt.disabled && setType(opt.key as ConversationType)
-                    }
-                    disabled={opt.disabled}
-                    className={`w-full rounded-xl border p-4 flex flex-col items-start gap-1 text-left transition relative ${
-                      opt.disabled
-                        ? "border-slate-200 bg-slate-50 cursor-not-allowed opacity-60"
-                        : type === opt.key
-                          ? "border-brand-primary bg-[#EDEFFD]"
-                          : "border-slate-200 hover:border-[#cbd5f5]"
-                    }`}
-                  >
-                    {opt.disabled && (
-                      <span className="absolute top-2 right-2 text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                        Coming Soon
-                      </span>
-                    )}
-                    <span className="text-subtitle text-text-primary">
-                      {opt.title}
-                    </span>
-                    <span className="text-body text-text-secondary">
-                      {opt.desc}
-                    </span>
-                  </button>
-                ))}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2 w-full">
+                <label className="text-subtitle text-text-primary">
+                  Session title{" "}
+                  <span className="text-red-600 text-info">*</span>
+                </label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
+                  placeholder="e.g., Align on Q3 focus"
+                />
+                {titleError && (
+                  <span className="text-info text-red-600">{titleError}</span>
+                )}
               </div>
-
-              {typeError && (
-                <div className="text-body text-red-600">{typeError}</div>
-              )}
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2 w-full">
-                  <label className="text-subtitle text-text-primary">
-                    Session title{" "}
-                    <span className="text-red-600 text-info">*</span>
-                  </label>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
-                    placeholder="e.g., Align on Q3 focus"
-                  />
-                  {titleError && (
-                    <span className="text-info text-red-600">{titleError}</span>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 w-full">
-                  <label className="text-subtitle text-text-primary">
-                    Description
-                  </label>
-                  <input
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
-                    placeholder="What is this session about?"
-                  />
-                </div>
+              <div className="flex flex-col gap-2 w-full">
+                <label className="text-subtitle text-text-primary">
+                  Description
+                </label>
+                <input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="border border-slate-200 rounded-lg px-3 py-2 text-body w-full"
+                  placeholder="What is this session about?"
+                />
               </div>
             </div>
 
@@ -222,13 +170,7 @@ export default function NewSessionWizard({
               </Button>
               <Button
                 disabled={!title.trim() || loading}
-                onClick={() => {
-                  if (type === "decide") {
-                    setShowDecisionWizard(true);
-                  } else {
-                    onContinue();
-                  }
-                }}
+                onClick={onContinue}
               >
                 Continue
               </Button>
@@ -236,7 +178,7 @@ export default function NewSessionWizard({
           </div>
         )}
 
-        {step === 2 && type === "understand" && (
+        {step === 2 && (type === "understand" || type === "explore") && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">

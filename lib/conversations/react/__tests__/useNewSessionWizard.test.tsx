@@ -36,7 +36,7 @@ describe("useNewSessionWizard", () => {
 
       expect(result.current.step).toBe(1);
       expect(result.current.loading).toBe(false);
-      expect(result.current.type).toBe("understand");
+      expect(result.current.type).toBe("explore");
       expect(result.current.title).toBe("");
       expect(result.current.description).toBe("");
       expect(result.current.file).toBeNull();
@@ -62,7 +62,7 @@ describe("useNewSessionWizard", () => {
 
       // State should be reset
       expect(result.current.title).toBe("");
-      expect(result.current.type).toBe("understand");
+      expect(result.current.type).toBe("explore");
     });
   });
 
@@ -167,7 +167,7 @@ describe("useNewSessionWizard", () => {
 
       expect(mockCreate).toHaveBeenCalledWith({
         hiveId: "hive-123",
-        type: "understand",
+        type: "explore",
         title: "Test Session",
         description: "Test Description",
         sourceConversationId: undefined,
@@ -257,7 +257,7 @@ describe("useNewSessionWizard", () => {
 
       expect(mockCreate).toHaveBeenCalledWith({
         hiveId: "hive-123",
-        type: "understand",
+        type: "explore",
         title: "Test Session",
         description: undefined,
         sourceConversationId: undefined,
