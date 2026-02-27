@@ -300,6 +300,7 @@ describe("GET /api/conversations/[conversationId]/responses", () => {
       select: jest.fn(() => mockAdminSupabase),
       insert: jest.fn(() => mockAdminSupabase),
       eq: jest.fn(() => mockAdminSupabase),
+      is: jest.fn(() => mockAdminSupabase),
       in: jest.fn(() => mockAdminSupabase),
       order: jest.fn(() => mockAdminSupabase),
       maybeSingle: jest.fn(),
