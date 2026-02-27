@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeftIcon,
   ArrowsClockwise,
+  ClockCounterClockwise,
   DotsThreeOutlineVertical,
   ExportIcon,
   X,
@@ -277,6 +278,20 @@ export default function ConversationHeader({
                       Share
                     </span>
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push(`${basePath}/moderation`);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ClockCounterClockwise size={16} />
+                      Moderation History
+                    </span>
+                  </Button>
                   {isAdmin && conversationType !== "decide" && (
                     <Button
                       variant="ghost"
@@ -387,6 +402,20 @@ export default function ConversationHeader({
               </Button>
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start rounded-lg px-3 py-2 text-left text-body text-text-primary hover:bg-slate-50"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push(`${basePath}/moderation`);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ClockCounterClockwise size={16} />
+                      Moderation History
+                    </span>
+                  </Button>
                   {isAdmin && conversationType !== "decide" && (
                     <Button
                       variant="ghost"
