@@ -3,6 +3,7 @@
 import { EyeSlash, Eye } from "@phosphor-icons/react";
 import Button from "@/app/components/button";
 import { useDecisionSetupWizard } from "@/lib/decision-space/react/useDecisionSetupWizard";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import type { DecisionVisibility } from "@/types/decision-space";
 
 interface DecisionSetupWizardProps {
@@ -383,28 +384,31 @@ export default function DecisionSetupWizard({
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3">
                 <p className="text-body text-text-secondary">
-                  Set a consensus threshold to recommend statements, then
-                  fine-tune your selection.
+                  {FEATURE_FLAGS.ENABLE_CONSENSUS_THRESHOLD
+                    ? "Set a consensus threshold to recommend statements, then fine-tune your selection."
+                    : "Select which statements to include in the decision session."}
                 </p>
 
-                <div className="flex items-center gap-4 bg-slate-50 rounded-lg p-4">
-                  <label className="text-subtitle text-text-primary whitespace-nowrap">
-                    Consensus threshold:
-                  </label>
-                  <input
-                    type="range"
-                    min={50}
-                    max={90}
-                    value={consensusThreshold}
-                    onChange={(e) =>
-                      setConsensusThreshold(parseInt(e.target.value, 10))
-                    }
-                    className="flex-1"
-                  />
-                  <span className="text-subtitle text-text-primary w-12 text-right">
-                    {consensusThreshold}%
-                  </span>
-                </div>
+                {FEATURE_FLAGS.ENABLE_CONSENSUS_THRESHOLD && (
+                  <div className="flex items-center gap-4 bg-slate-50 rounded-lg p-4">
+                    <label className="text-subtitle text-text-primary whitespace-nowrap">
+                      Consensus threshold:
+                    </label>
+                    <input
+                      type="range"
+                      min={50}
+                      max={90}
+                      value={consensusThreshold}
+                      onChange={(e) =>
+                        setConsensusThreshold(parseInt(e.target.value, 10))
+                      }
+                      className="flex-1"
+                    />
+                    <span className="text-subtitle text-text-primary w-12 text-right">
+                      {consensusThreshold}%
+                    </span>
+                  </div>
+                )}
               </div>
 
               {Object.keys(statementsByCluster).length === 0 && !loading && (
@@ -543,15 +547,17 @@ export default function DecisionSetupWizard({
                     </span>
                   </div>
 
-                  {/* Consensus threshold */}
-                  <div>
-                    <span className="text-info text-text-secondary block mb-1">
-                      Consensus threshold
-                    </span>
-                    <span className="text-body text-text-primary">
-                      {consensusThreshold}%
-                    </span>
-                  </div>
+                  {/* Consensus threshold - only show if feature enabled */}
+                  {FEATURE_FLAGS.ENABLE_CONSENSUS_THRESHOLD && (
+                    <div>
+                      <span className="text-info text-text-secondary block mb-1">
+                        Consensus threshold
+                      </span>
+                      <span className="text-body text-text-primary">
+                        {consensusThreshold}%
+                      </span>
+                    </div>
+                  )}
 
                   {/* Vote visibility */}
                   <div>
