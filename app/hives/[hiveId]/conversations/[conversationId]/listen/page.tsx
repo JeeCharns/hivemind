@@ -10,6 +10,7 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveAndConversation } from "@/lib/conversations/server/resolveHiveAndConversation";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
+import { authorizeHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 import ListenView from "@/app/components/conversation/ListenView";
 import type { AnalysisStatus } from "@/types/conversations";
 
@@ -40,6 +41,9 @@ export default async function ListenPage({ params }: ListenPageProps) {
 
   // 3. Verify membership (throws if not a member)
   await requireHiveMember(supabase, session.user.id, hive.id);
+
+  // 3c. Check if user is admin for moderation capabilities
+  const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hive.id);
 
   // 3b. Redirect decide conversations to the decide page
   if (conversation.type === "decide") {
@@ -107,6 +111,7 @@ export default async function ListenPage({ params }: ListenPageProps) {
         sourceReportConversationTitle={sourceReportConversationTitle}
         conversationType={conversation.type as "understand" | "decide"}
         sourceConversationId={conversation.source_conversation_id}
+        isAdmin={isAdmin}
       />
     </div>
   );
