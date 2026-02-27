@@ -52,12 +52,14 @@ export async function GET(
     // 4. Fetch responses with profile data, is_anonymous flag, and guest_session_id
     //    Note: guest_sessions join is done separately via admin client because
     //    guest_sessions has RLS with no user-facing SELECT policy.
+    //    Moderated responses are filtered out (moderation_flag IS NULL).
     const { data: responses, error } = await supabase
       .from("conversation_responses")
       .select(
         "id,response_text,tag,created_at,user_id,is_anonymous,guest_session_id,profiles:user_id(display_name,avatar_path)"
       )
       .eq("conversation_id", conversationId)
+      .is("moderation_flag", null)
       .order("created_at", { ascending: false });
 
     if (error) {
