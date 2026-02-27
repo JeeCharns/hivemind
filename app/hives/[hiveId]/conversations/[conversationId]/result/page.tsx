@@ -7,6 +7,9 @@
 
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
+
+// Force dynamic rendering - no caching
+export const dynamic = "force-dynamic";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { resolveHiveAndConversation } from "@/lib/conversations/server/resolveHiveAndConversation";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
