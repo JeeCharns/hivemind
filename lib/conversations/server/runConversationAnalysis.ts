@@ -38,6 +38,7 @@ import {
   broadcastAnalysisProgress,
 } from "./broadcastAnalysisStatus";
 import { logActivity } from "@/lib/social/server/activityService";
+import { generateExploreReport } from "./generateExploreReport";
 
 interface ResponseData {
   id: string;
@@ -73,10 +74,10 @@ export async function runConversationAnalysis(
     // 4. Fetch responses
     const responses = await fetchResponses(supabase, conversationId);
 
-    // 4a. Fetch conversation metadata for activity logging
+    // 4a. Fetch conversation metadata for activity logging and auto-report
     const { data: conversationData } = await supabase
       .from("conversations")
-      .select("title, hive_id")
+      .select("title, hive_id, type")
       .eq("id", conversationId)
       .single();
 
@@ -377,6 +378,26 @@ export async function runConversationAnalysis(
           conversationTitle: conversationData.title,
         },
       });
+    }
+
+    // 21b. Auto-generate report for explore conversations
+    if (conversationData?.type === "explore") {
+      console.log(
+        `[runConversationAnalysis] Auto-generating report for explore conversation ${conversationId}`
+      );
+      const reportResult = await generateExploreReport(
+        supabase,
+        conversationId
+      );
+      if (reportResult.success) {
+        console.log(
+          `[runConversationAnalysis] Report v${reportResult.version} generated`
+        );
+      } else {
+        console.error(
+          `[runConversationAnalysis] Report generation failed: ${reportResult.error}`
+        );
+      }
     }
 
     // 22. Broadcast complete
