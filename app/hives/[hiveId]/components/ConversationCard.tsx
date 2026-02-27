@@ -49,7 +49,12 @@ export default function ConversationCard({
   conversation,
 }: ConversationCardProps) {
   const cta = getConversationCta(hiveKey, conversation);
-  const typeLabel = conversation.type === "decide" ? "DECIDE" : "DISCUSS";
+  const typeLabel =
+    conversation.type === "decide"
+      ? "DECIDE"
+      : conversation.type === "explore"
+        ? "EXPLORE"
+        : "DISCUSS";
   const title = conversation.title?.trim() || "Untitled Conversation";
   const description =
     conversation.description?.trim() || "No description has been added yet.";
@@ -66,7 +71,9 @@ export default function ConversationCard({
           className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide font-display ${
             conversation.type === "decide"
               ? "bg-emerald-50 text-emerald-600"
-              : "bg-red-50 text-red-600"
+              : conversation.type === "explore"
+                ? "bg-violet-50 text-violet-600"
+                : "bg-red-50 text-red-600"
           }`}
         >
           {typeLabel}
