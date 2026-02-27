@@ -150,7 +150,7 @@ export default function UnderstandViewContainer({
     uiState === "loading_results";
 
   const shouldShowStaleBanner =
-    conversationType === "understand" &&
+    (conversationType === "understand" || conversationType === "explore") &&
     analysisStatus === "ready" &&
     isAnalysisStale &&
     newResponsesSinceAnalysis >= INCREMENTAL_THRESHOLD;
@@ -161,7 +161,7 @@ export default function UnderstandViewContainer({
     (viewModel.themes?.length ?? 0) > 0;
 
   const shouldShowGenerateBanner =
-    conversationType === "understand" &&
+    (conversationType === "understand" || conversationType === "explore") &&
     responseCount >= threshold &&
     !analysisInProgress &&
     !hasGeneratedAnalysis;
