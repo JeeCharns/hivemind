@@ -45,6 +45,21 @@ export default function ReportView({ viewModel }: ReportViewProps) {
 
   const isExplore = viewModel.conversationType === "explore";
 
+  // Extract "Recommended Next Steps" section from report HTML
+  const extractRecommendedNextSteps = (html: string | null): string | null => {
+    if (!html) return null;
+    // Look for the Recommended Next Steps heading and extract content until next h1/h2 or end
+    const regex =
+      /<h[12][^>]*>.*?Recommended Next Steps.*?<\/h[12]>([\s\S]*?)(?=<h[12]|$)/i;
+    const match = html.match(regex);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+    return null;
+  };
+
+  const recommendedNextStepsHtml = extractRecommendedNextSteps(currentHtml);
+
   const shouldShowAnalysisPlaceholder = viewModel.analysisStatus !== "ready";
   const shouldShowFeedbackEmptyState =
     viewModel.analysisStatus === "ready" && !hasFeedbackData;
@@ -82,24 +97,63 @@ export default function ReportView({ viewModel }: ReportViewProps) {
                 <h3 className="text-subtitle text-text-primary mb-4">
                   Recommended Next Steps
                 </h3>
-                <div className="space-y-4">
-                  <div className="p-4 bg-slate-50 rounded-lg">
-                    <p className="text-body text-text-secondary mb-3">
-                      Create a new deliberate conversation using these topics
-                    </p>
-                    <Button
-                      variant="secondary"
-                      disabled
-                      title="Coming soon"
-                      className="w-full"
-                    >
-                      Continue conversation
-                      <span className="ml-2 text-xs font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
-                        Coming soon
-                      </span>
-                    </Button>
+                {recommendedNextStepsHtml ? (
+                  <div className="space-y-4">
+                    <style
+                      dangerouslySetInnerHTML={{
+                        __html: `
+                        .next-steps-content p {
+                          margin-bottom: 0.75rem;
+                          line-height: 1.6;
+                          color: #475569;
+                        }
+                        .next-steps-content ul,
+                        .next-steps-content ol {
+                          margin-bottom: 0.75rem;
+                          padding-left: 1.25rem;
+                        }
+                        .next-steps-content li {
+                          margin-bottom: 0.5rem;
+                          line-height: 1.5;
+                          color: #475569;
+                        }
+                        .next-steps-content ul li {
+                          list-style-type: disc;
+                        }
+                        .next-steps-content ol li {
+                          list-style-type: decimal;
+                        }
+                        .next-steps-content strong {
+                          color: #334155;
+                        }
+                      `,
+                      }}
+                    />
+                    <div
+                      className="next-steps-content"
+                      dangerouslySetInnerHTML={{ __html: recommendedNextStepsHtml }}
+                    />
+                    <div className="pt-4 border-t border-slate-100">
+                      <Button
+                        variant="secondary"
+                        disabled
+                        title="Coming soon"
+                        className="w-full"
+                      >
+                        Continue conversation
+                        <span className="ml-2 text-xs font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                          Coming soon
+                        </span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-4 bg-slate-50 rounded-lg">
+                    <p className="text-body text-text-secondary">
+                      Generate an executive summary to see recommended next steps.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <>
