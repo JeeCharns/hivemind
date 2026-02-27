@@ -644,18 +644,18 @@ export default function ListenView({
                         <button
                           type="button"
                           onClick={() => startEdit(resp.id, resp.text)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
                           title="Edit"
                         >
-                          <PencilSimple size={16} />
+                          <PencilSimple size={18} />
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteId(resp.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
                           title="Delete"
                         >
-                          <Trash size={16} />
+                          <Trash size={18} />
                         </button>
                       </>
                     )}
@@ -669,10 +669,10 @@ export default function ListenView({
                               moderatingId === resp.id ? null : resp.id
                             )
                           }
-                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition"
+                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition"
                           title="Moderate"
                         >
-                          <Flag size={16} />
+                          <Flag size={18} />
                         </button>
                         <ModerationFlagMenu
                           isOpen={moderatingId === resp.id}
