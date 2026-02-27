@@ -108,15 +108,15 @@ USING (
     SELECT 1 FROM conversations c
     JOIN hive_members hm ON hm.hive_id = c.hive_id
     WHERE c.id = deliberation_statements.conversation_id
-      AND hm.user_id = auth.uid()
+      AND hm.user_id = (select auth.uid())
   )
 );
 
 -- Service role manages statements
 CREATE POLICY "Service role manages deliberation statements"
 ON deliberation_statements FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
+USING ((select auth.role()) = 'service_role')
+WITH CHECK ((select auth.role()) = 'service_role');
 
 -- ============================================
 -- RLS Policies: Votes
@@ -125,7 +125,7 @@ WITH CHECK (auth.role() = 'service_role');
 -- Users can view their own votes
 CREATE POLICY "Users can view own deliberation votes"
 ON deliberation_votes FOR SELECT
-USING (user_id = auth.uid());
+USING (user_id = (select auth.uid()));
 
 -- Hive members can view all votes (for aggregates)
 CREATE POLICY "Hive members can view deliberation votes"
@@ -136,15 +136,15 @@ USING (
     JOIN conversations c ON c.id = ds.conversation_id
     JOIN hive_members hm ON hm.hive_id = c.hive_id
     WHERE ds.id = deliberation_votes.statement_id
-      AND hm.user_id = auth.uid()
+      AND hm.user_id = (select auth.uid())
   )
 );
 
 -- Service role manages votes
 CREATE POLICY "Service role manages deliberation votes"
 ON deliberation_votes FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
+USING ((select auth.role()) = 'service_role')
+WITH CHECK ((select auth.role()) = 'service_role');
 
 -- ============================================
 -- RLS Policies: Comments
@@ -159,12 +159,12 @@ USING (
     JOIN conversations c ON c.id = ds.conversation_id
     JOIN hive_members hm ON hm.hive_id = c.hive_id
     WHERE ds.id = deliberation_comments.statement_id
-      AND hm.user_id = auth.uid()
+      AND hm.user_id = (select auth.uid())
   )
 );
 
 -- Service role manages comments
 CREATE POLICY "Service role manages deliberation comments"
 ON deliberation_comments FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
+USING ((select auth.role()) = 'service_role')
+WITH CHECK ((select auth.role()) = 'service_role');
