@@ -120,9 +120,9 @@ export async function importResponsesFromCsv(
     throw new Error("Conversation not found");
   }
 
-  // Only "understand" type supports CSV import
-  if (conversation.type !== "understand") {
-    throw new Error("CSV import is only supported for 'understand' sessions");
+  // Only "understand" and "explore" types support CSV import
+  if (conversation.type !== "understand" && conversation.type !== "explore") {
+    throw new Error("CSV import is only supported for 'understand' or 'explore' sessions");
   }
 
   // Parse CSV

@@ -88,7 +88,7 @@ export async function triggerConversationAnalysis(
   }
 
   // 4. Check if conversation type supports analysis
-  if (conversation.type !== "understand") {
+  if (conversation.type !== "understand" && conversation.type !== "explore") {
     return {
       status: "already_complete",
       reason: "wrong_type",

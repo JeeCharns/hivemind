@@ -64,8 +64,8 @@ export async function maybeEnqueueAutoAnalysis(
     };
   }
 
-  // 2. Only trigger for "understand" conversations
-  if (conversation.type !== "understand") {
+  // 2. Only trigger for "understand" or "explore" conversations
+  if (conversation.type !== "understand" && conversation.type !== "explore") {
     return {
       triggered: false,
       status: "skipped",
