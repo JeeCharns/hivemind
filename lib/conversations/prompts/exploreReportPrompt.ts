@@ -64,10 +64,11 @@ Structure the document with the following sections (using HTML headings):
 1. Executive Summary — a concise overview of the conversation, participation, and headline findings
 2. Key Themes — the main themes that emerged, with narrative connecting them
 3. Common Perspectives — the most commonly expressed viewpoints, with context about what participants are saying
-4. Recommended Next Steps — actionable suggestions for what the group should do next. Consider recommending:
-   - Running a follow-up session to explore specific themes in more depth
-   - Areas that need further discussion or clarification
-   Be specific about which statements or themes each recommendation relates to.
+4. Recommended Next Steps — actionable suggestions for what the group should do next
+
+IMPORTANT: After the main report, add a special section with the exact heading:
+<h2 id="deliberation-focus">Deliberation Focus</h2>
+This section must be ONE paragraph only (2-4 sentences) that recommends a specific topic or question for the group to deliberate on next. Frame it as what decision or question the group should vote on together. Be specific and actionable.
 
 Use whatever writing style best communicates each point — narrative prose, lists, or a mix.`;
 }
