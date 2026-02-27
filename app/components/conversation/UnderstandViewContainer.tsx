@@ -72,7 +72,7 @@ function AnalysisAlert({
   return (
     <Alert
       variant="warning"
-      className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      className="mt-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex items-center gap-3">
         <div className="text-amber-600">
