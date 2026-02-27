@@ -56,7 +56,7 @@ export type AnalysisUiState =
 
 export interface UnderstandViewContainerProps {
   initialViewModel: UnderstandViewModel;
-  conversationType?: "understand" | "decide";
+  conversationType?: "understand" | "explore" | "decide";
   isAdmin?: boolean;
 }
 

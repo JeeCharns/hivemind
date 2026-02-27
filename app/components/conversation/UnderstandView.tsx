@@ -107,7 +107,7 @@ const scalePoints = (points: ResponsePoint[], size = CANVAS_SIZE) => {
 
 export interface UnderstandViewProps {
   viewModel: UnderstandViewModel;
-  conversationType?: "understand" | "decide";
+  conversationType?: "understand" | "explore" | "decide";
   analysisInProgress?: boolean;
   analysisProgress?: AnalysisProgress | null;
   uiState?: AnalysisUiState;
@@ -881,10 +881,12 @@ export default function UnderstandView({
                           >
                             {resp.tag ?? "response"}
                           </span>
-                          <span className="text-info text-slate-500">
-                            {resp.counts.agree} agree · {resp.counts.pass} pass
-                            · {resp.counts.disagree} disagree
-                          </span>
+                          {conversationType !== "explore" && (
+                            <span className="text-info text-slate-500">
+                              {resp.counts.agree} agree · {resp.counts.pass}{" "}
+                              pass · {resp.counts.disagree} disagree
+                            </span>
+                          )}
                         </div>
 
                         <p className="text-body text-slate-800 leading-relaxed line-clamp-3">

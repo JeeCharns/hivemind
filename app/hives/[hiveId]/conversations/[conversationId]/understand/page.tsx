@@ -75,7 +75,7 @@ export default async function UnderstandPage({ params }: UnderstandPageProps) {
     <div className="mx-auto w-full max-w-7xl px-0 md:px-6">
       <UnderstandViewContainer
         initialViewModel={viewModel}
-        conversationType={conversation.type as "understand" | "decide"}
+        conversationType={conversation.type as "understand" | "explore" | "decide"}
         isAdmin={isAdmin}
       />
     </div>

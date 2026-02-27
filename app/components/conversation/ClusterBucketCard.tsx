@@ -32,7 +32,7 @@ export interface ClusterBucketCardProps {
   /** Callback to submit a vote on a response */
   onVote?: (responseId: string, feedback: Feedback) => void;
   /** Conversation type determines if voting is enabled */
-  conversationType?: "understand" | "decide";
+  conversationType?: "understand" | "explore" | "decide";
   /** Map of response IDs to their feedback items (for vote state) */
   feedbackById?: Map<string, FeedbackItem>;
 }
@@ -124,15 +124,16 @@ export default function ClusterBucketCard({
         >
           {bucketName}
         </span>
-        {representativeCounts.agree +
-          representativeCounts.pass +
-          representativeCounts.disagree >
-          0 && (
-          <span className="text-info text-slate-500">
-            {representativeCounts.agree} agree · {representativeCounts.pass}{" "}
-            pass · {representativeCounts.disagree} disagree
-          </span>
-        )}
+        {conversationType !== "explore" &&
+          representativeCounts.agree +
+            representativeCounts.pass +
+            representativeCounts.disagree >
+            0 && (
+            <span className="text-info text-slate-500">
+              {representativeCounts.agree} agree · {representativeCounts.pass}{" "}
+              pass · {representativeCounts.disagree} disagree
+            </span>
+          )}
       </div>
 
       {/* Consolidated statement */}
