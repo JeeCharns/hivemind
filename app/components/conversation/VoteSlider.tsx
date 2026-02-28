@@ -116,28 +116,27 @@ export default function VoteSlider({ value, onChange }: VoteSliderProps) {
         </Button>
       </div>
 
-      {/* Labels row */}
+      {/* Labels row - three columns: left label, center (selected), right label */}
       <div className="flex items-center gap-8 w-full">
-        <div className="flex-1 flex justify-between text-xs text-slate-500 px-0">
-          <span>{VOTE_LABELS[1]}</span>
-          <span>{VOTE_LABELS[5]}</span>
+        <div className="flex-1 flex items-baseline">
+          {/* Left label - no padding, aligned to left edge */}
+          <span className="text-xs text-slate-500 flex-shrink-0">
+            {VOTE_LABELS[1]}
+          </span>
+
+          {/* Center - selected value label */}
+          <span className="flex-1 text-center text-sm text-brand-primary font-medium">
+            {value ? VOTE_LABELS[value] : ""}
+          </span>
+
+          {/* Right label - no padding, aligned to right edge */}
+          <span className="text-xs text-slate-500 flex-shrink-0">
+            {VOTE_LABELS[5]}
+          </span>
         </div>
         {/* Spacer to match Pass button width */}
         <div className="w-[88px]" />
       </div>
-
-      {/* Current vote label - centered under the slider */}
-      {value && (
-        <div className="flex items-center gap-8 w-full">
-          <div className="flex-1 text-center">
-            <span className="text-sm text-slate-700 font-medium">
-              {VOTE_LABELS[value]}
-            </span>
-          </div>
-          {/* Spacer to match Pass button width */}
-          <div className="w-[88px]" />
-        </div>
-      )}
     </div>
   );
 }
