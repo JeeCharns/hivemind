@@ -9,7 +9,32 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { DeliberateComment } from "@/types/deliberate-space";
-import { PaperPlaneTilt, Trash } from "@phosphor-icons/react";
+import { PaperPlaneTilt, Trash, User } from "@phosphor-icons/react";
+
+/** Format a timestamp as a relative time string */
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return "just now";
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes}m ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  } else if (diffDays === 1) {
+    return "yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+}
 
 interface DeliberateCommentListProps {
   statementId: string;
@@ -176,27 +201,47 @@ export default function DeliberateCommentList({
         <div className="space-y-3">
           {comments.map((comment) => (
             <div key={comment.id} className="p-3 rounded-lg bg-surface-secondary">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-label font-medium text-text-primary">
-                    {comment.user.name}
-                  </span>
-                  <span className="text-info text-text-tertiary">
-                    {new Date(comment.createdAt).toLocaleDateString()}
-                  </span>
+              <div className="flex items-start gap-3">
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  {comment.user.avatarUrl ? (
+                    <img
+                      src={comment.user.avatarUrl}
+                      alt={comment.user.name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
+                      <User size={16} className="text-slate-500" />
+                    </div>
+                  )}
                 </div>
-                {comment.isMine && (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(comment.id)}
-                    className="text-text-tertiary hover:text-red-500"
-                    aria-label="Delete comment"
-                  >
-                    <Trash size={16} />
-                  </button>
-                )}
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-label font-medium text-text-primary">
+                        {comment.user.name}
+                      </span>
+                      <span className="text-info text-text-tertiary">
+                        {formatRelativeTime(comment.createdAt)}
+                      </span>
+                    </div>
+                    {comment.isMine && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(comment.id)}
+                        className="text-text-tertiary hover:text-red-500"
+                        aria-label="Delete comment"
+                      >
+                        <Trash size={16} />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-body text-text-secondary mt-1">{comment.text}</p>
+                </div>
               </div>
-              <p className="text-body text-text-secondary">{comment.text}</p>
             </div>
           ))}
         </div>
