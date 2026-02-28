@@ -8,14 +8,15 @@
  * Right column: Selected statement detail with voting and comments
  */
 
-import { useMemo, useCallback, useEffect, useRef } from "react";
+import { useMemo, useCallback } from "react";
 import type { DeliberateViewModel, VoteValue } from "@/types/deliberate-space";
 import ThemeListPanel, {
   ThemeListCluster,
   ThemeListBucket,
 } from "./ThemeListPanel";
 import StatementDetailPanel from "./StatementDetailPanel";
-import { Chats } from "@phosphor-icons/react";
+import Alert from "@/app/components/alert";
+import { Chats, CheckCircle } from "@phosphor-icons/react";
 
 // Color palette matching ThemeListPanel
 const palette = [
@@ -113,21 +114,13 @@ export default function DiscussView({
     [statements]
   );
 
-  // Track completion alert (use ref to avoid re-renders)
-  const hasShownCompletionAlertRef = useRef(false);
-
   // Count statements user hasn't interacted with yet
   const unvotedCount = useMemo(() => {
     return statements.filter((s) => !interactedStatements.has(s.id)).length;
   }, [statements, interactedStatements]);
 
-  // Show completion alert when all voted
-  useEffect(() => {
-    if (unvotedCount === 0 && statements.length > 0 && !hasShownCompletionAlertRef.current) {
-      hasShownCompletionAlertRef.current = true;
-      alert("Amazing, you have voted on all the statements! Thank you");
-    }
-  }, [unvotedCount, statements.length]);
+  // Show completion banner when all statements voted
+  const allVoted = unvotedCount === 0 && statements.length > 0;
 
   // Get ordered list of statements (by cluster index, then display order)
   const orderedStatements = useMemo(() => {
@@ -177,7 +170,21 @@ export default function DiscussView({
     currentIndex < orderedStatements.length - 1 || unvotedCount > 0;
 
   return (
-    <div className="flex gap-6 h-full min-h-[600px] py-4">
+    <div className="flex flex-col h-full min-h-[600px] py-4">
+      {/* Completion banner */}
+      {allVoted && (
+        <Alert
+          variant="success"
+          className="mb-4 flex items-center gap-3"
+        >
+          <CheckCircle size={20} weight="fill" className="text-green-600 shrink-0" />
+          <p className="text-sm font-medium">
+            Amazing, you have voted on all the statements! Thank you for your participation.
+          </p>
+        </Alert>
+      )}
+
+      <div className="flex gap-6 flex-1">
       {/* Left Column - Theme List (same as understand tab) */}
       <div className="w-2/5 bg-white rounded-2xl overflow-y-auto p-6">
         {clusters.length === 0 ? (
@@ -220,6 +227,7 @@ export default function DiscussView({
             <p>Select a statement to view details and vote</p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
