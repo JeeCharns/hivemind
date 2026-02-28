@@ -408,11 +408,11 @@ export default function DeliberateCommentList({
       ) : filteredComments.length === 0 ? (
         <p className="text-info text-text-tertiary">No comments with this vote</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredComments.map((comment) => (
             <div
               key={comment.id}
-              className="group p-3 rounded-lg bg-surface-secondary"
+              className="group py-2 px-0"
             >
               <div className="flex items-start gap-3">
                 {/* Avatar */}
@@ -540,7 +540,7 @@ export default function DeliberateCommentList({
                       </div>
                     </div>
                   ) : (
-                    <p className="text-body text-text-secondary mt-1">
+                    <p className="text-body text-text-secondary mt-0.5">
                       {comment.text}
                     </p>
                   )}
