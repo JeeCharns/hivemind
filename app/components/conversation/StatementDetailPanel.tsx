@@ -59,7 +59,7 @@ export default function StatementDetailPanel({
           type="button"
           onClick={onPrevious}
           disabled={!canGoPrevious}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-border-secondary rounded-lg text-text-secondary hover:bg-surface-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-lg text-text-secondary hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
         >
           <CaretLeft size={16} />
           Previous
@@ -80,7 +80,7 @@ export default function StatementDetailPanel({
           type="button"
           onClick={onNext}
           disabled={!canGoNext}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-border-secondary rounded-lg text-text-secondary hover:bg-surface-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-lg text-text-secondary hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
         >
           Next {unvotedCount > 0 && `(${unvotedCount})`}
           <CaretRight size={16} />

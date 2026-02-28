@@ -311,14 +311,14 @@ export default function DeliberateCommentList({
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm text-text-secondary border border-border-secondary rounded-lg hover:bg-surface-secondary"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-text-secondary border border-slate-200 rounded-lg hover:bg-slate-50"
           >
             {filter === "all" ? "All" : VOTE_LABELS[filter]}
             <CaretDown size={14} />
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-1 w-52 bg-white border border-border-secondary rounded-lg shadow-lg z-20">
+            <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-lg shadow-lg z-20">
               <button
                 type="button"
                 onClick={() => {
@@ -365,7 +365,7 @@ export default function DeliberateCommentList({
                 : "Why did you give that result?"
             }
             disabled={disabled}
-            className={`flex-1 px-3 py-2 rounded-lg border border-border-secondary focus:border-brand-primary focus:outline-none text-body ${
+            className={`flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:border-brand-primary focus:outline-none text-body ${
               disabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : ""
             }`}
             onKeyDown={(e) => {
@@ -512,7 +512,7 @@ export default function DeliberateCommentList({
                         type="text"
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-border-secondary focus:border-brand-primary focus:outline-none text-body"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-brand-primary focus:outline-none text-body"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
