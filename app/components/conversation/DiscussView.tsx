@@ -145,8 +145,15 @@ export default function DiscussView({
     onSelectStatement(prevStatement.id);
   }, [currentIndex, orderedStatements, onSelectStatement]);
 
-  // Navigate to next unvoted statement
+  // Navigate to next statement (unvoted first, or chronologically if all voted)
   const handleNext = useCallback(() => {
+    // If all voted, cycle through chronologically
+    if (allVoted) {
+      const nextIndex = (currentIndex + 1) % orderedStatements.length;
+      onSelectStatement(orderedStatements[nextIndex].id);
+      return;
+    }
+
     // Find the next unvoted statement after the current position
     for (let i = currentIndex + 1; i < orderedStatements.length; i++) {
       if (!interactedStatements.has(orderedStatements[i].id)) {
@@ -162,12 +169,12 @@ export default function DiscussView({
         return;
       }
     }
-  }, [currentIndex, orderedStatements, onSelectStatement, interactedStatements]);
+  }, [currentIndex, orderedStatements, onSelectStatement, interactedStatements, allVoted]);
 
   const canGoPrevious = currentIndex > 0;
-  // Can go next if there's another statement OR there are unvoted statements to wrap to
+  // Can go next if there are unvoted statements, or if all voted and there are multiple statements
   const canGoNext =
-    currentIndex < orderedStatements.length - 1 || unvotedCount > 0;
+    unvotedCount > 0 || (allVoted && orderedStatements.length > 1);
 
   return (
     <div className="flex flex-col h-full min-h-[600px] py-4">
