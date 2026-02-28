@@ -8,7 +8,7 @@
  * Right column: Selected statement detail with voting and comments
  */
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect, useRef } from "react";
 import type { DeliberateViewModel, VoteValue } from "@/types/deliberate-space";
 import ThemeListPanel, {
   ThemeListCluster,
@@ -102,6 +102,57 @@ export default function DiscussView({
     [statements]
   );
 
+  // Track completion alert (use ref to avoid re-renders)
+  const hasShownCompletionAlertRef = useRef(false);
+
+  // Count unvoted statements
+  const unvotedCount = useMemo(() => {
+    return statements.filter(
+      (s) => userVotes[s.id] === undefined || userVotes[s.id] === null
+    ).length;
+  }, [statements, userVotes]);
+
+  // Show completion alert when all voted
+  useEffect(() => {
+    if (unvotedCount === 0 && statements.length > 0 && !hasShownCompletionAlertRef.current) {
+      hasShownCompletionAlertRef.current = true;
+      alert("Amazing, you have voted on all the statements! Thank you");
+    }
+  }, [unvotedCount, statements.length]);
+
+  // Get ordered list of statements (by cluster index, then display order)
+  const orderedStatements = useMemo(() => {
+    return [...statements].sort((a, b) => {
+      const clusterA = a.clusterIndex ?? -1;
+      const clusterB = b.clusterIndex ?? -1;
+      if (clusterA !== clusterB) return clusterA - clusterB;
+      return a.displayOrder - b.displayOrder;
+    });
+  }, [statements]);
+
+  // Find current index in ordered list
+  const currentIndex = useMemo(() => {
+    if (!selectedStatementId) return -1;
+    return orderedStatements.findIndex((s) => s.id === selectedStatementId);
+  }, [orderedStatements, selectedStatementId]);
+
+  // Navigate to previous statement
+  const handlePrevious = useCallback(() => {
+    if (currentIndex <= 0) return;
+    const prevStatement = orderedStatements[currentIndex - 1];
+    onSelectStatement(prevStatement.id);
+  }, [currentIndex, orderedStatements, onSelectStatement]);
+
+  // Navigate to next statement
+  const handleNext = useCallback(() => {
+    if (currentIndex >= orderedStatements.length - 1) return;
+    const nextStatement = orderedStatements[currentIndex + 1];
+    onSelectStatement(nextStatement.id);
+  }, [currentIndex, orderedStatements, onSelectStatement]);
+
+  const canGoPrevious = currentIndex > 0;
+  const canGoNext = currentIndex < orderedStatements.length - 1;
+
   return (
     <div className="flex gap-6 h-full min-h-[600px] p-4">
       {/* Left Column - Theme List (same as understand tab) */}
@@ -133,6 +184,11 @@ export default function DiscussView({
             themeColor={selectedThemeColor}
             hasVoted={hasVoted}
             isAdmin={isAdmin}
+            unvotedCount={unvotedCount}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+            canGoPrevious={canGoPrevious}
+            canGoNext={canGoNext}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-text-tertiary">
