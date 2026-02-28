@@ -75,6 +75,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Fetch votes for each commenter on this statement
+    const voteMap = new Map<string, number>();
+    if (userIds.length > 0) {
+      const { data: votes, error: voteError } = await supabase
+        .from("deliberation_votes")
+        .select("user_id, vote_value")
+        .eq("statement_id", statementId)
+        .in("user_id", userIds);
+
+      if (voteError) {
+        console.error("[GET comments] Vote lookup error:", voteError);
+      }
+
+      for (const vote of votes || []) {
+        if (vote.user_id && vote.vote_value !== null) {
+          voteMap.set(vote.user_id, vote.vote_value);
+        }
+      }
+    }
+
     // Build avatar URL map (async operation)
     const avatarUrlMap = new Map<string, string>();
     for (const [userId, profile] of profileMap.entries()) {
@@ -91,6 +111,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const formattedComments = (comments || []).map((c) => {
       const profile = c.user_id ? profileMap.get(c.user_id) : null;
       const avatarUrl = c.user_id ? avatarUrlMap.get(c.user_id) : null;
+      const userVote = c.user_id ? voteMap.get(c.user_id) : null;
       return {
         id: String(c.id),
         statementId: c.statement_id,
@@ -104,6 +125,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             : profile?.display_name || "Unknown",
           avatarUrl: c.is_anonymous ? null : avatarUrl || null,
         },
+        userVote: c.is_anonymous ? null : (userVote ?? null),
         isMine: c.user_id === session.user.id,
       };
     });

@@ -4,12 +4,34 @@
  * DeliberateCommentList - Client Component
  *
  * Comment list with add/delete functionality for deliberate statements
- * Supports anonymous commenting
+ * Supports anonymous commenting with vote labels and filtering
  */
 
-import { useState, useEffect, useCallback } from "react";
-import type { DeliberateComment } from "@/types/deliberate-space";
-import { PaperPlaneTilt, Trash, User } from "@phosphor-icons/react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import type { DeliberateComment, VoteValue } from "@/types/deliberate-space";
+import { VOTE_LABELS } from "@/types/deliberate-space";
+import { PaperPlaneTilt, Trash, User, CaretDown } from "@phosphor-icons/react";
+
+/** Get colour class for vote value */
+function getVoteColor(vote: VoteValue): string {
+  switch (vote) {
+    case 5:
+      return "text-emerald-600";
+    case 4:
+      return "text-green-500";
+    case 3:
+      return "text-amber-500";
+    case 2:
+      return "text-orange-500";
+    case 1:
+      return "text-red-500";
+    default:
+      return "text-slate-500";
+  }
+}
+
+/** Filter option type */
+type FilterOption = "all" | VoteValue;
 
 /** Format a timestamp as a relative time string */
 function formatRelativeTime(dateString: string): string {
@@ -54,6 +76,48 @@ export default function DeliberateCommentList({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterOption>("all");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isDropdownOpen]);
+
+  // Calculate vote counts for filter dropdown
+  const voteCounts = useMemo(() => {
+    const counts: Record<VoteValue | "none", number> = {
+      5: 0,
+      4: 0,
+      3: 0,
+      2: 0,
+      1: 0,
+      none: 0,
+    };
+    for (const comment of comments) {
+      if (comment.userVote !== null) {
+        counts[comment.userVote]++;
+      } else {
+        counts.none++;
+      }
+    }
+    return counts;
+  }, [comments]);
+
+  // Filter comments based on selected filter
+  const filteredComments = useMemo(() => {
+    if (filter === "all") return comments;
+    return comments.filter((c) => c.userVote === filter);
+  }, [comments, filter]);
 
   useEffect(() => {
     async function fetchComments() {
@@ -141,9 +205,57 @@ export default function DeliberateCommentList({
 
   return (
     <div className="space-y-4">
-      <h4 className="text-label font-medium text-text-secondary">
-        Comments ({comments.length})
-      </h4>
+      <div className="flex items-center justify-between">
+        <h4 className="text-label font-medium text-text-secondary">
+          Comments ({comments.length})
+        </h4>
+
+        {/* Filter dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-text-secondary border border-border-secondary rounded-lg hover:bg-surface-secondary"
+          >
+            {filter === "all" ? "All" : VOTE_LABELS[filter]}
+            <CaretDown size={14} />
+          </button>
+
+          {isDropdownOpen && (
+            <div className="absolute right-0 mt-1 w-52 bg-white border border-border-secondary rounded-lg shadow-lg z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("all");
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-left text-sm hover:bg-surface-secondary flex justify-between ${
+                  filter === "all" ? "bg-surface-secondary font-medium" : ""
+                }`}
+              >
+                <span>All</span>
+                <span className="text-text-tertiary">{comments.length}</span>
+              </button>
+              {([5, 4, 3, 2, 1] as VoteValue[]).map((vote) => (
+                <button
+                  key={vote}
+                  type="button"
+                  onClick={() => {
+                    setFilter(vote);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-surface-secondary flex justify-between ${
+                    filter === vote ? "bg-surface-secondary font-medium" : ""
+                  }`}
+                >
+                  <span className={getVoteColor(vote)}>{VOTE_LABELS[vote]}</span>
+                  <span className="text-text-tertiary">{voteCounts[vote]}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="space-y-2">
         <div className="flex gap-2">
@@ -197,9 +309,11 @@ export default function DeliberateCommentList({
         <p className="text-info text-text-tertiary">Loading comments...</p>
       ) : comments.length === 0 ? (
         <p className="text-info text-text-tertiary">No comments yet</p>
+      ) : filteredComments.length === 0 ? (
+        <p className="text-info text-text-tertiary">No comments with this vote</p>
       ) : (
         <div className="space-y-3">
-          {comments.map((comment) => (
+          {filteredComments.map((comment) => (
             <div key={comment.id} className="p-3 rounded-lg bg-surface-secondary">
               <div className="flex items-start gap-3">
                 {/* Avatar */}
@@ -224,6 +338,11 @@ export default function DeliberateCommentList({
                       <span className="text-label font-medium text-text-primary">
                         {comment.user.name}
                       </span>
+                      {comment.userVote && (
+                        <span className={`text-info font-medium ${getVoteColor(comment.userVote)}`}>
+                          {VOTE_LABELS[comment.userVote]}
+                        </span>
+                      )}
                       <span className="text-info text-text-tertiary">
                         {formatRelativeTime(comment.createdAt)}
                       </span>

@@ -67,6 +67,8 @@ export interface DeliberateComment {
     name: string;
     avatarUrl: string | null;
   };
+  /** The vote value the commenter gave to this statement (null if passed or no vote) */
+  userVote: VoteValue | null;
   isMine: boolean;
 }
 
