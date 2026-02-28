@@ -10,7 +10,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import Button from "@/app/components/button";
-import { CaretDown, SpinnerGap } from "@phosphor-icons/react";
+import { CaretDown, SpinnerGap, ChartBar, ChatCircle } from "@phosphor-icons/react";
 import { useBucketResponses } from "@/lib/conversations/react/useBucketResponses";
 
 // Color palette matching UnderstandView
@@ -42,6 +42,10 @@ export interface ThemeListBucket {
   sourceBucketId?: string;
   /** Source conversation ID for fetching original responses */
   sourceConversationId?: string;
+  /** Number of votes on this statement */
+  voteCount?: number;
+  /** Number of comments on this statement */
+  commentCount?: number;
 }
 
 export interface ThemeListPanelProps {
@@ -138,13 +142,14 @@ function ExpandableBucketCard({
         </p>
       </button>
 
-      {/* Show original responses toggle (if has responses) */}
-      {canExpand && (
-        <div className="pt-2">
+      {/* Bottom row: Show responses on left, vote/comment counts on right */}
+      <div className="flex items-center justify-between pt-2">
+        {/* Show original responses toggle (if has responses) */}
+        {canExpand ? (
           <button
             type="button"
             onClick={handleToggleExpand}
-            className="w-full flex items-center justify-center gap-2 text-slate-500 hover:bg-slate-100 px-3 py-2.5 rounded-lg transition"
+            className="flex items-center gap-1.5 text-slate-500 hover:bg-slate-100 px-2 py-1.5 rounded-lg transition"
           >
             <span className="text-info">
               {isExpanded ? "Hide" : "Show"} {bucket.responseCount} original{" "}
@@ -164,10 +169,30 @@ function ExpandableBucketCard({
               />
             )}
           </button>
+        ) : (
+          <div />
+        )}
 
-          {/* Expanded original responses */}
-          {isExpanded && (
-            <div className="mt-3 space-y-3 pl-4 border-l-2 border-indigo-200">
+        {/* Vote and comment counts */}
+        <div className="flex items-center gap-3 text-slate-400">
+          {bucket.voteCount !== undefined && (
+            <span className="flex items-center gap-1 text-info">
+              <ChartBar size={14} />
+              {bucket.voteCount}
+            </span>
+          )}
+          {bucket.commentCount !== undefined && (
+            <span className="flex items-center gap-1 text-info">
+              <ChatCircle size={14} />
+              {bucket.commentCount}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Expanded original responses */}
+      {canExpand && isExpanded && (
+        <div className="mt-3 space-y-3 pl-4 border-l-2 border-indigo-200">
               {/* Loading state for initial load */}
               {isLoading && responses.length === 0 && (
                 <div className="flex items-center gap-2 py-2 text-slate-500">
@@ -206,13 +231,11 @@ function ExpandableBucketCard({
                 </button>
               )}
 
-              {/* Loading more indicator */}
-              {isLoading && responses.length > 0 && (
-                <div className="flex items-center justify-center gap-2 py-2 text-slate-500">
-                  <SpinnerGap size={16} className="animate-spin" />
-                  <span className="text-sm">Loading more...</span>
-                </div>
-              )}
+          {/* Loading more indicator */}
+          {isLoading && responses.length > 0 && (
+            <div className="flex items-center justify-center gap-2 py-2 text-slate-500">
+              <SpinnerGap size={16} className="animate-spin" />
+              <span className="text-sm">Loading more...</span>
             </div>
           )}
         </div>

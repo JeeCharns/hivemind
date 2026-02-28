@@ -102,6 +102,7 @@ export default function StatementDetailPanel({
           conversationId={conversationId}
           disabled={!hasVoted}
           isAdmin={isAdmin}
+          voteCount={statement.voteCount}
         />
       </div>
     </div>

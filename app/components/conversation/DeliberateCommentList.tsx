@@ -76,6 +76,8 @@ interface DeliberateCommentListProps {
   disabled?: boolean;
   /** Whether the current user is an admin (can moderate comments) */
   isAdmin?: boolean;
+  /** Total number of votes on this statement */
+  voteCount?: number;
 }
 
 export default function DeliberateCommentList({
@@ -83,6 +85,7 @@ export default function DeliberateCommentList({
   conversationId,
   disabled = false,
   isAdmin = false,
+  voteCount = 0,
 }: DeliberateCommentListProps) {
   const [comments, setComments] = useState<DeliberateComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -302,9 +305,14 @@ export default function DeliberateCommentList({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-label font-medium text-text-secondary">
-          Comments ({comments.length})
-        </h4>
+        <div className="flex items-center gap-4">
+          <h4 className="text-label font-medium text-text-secondary">
+            Votes ({voteCount})
+          </h4>
+          <h4 className="text-label font-medium text-text-secondary">
+            Comments ({comments.length})
+          </h4>
+        </div>
 
         {/* Filter dropdown */}
         <div className="relative" ref={dropdownRef}>

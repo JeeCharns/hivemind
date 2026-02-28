@@ -110,6 +110,8 @@ export default function DiscussView({
         responseCount: stmt.originalResponseCount || undefined,
         sourceBucketId: stmt.sourceBucketId || undefined,
         sourceConversationId: stmt.sourceConversationId || undefined,
+        voteCount: stmt.voteCount,
+        commentCount: stmt.commentCount,
       })),
     [statements]
   );
