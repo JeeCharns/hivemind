@@ -11,6 +11,52 @@ import { useCallback, useRef } from "react";
 import { VOTE_LABELS, type VoteValue } from "@/types/deliberate-space";
 import Button from "@/app/components/button";
 
+/** Get colour classes for vote value - matches comment section labels */
+function getVoteColors(vote: VoteValue): {
+  text: string;
+  bg: string;
+  border: string;
+  ring: string;
+} {
+  switch (vote) {
+    case 5:
+      return {
+        text: "text-emerald-600",
+        bg: "bg-emerald-600",
+        border: "border-emerald-600",
+        ring: "ring-emerald-600/20",
+      };
+    case 4:
+      return {
+        text: "text-green-500",
+        bg: "bg-green-500",
+        border: "border-green-500",
+        ring: "ring-green-500/20",
+      };
+    case 3:
+      return {
+        text: "text-amber-500",
+        bg: "bg-amber-500",
+        border: "border-amber-500",
+        ring: "ring-amber-500/20",
+      };
+    case 2:
+      return {
+        text: "text-orange-500",
+        bg: "bg-orange-500",
+        border: "border-orange-500",
+        ring: "ring-orange-500/20",
+      };
+    case 1:
+      return {
+        text: "text-red-500",
+        bg: "bg-red-500",
+        border: "border-red-500",
+        ring: "ring-red-500/20",
+      };
+  }
+}
+
 interface VoteSliderProps {
   value: VoteValue | null;
   onChange: (value: VoteValue | null) => void;
@@ -73,6 +119,7 @@ export default function VoteSlider({
             {/* Tick marks with numbers below */}
             {VOTE_VALUES.map((v) => {
               const isSelected = value === v;
+              const colors = getVoteColors(v);
               return (
                 <button
                   key={v}
@@ -88,7 +135,7 @@ export default function VoteSlider({
                   <div
                     className={`w-4 h-4 rounded-full border-2 transition-all ${
                       isSelected
-                        ? "bg-brand-primary border-brand-primary scale-150 shadow-md ring-4 ring-brand-primary/20"
+                        ? `${colors.bg} ${colors.border} scale-150 shadow-md ring-4 ${colors.ring}`
                         : "bg-white border-slate-300 hover:border-slate-400 hover:scale-110"
                     }`}
                   />
@@ -96,7 +143,7 @@ export default function VoteSlider({
                   <span
                     className={`text-xs mt-2 transition-colors ${
                       isSelected
-                        ? "text-brand-primary font-semibold"
+                        ? `${colors.text} font-semibold`
                         : "text-slate-500"
                     }`}
                   >
@@ -133,7 +180,11 @@ export default function VoteSlider({
           </span>
 
           {/* Center - selected value label */}
-          <span className="flex-1 text-center text-sm text-brand-primary font-medium">
+          <span
+            className={`flex-1 text-center text-sm font-medium ${
+              value ? getVoteColors(value).text : ""
+            }`}
+          >
             {value ? VOTE_LABELS[value] : ""}
           </span>
 
