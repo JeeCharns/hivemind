@@ -226,8 +226,8 @@ export default function DeliberateSetupWizard({
           {mode === "from-understand" && step === 1 && (
             <div className="flex flex-col gap-4">
               <p className="text-body text-text-secondary">
-                Select an understand session with analysed clusters to create
-                deliberation statements from.
+                Select a session with analysed clusters to create deliberation
+                statements from.
               </p>
 
               {/* Skeleton loading state */}
@@ -251,8 +251,8 @@ export default function DeliberateSetupWizard({
               {/* Empty state */}
               {!sourcesLoading && sourceConversations.length === 0 && (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-body text-slate-600 text-center">
-                  No ready understand sessions found. Complete an analysis first
-                  to create deliberation sessions.
+                  No ready sessions found. Complete an analysis on an understand
+                  or explore session first to create deliberation sessions.
                 </div>
               )}
 
@@ -271,9 +271,14 @@ export default function DeliberateSetupWizard({
                       }`}
                     >
                       <div className="flex items-start justify-between w-full">
-                        <span className="text-subtitle text-text-primary">
-                          {session.title}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-subtitle text-text-primary">
+                            {session.title}
+                          </span>
+                          <span className="text-label px-2 py-0.5 rounded bg-slate-100 text-slate-600 capitalize">
+                            {session.type}
+                          </span>
+                        </div>
                         {selectedSourceId === session.id && (
                           <span className="text-label text-brand-primary bg-white px-2 py-1 rounded">
                             Selected

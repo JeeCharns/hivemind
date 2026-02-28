@@ -32,6 +32,7 @@ export interface SourceCluster {
 export interface SourceConversation {
   id: string;
   title: string;
+  type: "understand" | "explore";
   statementCount: number;
   clusterCount: number;
   date: string;
@@ -179,12 +180,14 @@ export function useDeliberateSetupWizard({
           (s: {
             id: string;
             title?: string;
+            type?: string;
             statementCount?: number;
             clusterCount?: number;
             date?: string;
           }) => ({
             id: s.id,
             title: s.title || "Untitled Session",
+            type: (s.type as "understand" | "explore") || "understand",
             statementCount: s.statementCount || 0,
             clusterCount: s.clusterCount || 0,
             date: s.date || "",
@@ -198,7 +201,7 @@ export function useDeliberateSetupWizard({
           "[useDeliberateSetupWizard] Failed to fetch sources:",
           err
         );
-        setError("Failed to load understand sessions");
+        setError("Failed to load sessions");
       })
       .finally(() => {
         if (!cancelled) setSourcesLoading(false);
@@ -351,7 +354,7 @@ export function useDeliberateSetupWizard({
       if (step === 1) {
         // Source selection -> Cluster selection
         if (!selectedSourceId) {
-          setError("Select an understand session to continue");
+          setError("Select a session to continue");
           return;
         }
         setStep(2);

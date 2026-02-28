@@ -1,7 +1,8 @@
 /**
  * GET /api/hives/[hiveId]/understand-sessions
  *
- * Fetch understand sessions that are ready for use as decision space sources
+ * Fetch understand and explore sessions that are ready for use as
+ * decision/deliberate space sources
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -50,12 +51,12 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status"); // 'ready' to filter by analysis_status
 
-    // Fetch understand conversations
+    // Fetch understand and explore conversations
     let query = supabase
       .from("conversations")
-      .select("id, title, analysis_status, created_at")
+      .select("id, title, type, analysis_status, created_at")
       .eq("hive_id", hiveId)
-      .eq("type", "understand")
+      .in("type", ["understand", "explore"])
       .order("created_at", { ascending: false });
 
     if (status === "ready") {
@@ -156,6 +157,7 @@ export async function GET(
       return {
         id: conv.id,
         title: conv.title || "Untitled",
+        type: conv.type,
         statementCount,
         votingCoverage,
         date: formatDate(conv.created_at),

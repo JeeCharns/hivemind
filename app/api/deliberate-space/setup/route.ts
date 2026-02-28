@@ -1,7 +1,7 @@
 /**
  * Deliberate Space Setup Data API Route
  *
- * GET - Fetch clusters and statements from a source understand conversation
+ * GET - Fetch clusters and statements from a source understand or explore conversation
  * Used by the deliberate setup wizard to populate selection options
  */
 
