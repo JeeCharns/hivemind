@@ -59,10 +59,10 @@ export default function VoteSlider({ value, onChange }: VoteSliderProps) {
           <div
             ref={trackRef}
             onClick={handleTrackClick}
-            className="relative h-12 flex items-center cursor-pointer"
+            className="relative h-14 cursor-pointer"
           >
-            {/* Track line - centered vertically */}
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-200" />
+            {/* Track line - positioned at dot center level */}
+            <div className="absolute inset-x-0 top-[8px] h-0.5 bg-slate-200" />
 
             {/* Tick marks with numbers below */}
             {VOTE_VALUES.map((v) => {
@@ -75,14 +75,14 @@ export default function VoteSlider({ value, onChange }: VoteSliderProps) {
                     e.stopPropagation();
                     handleDotClick(v);
                   }}
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
+                  className="absolute top-0 -translate-x-1/2 flex flex-col items-center z-10"
                   style={{ left: `${getPositionFromValue(v)}%` }}
                 >
                   {/* Dot on the line */}
                   <div
                     className={`w-4 h-4 rounded-full border-2 transition-all ${
                       isSelected
-                        ? "bg-brand-primary border-brand-primary scale-125 shadow-md ring-4 ring-brand-primary/20"
+                        ? "bg-brand-primary border-brand-primary scale-150 shadow-md ring-4 ring-brand-primary/20"
                         : "bg-white border-slate-300 hover:border-slate-400 hover:scale-110"
                     }`}
                   />
