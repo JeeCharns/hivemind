@@ -47,27 +47,11 @@ export async function voteOnStatement(
     throw new Error("Statement not found");
   }
 
-  // If voteValue is null, remove vote (pass)
-  if (voteValue === null) {
-    let deleteQuery = supabase
-      .from("deliberation_votes")
-      .delete()
-      .eq("statement_id", statementId);
-
-    if (userId) {
-      deleteQuery = deleteQuery.eq("user_id", userId);
-    } else {
-      deleteQuery = deleteQuery.eq("guest_session_id", guestSessionId!);
-    }
-
-    await deleteQuery;
-    return { success: true, voteValue: null };
-  }
-
-  // Upsert vote
+  // Build vote data - handles both actual votes and passes
   const voteData: Record<string, unknown> = {
     statement_id: statementId,
-    vote_value: voteValue,
+    vote_value: voteValue, // null for pass
+    is_pass: voteValue === null,
     updated_at: new Date().toISOString(),
   };
 

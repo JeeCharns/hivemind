@@ -67,6 +67,7 @@ export async function getDeliberateViewModel(
       conversationKey: conversation.slug || conversationId,
       statements: [],
       userVotes: {},
+      userPasses: [],
       clusters: [],
     };
   }
@@ -97,14 +98,17 @@ export async function getDeliberateViewModel(
     }
   }
 
-  // 5. Get vote aggregates
+  // 5. Get vote aggregates (excluding passes)
   const { data: allVotes } = await supabase
     .from("deliberation_votes")
-    .select("statement_id, vote_value")
+    .select("statement_id, vote_value, is_pass")
     .in("statement_id", statementIds);
 
   const votesByStatement = new Map<string, { count: number; sum: number }>();
   for (const vote of allVotes || []) {
+    // Only count actual votes (not passes) in aggregates
+    if (vote.is_pass || vote.vote_value === null) continue;
+
     const existing = votesByStatement.get(vote.statement_id) || {
       count: 0,
       sum: 0,
@@ -126,10 +130,10 @@ export async function getDeliberateViewModel(
     commentsByStatement.set(comment.statement_id, count + 1);
   }
 
-  // 6. Get user's votes
+  // 6. Get user's votes (including passes)
   let userVotesQuery = supabase
     .from("deliberation_votes")
-    .select("statement_id, vote_value")
+    .select("statement_id, vote_value, is_pass")
     .in("statement_id", statementIds);
 
   if (userId) {
@@ -146,9 +150,17 @@ export async function getDeliberateViewModel(
 
   const { data: userVotes } = await userVotesQuery;
 
+  // Build user votes map - includes both votes (1-5) and passes (null with is_pass flag)
   const userVotesMap: Record<string, VoteValue | null> = {};
+  const userPassesSet: string[] = [];
   for (const vote of userVotes || []) {
-    userVotesMap[vote.statement_id] = vote.vote_value as VoteValue;
+    if (vote.is_pass) {
+      // Track passes - store as null in votes map so client knows they interacted
+      userVotesMap[vote.statement_id] = null;
+      userPassesSet.push(vote.statement_id);
+    } else {
+      userVotesMap[vote.statement_id] = vote.vote_value as VoteValue;
+    }
   }
 
   // 7. Build statement list
@@ -195,6 +207,7 @@ export async function getDeliberateViewModel(
     conversationKey: conversation.slug || conversationId,
     statements: statementList,
     userVotes: userVotesMap,
+    userPasses: userPassesSet,
     clusters: Array.from(clusterMap.values()).sort((a, b) => {
       if (a.index === null) return 1;
       if (b.index === null) return -1;

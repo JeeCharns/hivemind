@@ -46,6 +46,8 @@ export interface DeliberateViewModel {
   conversationKey: string;
   statements: DeliberateStatement[];
   userVotes: Record<string, VoteValue | null>;
+  /** Statement IDs the user has passed on */
+  userPasses: string[];
   clusters: DeliberateCluster[];
 }
 

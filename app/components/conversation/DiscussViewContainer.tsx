@@ -26,10 +26,9 @@ export default function DiscussViewContainer({
     null
   );
   // Track statements user has interacted with (voted or passed)
-  // Initialize from userVotes - any entry (including null for pass) means interacted
+  // Initialize from server data
   const [passedStatements, setPassedStatements] = useState<Set<string>>(() => {
-    // Initially empty - server doesn't track pass yet
-    return new Set();
+    return new Set(initialViewModel.userPasses || []);
   });
 
   // Combined set of statements user has interacted with
@@ -52,13 +51,44 @@ export default function DiscussViewContainer({
     async (statementId: string, voteValue: VoteValue | null) => {
       // Capture previous state
       let previousVote: VoteValue | null = null;
+      let previousVoteCount = 0;
       const wasPassed = passedStatements.has(statementId);
+      const hadActualVote = viewModel.userVotes[statementId] !== undefined &&
+                            viewModel.userVotes[statementId] !== null &&
+                            !wasPassed;
 
       // Optimistic update
       setViewModel((prev) => {
         previousVote = prev.userVotes[statementId] ?? null;
+
+        // Calculate vote count delta
+        const isNewActualVote = voteValue !== null;
+        let voteCountDelta = 0;
+
+        if (isNewActualVote && !hadActualVote) {
+          // Adding a new vote (wasn't voted or was passed before)
+          voteCountDelta = 1;
+        } else if (!isNewActualVote && hadActualVote) {
+          // Removing a vote (had a vote, now passing)
+          voteCountDelta = -1;
+        }
+        // Changing vote value (1-5 to 1-5) or pass to pass = no delta
+
+        // Update statements with new vote count
+        const updatedStatements = prev.statements.map((stmt) => {
+          if (stmt.id === statementId) {
+            previousVoteCount = stmt.voteCount;
+            return {
+              ...stmt,
+              voteCount: Math.max(0, stmt.voteCount + voteCountDelta),
+            };
+          }
+          return stmt;
+        });
+
         return {
           ...prev,
+          statements: updatedStatements,
           userVotes: { ...prev.userVotes, [statementId]: voteValue },
         };
       });
@@ -92,6 +122,11 @@ export default function DiscussViewContainer({
         // Revert on error
         setViewModel((prev) => ({
           ...prev,
+          statements: prev.statements.map((stmt) =>
+            stmt.id === statementId
+              ? { ...stmt, voteCount: previousVoteCount }
+              : stmt
+          ),
           userVotes: { ...prev.userVotes, [statementId]: previousVote },
         }));
         // Revert pass state
@@ -107,7 +142,7 @@ export default function DiscussViewContainer({
         console.error("[DiscussViewContainer] Vote failed:", error);
       }
     },
-    [viewModel.conversationId, passedStatements]
+    [viewModel.conversationId, viewModel.userVotes, passedStatements]
   );
 
   return (
