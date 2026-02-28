@@ -228,26 +228,27 @@ export default function ConversationHeader({
     }
   };
 
+  const hasDescription = Boolean(description?.trim());
+
   return (
     <div className="pt-14">
       <div className="mx-auto w-full max-w-7xl px-4 md:px-6 flex flex-col">
-        <Link
-          href={`/hives/${hiveKey}`}
-          className="inline-flex items-center gap-2 text-body-lg text-text-primary hover:text-brand-primary transition-colors"
-        >
-          <ArrowLeftIcon size={16} weight="bold" className="text-[#989898]" />
-          All sessions
-        </Link>
-
         {/* Row 1: Title, description and menu */}
-        <div className="flex flex-row items-end justify-between gap-4 md:gap-6">
+        <div className={`flex flex-row justify-between gap-4 md:gap-6 ${hasDescription ? "items-start" : "items-end"}`}>
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <div className="min-w-0 flex-1 max-w-[760px]">
+              <Link
+                href={`/hives/${hiveKey}`}
+                className="inline-flex items-center gap-2 text-body-lg text-text-primary hover:text-brand-primary transition-colors"
+              >
+                <ArrowLeftIcon size={16} weight="bold" className="text-[#989898]" />
+                All sessions
+              </Link>
               <h1 className="text-h3 md:text-h2 text-text-primary wrap-break-word">
                 {title}
               </h1>
-              {description?.trim() && (
-                <ExpandableDescription text={description.trim()} />
+              {hasDescription && (
+                <ExpandableDescription text={description!.trim()} />
               )}
             </div>
             {/* Mobile only: ellipsis menu */}
