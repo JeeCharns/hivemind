@@ -44,7 +44,10 @@ export async function closeDecisionRound(
 
   // 2. Verify user is hive admin
   // Supabase returns joined relation as object (not array) when using !inner
-  const conversations = round.conversations as unknown as { hive_id: string; title: string };
+  const conversations = round.conversations as unknown as {
+    hive_id: string;
+    title: string;
+  };
   const hiveId = conversations.hive_id;
   const { data: membership } = await supabase
     .from("hive_members")

@@ -13,6 +13,7 @@
 ## Task 1: Database Migration
 
 **Files:**
+
 - Create: `supabase/migrations/047_add_moderation_support.sql`
 
 **Step 1: Write the migration**
@@ -83,6 +84,7 @@ git commit -m "feat(db): add moderation support schema"
 ## Task 2: TypeScript Types
 
 **Files:**
+
 - Create: `types/moderation.ts`
 - Modify: `types/conversations.ts` (add moderation fields to response type)
 
@@ -98,24 +100,27 @@ Create `types/moderation.ts`:
  */
 
 export const MODERATION_FLAGS = [
-  'antisocial',
-  'misleading',
-  'illegal',
-  'spam',
-  'doxing',
+  "antisocial",
+  "misleading",
+  "illegal",
+  "spam",
+  "doxing",
 ] as const;
 
 export type ModerationFlag = (typeof MODERATION_FLAGS)[number];
 
-export const MODERATION_FLAG_LABELS: Record<ModerationFlag, { emoji: string; label: string }> = {
-  antisocial: { emoji: '🤬', label: 'Antisocial' },
-  misleading: { emoji: '🤥', label: 'Misleading' },
-  illegal: { emoji: '🚩', label: 'Illegal' },
-  spam: { emoji: '🗑️', label: 'Spam' },
-  doxing: { emoji: '🔏', label: 'Doxing' },
+export const MODERATION_FLAG_LABELS: Record<
+  ModerationFlag,
+  { emoji: string; label: string }
+> = {
+  antisocial: { emoji: "🤬", label: "Antisocial" },
+  misleading: { emoji: "🤥", label: "Misleading" },
+  illegal: { emoji: "🚩", label: "Illegal" },
+  spam: { emoji: "🗑️", label: "Spam" },
+  doxing: { emoji: "🔏", label: "Doxing" },
 };
 
-export type ModerationAction = 'moderated' | 'reinstated';
+export type ModerationAction = "moderated" | "reinstated";
 
 export interface ModerationLogEntry {
   id: number;
@@ -156,6 +161,7 @@ git commit -m "feat(types): add moderation types"
 ## Task 3: Moderate API Endpoint
 
 **Files:**
+
 - Create: `app/api/conversations/[conversationId]/responses/[responseId]/moderate/route.ts`
 
 **Step 1: Create the moderate endpoint**
@@ -217,7 +223,11 @@ export async function POST(
 
     // 4. Check if already moderated
     if (response.moderation_flag) {
-      return jsonError("Response is already moderated", 400, "ALREADY_MODERATED");
+      return jsonError(
+        "Response is already moderated",
+        400,
+        "ALREADY_MODERATED"
+      );
     }
 
     // 5. Get conversation to find hive_id
@@ -304,6 +314,7 @@ git commit -m "feat(api): add moderate response endpoint"
 ## Task 4: Reinstate API Endpoint
 
 **Files:**
+
 - Create: `app/api/conversations/[conversationId]/responses/[responseId]/reinstate/route.ts`
 
 **Step 1: Create the reinstate endpoint**
@@ -439,6 +450,7 @@ git commit -m "feat(api): add reinstate response endpoint"
 ## Task 5: Moderation History API Endpoint
 
 **Files:**
+
 - Create: `app/api/conversations/[conversationId]/moderation/route.ts`
 
 **Step 1: Create the moderation history endpoint**
@@ -456,7 +468,10 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { jsonError } from "@/lib/api/errors";
 import { requireHiveMember } from "@/lib/conversations/server/requireHiveMember";
-import type { ModerationLogEntry, ModerationHistoryResponse } from "@/types/moderation";
+import type {
+  ModerationLogEntry,
+  ModerationHistoryResponse,
+} from "@/types/moderation";
 
 type RouteParams = { conversationId: string };
 
@@ -492,7 +507,8 @@ export async function GET(
     // 4. Fetch moderation log entries with response text and admin profile
     const { data: logs, error: logsError } = await supabase
       .from("response_moderation_log")
-      .select(`
+      .select(
+        `
         id,
         response_id,
         action,
@@ -508,7 +524,8 @@ export async function GET(
           id,
           display_name
         )
-      `)
+      `
+      )
       .eq("conversation_responses.conversation_id", conversationId)
       .order("performed_at", { ascending: false });
 
@@ -571,6 +588,7 @@ git commit -m "feat(api): add moderation history endpoint"
 ## Task 6: Update Responses API to Filter Moderated
 
 **Files:**
+
 - Modify: `app/api/conversations/[conversationId]/responses/route.ts`
 
 **Step 1: Read current implementation**
@@ -587,7 +605,7 @@ const { data: responses, error } = await supabase
   .from("conversation_responses")
   .select("...")
   .eq("conversation_id", conversationId)
-  .is("moderation_flag", null)  // ADD THIS LINE
+  .is("moderation_flag", null) // ADD THIS LINE
   .order("created_at", { ascending: false });
 ```
 
@@ -608,6 +626,7 @@ git commit -m "feat(api): filter moderated responses from feed"
 ## Task 7: ModerationFlagMenu Component
 
 **Files:**
+
 - Create: `app/components/conversation/ModerationFlagMenu.tsx`
 
 **Step 1: Create the component**
@@ -700,11 +719,13 @@ git commit -m "feat(ui): add ModerationFlagMenu component"
 ## Task 8: Add Moderate Button to ListenView
 
 **Files:**
+
 - Modify: `app/components/conversation/ListenView.tsx`
 
 **Step 1: Add imports and props**
 
 Add to imports:
+
 ```typescript
 import { Flag } from "@phosphor-icons/react";
 import ModerationFlagMenu from "@/app/components/conversation/ModerationFlagMenu";
@@ -712,6 +733,7 @@ import type { ModerationFlag } from "@/types/moderation";
 ```
 
 Add to props interface:
+
 ```typescript
 export interface ListenViewProps {
   // ... existing props
@@ -722,6 +744,7 @@ export interface ListenViewProps {
 **Step 2: Add moderation state and handler**
 
 Inside the component, add:
+
 ```typescript
 // Moderation state
 const [moderatingId, setModeratingId] = useState<string | null>(null);
@@ -801,6 +824,7 @@ git commit -m "feat(ui): add moderate button to response feed"
 ## Task 9: Pass isAdmin to ListenView
 
 **Files:**
+
 - Modify: `app/hives/[hiveId]/conversations/[conversationId]/listen/page.tsx`
 
 **Step 1: Import authorizeHiveAdmin**
@@ -812,6 +836,7 @@ import { authorizeHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 **Step 2: Check admin status**
 
 After the membership check, add:
+
 ```typescript
 // 3c. Check if user is admin
 const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hive.id);
@@ -838,6 +863,7 @@ git commit -m "feat: pass isAdmin prop to ListenView"
 ## Task 10: Add Moderation History Link to ConversationHeader
 
 **Files:**
+
 - Modify: `app/components/conversation/ConversationHeader.tsx`
 
 **Step 1: Add import**
@@ -849,6 +875,7 @@ import { ClockCounterClockwise } from "@phosphor-icons/react";
 **Step 2: Add menu item in mobile dropdown (around line 279)**
 
 After the Share button, add:
+
 ```typescript
 <Button
   variant="ghost"
@@ -887,6 +914,7 @@ git commit -m "feat(ui): add Moderation History link to header menu"
 ## Task 11: Moderation History Page
 
 **Files:**
+
 - Create: `app/hives/[hiveId]/conversations/[conversationId]/moderation/page.tsx`
 
 **Step 1: Create the page**
@@ -978,6 +1006,7 @@ git commit -m "feat(ui): add moderation history page"
 ## Task 12: ModerationHistoryView Component
 
 **Files:**
+
 - Create: `app/components/conversation/ModerationHistoryView.tsx`
 
 **Step 1: Create the component**
@@ -1292,12 +1321,14 @@ Test the following scenarios manually:
 ## Task 15: Documentation Update
 
 **Files:**
+
 - Modify: `lib/conversations/README.md`
 - Modify: `docs/feature-map.md`
 
 **Step 1: Update conversations README**
 
 Add a "Moderation" section documenting:
+
 - How moderation works
 - API endpoints
 - Admin requirements

@@ -117,19 +117,20 @@ interface MigrateGuestSessionResult {
 
 export async function migrateGuestSession(
   params: MigrateGuestSessionParams
-): Promise<MigrateGuestSessionResult>
+): Promise<MigrateGuestSessionResult>;
 ```
 
 ### New API Endpoints
 
-| Endpoint | Method | Auth | Purpose |
-|----------|--------|------|---------|
-| `/api/auth/guest-migration/check` | GET | Session | Check if active guest session exists, return session info |
-| `/api/auth/guest-migration/execute` | POST | Session | Execute migration with `{ keepAnonymous: boolean }` |
+| Endpoint                            | Method | Auth    | Purpose                                                   |
+| ----------------------------------- | ------ | ------- | --------------------------------------------------------- |
+| `/api/auth/guest-migration/check`   | GET    | Session | Check if active guest session exists, return session info |
+| `/api/auth/guest-migration/execute` | POST   | Session | Execute migration with `{ keepAnonymous: boolean }`       |
 
 #### GET `/api/auth/guest-migration/check`
 
 **Response (guest session found):**
+
 ```json
 {
   "hasGuestSession": true,
@@ -142,6 +143,7 @@ export async function migrateGuestSession(
 ```
 
 **Response (no guest session):**
+
 ```json
 {
   "hasGuestSession": false
@@ -151,6 +153,7 @@ export async function migrateGuestSession(
 #### POST `/api/auth/guest-migration/execute`
 
 **Request:**
+
 ```json
 {
   "keepAnonymous": false
@@ -158,6 +161,7 @@ export async function migrateGuestSession(
 ```
 
 **Response:**
+
 ```json
 {
   "migrated": true,
@@ -206,6 +210,7 @@ Modal displayed after OTP verification when a guest session is detected:
 Modify `app/(auth)/login/LoginPageClient.tsx`:
 
 After `verifyOtp` succeeds:
+
 1. Call `GET /api/auth/guest-migration/check`
 2. If `hasGuestSession: true` → show `GuestMigrationPrompt` modal
 3. User selects option → call `POST /api/auth/guest-migration/execute`
@@ -215,15 +220,15 @@ After `verifyOtp` succeeds:
 
 ## Error Handling & Edge Cases
 
-| Scenario | Handling |
-|----------|----------|
-| Guest cookie exists but session expired/invalid | Skip migration prompt, proceed with normal signup |
-| User already a member of the hive | Skip hive join (ON CONFLICT DO NOTHING), still migrate data |
-| Migration fails mid-transaction | Rollback all changes, show error, allow retry |
-| User closes modal without choosing | Default to "keep anonymous", complete migration |
-| Guest session already converted | Skip migration (check `converted_to_user_id IS NULL`) |
-| User logs in (not signup) with guest cookie | Same flow — check and offer migration |
-| Multiple responses across different conversations | Migrate all, join all relevant hives |
+| Scenario                                          | Handling                                                    |
+| ------------------------------------------------- | ----------------------------------------------------------- |
+| Guest cookie exists but session expired/invalid   | Skip migration prompt, proceed with normal signup           |
+| User already a member of the hive                 | Skip hive join (ON CONFLICT DO NOTHING), still migrate data |
+| Migration fails mid-transaction                   | Rollback all changes, show error, allow retry               |
+| User closes modal without choosing                | Default to "keep anonymous", complete migration             |
+| Guest session already converted                   | Skip migration (check `converted_to_user_id IS NULL`)       |
+| User logs in (not signup) with guest cookie       | Same flow — check and offer migration                       |
+| Multiple responses across different conversations | Migrate all, join all relevant hives                        |
 
 ### Logging
 

@@ -7,10 +7,7 @@
  * after migration 043 replaced the unique_like constraint with a partial index.
  */
 
-import {
-  POST,
-  DELETE,
-} from "@/app/api/responses/[responseId]/like/route";
+import { POST, DELETE } from "@/app/api/responses/[responseId]/like/route";
 import { NextRequest } from "next/server";
 
 // Mock dependencies

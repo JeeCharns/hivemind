@@ -77,7 +77,10 @@ export default function ConfirmationModal({
 
       {/* Modal */}
       <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-        <h2 id="modal-title" className="text-lg font-semibold text-text-primary">
+        <h2
+          id="modal-title"
+          className="text-lg font-semibold text-text-primary"
+        >
           {title}
         </h2>
         <p className="mt-2 text-body text-slate-600">{message}</p>

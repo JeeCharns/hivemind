@@ -71,7 +71,9 @@ export async function GET(
     const guestSessionIds = [
       ...new Set(
         (responses ?? [])
-          .map((r) => (r as { guest_session_id?: string | null }).guest_session_id)
+          .map(
+            (r) => (r as { guest_session_id?: string | null }).guest_session_id
+          )
           .filter((id): id is string => !!id)
       ),
     ];
@@ -83,11 +85,9 @@ export async function GET(
         .select("id, guest_number")
         .in("id", guestSessionIds);
 
-      guestRows?.forEach(
-        (row: { id: string; guest_number: number }) => {
-          guestNumberMap.set(row.id, row.guest_number);
-        }
-      );
+      guestRows?.forEach((row: { id: string; guest_number: number }) => {
+        guestNumberMap.set(row.id, row.guest_number);
+      });
     }
 
     // 5. Fetch like counts and user's likes
@@ -153,7 +153,7 @@ export async function GET(
         const isAnonymous = row.is_anonymous ?? false;
         const isGuest = !!row.guest_session_id;
         const guestNumber = row.guest_session_id
-          ? guestNumberMap.get(row.guest_session_id) ?? null
+          ? (guestNumberMap.get(row.guest_session_id) ?? null)
           : null;
         const avatarPath = row.profiles?.avatar_path;
 

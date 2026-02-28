@@ -13,6 +13,7 @@
 ## Task 1: Database Migration
 
 **Files:**
+
 - Create: `supabase/migrations/044_guest_session_conversion.sql`
 
 **Step 1: Write the migration SQL**
@@ -49,6 +50,7 @@ git commit -m "feat(db): add guest session conversion tracking columns"
 ## Task 2: Guest Session Service Extension
 
 **Files:**
+
 - Modify: `lib/conversations/guest/guestSessionService.ts`
 - Test: `lib/conversations/guest/__tests__/guestSessionService.test.ts`
 
@@ -248,6 +250,7 @@ git commit -m "feat(guest): add getConvertibleGuestSession helper"
 ## Task 3: Migration Service
 
 **Files:**
+
 - Create: `lib/auth/server/migrateGuestSession.ts`
 - Create: `lib/auth/server/__tests__/migrateGuestSession.test.ts`
 
@@ -415,6 +418,7 @@ git commit -m "feat(auth): add migrateGuestSession service"
 ## Task 4: Database Function for Migration
 
 **Files:**
+
 - Modify: `supabase/migrations/044_guest_session_conversion.sql`
 
 **Step 1: Add the RPC function to the migration**
@@ -512,6 +516,7 @@ git commit -m "feat(db): add migrate_guest_session RPC function"
 ## Task 5: Check Migration API Endpoint
 
 **Files:**
+
 - Create: `app/api/auth/guest-migration/check/route.ts`
 - Create: `app/tests/api/auth/guest-migration-check.test.ts`
 
@@ -531,9 +536,15 @@ import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { getConvertibleGuestSession } from "@/lib/conversations/guest/guestSessionService";
 import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 
-const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
-const mockGetConvertible = getConvertibleGuestSession as jest.MockedFunction<typeof getConvertibleGuestSession>;
-const mockAdminClient = supabaseAdminClient as jest.MockedFunction<typeof supabaseAdminClient>;
+const mockGetServerSession = getServerSession as jest.MockedFunction<
+  typeof getServerSession
+>;
+const mockGetConvertible = getConvertibleGuestSession as jest.MockedFunction<
+  typeof getConvertibleGuestSession
+>;
+const mockAdminClient = supabaseAdminClient as jest.MockedFunction<
+  typeof supabaseAdminClient
+>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -574,7 +585,9 @@ describe("GET /api/auth/guest-migration/check", () => {
       from: jest.fn().mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({ data: { count: 3 }, error: null }),
+            single: jest
+              .fn()
+              .mockResolvedValue({ data: { count: 3 }, error: null }),
           }),
         }),
       }),
@@ -681,6 +694,7 @@ git commit -m "feat(api): add guest migration check endpoint"
 ## Task 6: Execute Migration API Endpoint
 
 **Files:**
+
 - Create: `app/api/auth/guest-migration/execute/route.ts`
 - Create: `app/tests/api/auth/guest-migration-execute.test.ts`
 
@@ -699,15 +713,28 @@ jest.mock("@/lib/auth/server/migrateGuestSession");
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/auth/guest-migration/execute/route";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
-import { getConvertibleGuestSession, clearGuestSessionCookie } from "@/lib/conversations/guest/guestSessionService";
+import {
+  getConvertibleGuestSession,
+  clearGuestSessionCookie,
+} from "@/lib/conversations/guest/guestSessionService";
 import { migrateGuestSession } from "@/lib/auth/server/migrateGuestSession";
 import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 
-const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
-const mockGetConvertible = getConvertibleGuestSession as jest.MockedFunction<typeof getConvertibleGuestSession>;
-const mockMigrate = migrateGuestSession as jest.MockedFunction<typeof migrateGuestSession>;
-const mockAdminClient = supabaseAdminClient as jest.MockedFunction<typeof supabaseAdminClient>;
-const mockClearCookie = clearGuestSessionCookie as jest.MockedFunction<typeof clearGuestSessionCookie>;
+const mockGetServerSession = getServerSession as jest.MockedFunction<
+  typeof getServerSession
+>;
+const mockGetConvertible = getConvertibleGuestSession as jest.MockedFunction<
+  typeof getConvertibleGuestSession
+>;
+const mockMigrate = migrateGuestSession as jest.MockedFunction<
+  typeof migrateGuestSession
+>;
+const mockAdminClient = supabaseAdminClient as jest.MockedFunction<
+  typeof supabaseAdminClient
+>;
+const mockClearCookie = clearGuestSessionCookie as jest.MockedFunction<
+  typeof clearGuestSessionCookie
+>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -716,11 +743,14 @@ beforeEach(() => {
 });
 
 function createRequest(body: object): NextRequest {
-  return new NextRequest("http://localhost:3000/api/auth/guest-migration/execute", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  return new NextRequest(
+    "http://localhost:3000/api/auth/guest-migration/execute",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }
+  );
 }
 
 describe("POST /api/auth/guest-migration/execute", () => {
@@ -881,6 +911,7 @@ git commit -m "feat(api): add guest migration execute endpoint"
 ## Task 7: Guest Migration Prompt Component
 
 **Files:**
+
 - Create: `app/(auth)/components/GuestMigrationPrompt.tsx`
 
 **Step 1: Create the component**
@@ -1007,6 +1038,7 @@ git commit -m "feat(ui): add GuestMigrationPrompt component"
 ## Task 8: Integrate Migration into Login Flow
 
 **Files:**
+
 - Modify: `app/(auth)/login/LoginPageClient.tsx`
 
 **Step 1: Add migration state and logic**
@@ -1137,6 +1169,7 @@ git commit -m "feat(auth): integrate guest migration into login flow"
 ## Task 9: Update Documentation
 
 **Files:**
+
 - Modify: `docs/plans/2026-02-25-guest-to-user-conversion-design.md`
 - Modify: `docs/feature-map.md`
 
@@ -1196,6 +1229,7 @@ Expected: No errors
 ## Summary of Files Created/Modified
 
 **New Files:**
+
 - `supabase/migrations/044_guest_session_conversion.sql`
 - `lib/auth/server/migrateGuestSession.ts`
 - `lib/auth/server/__tests__/migrateGuestSession.test.ts`
@@ -1206,6 +1240,7 @@ Expected: No errors
 - `app/(auth)/components/GuestMigrationPrompt.tsx`
 
 **Modified Files:**
+
 - `lib/conversations/guest/guestSessionService.ts`
 - `lib/conversations/guest/__tests__/guestSessionService.test.ts`
 - `app/(auth)/login/LoginPageClient.tsx`

@@ -13,6 +13,7 @@
 ## Task 1: Database Migration
 
 **Files:**
+
 - Create: `supabase/migrations/045_update_activity_event_types.sql`
 
 **Step 1: Write the migration**
@@ -52,6 +53,7 @@ git commit -m "feat(db): update activity event types schema"
 ## Task 2: Update TypeScript Types
 
 **Files:**
+
 - Modify: `lib/social/types.ts`
 
 **Step 1: Update ActivityEventType**
@@ -92,6 +94,7 @@ git commit -m "feat(types): update activity event types and add metadata interfa
 ## Task 3: Update Activity Service Tests
 
 **Files:**
+
 - Modify: `lib/social/server/__tests__/activityService.test.ts`
 
 **Step 1: Update test to use new event type**
@@ -135,6 +138,7 @@ git commit -m "test: update activity service test for new event types"
 ## Task 4: Log Activity on Conversation Created
 
 **Files:**
+
 - Modify: `lib/conversations/server/createConversation.ts`
 
 **Step 1: Add import**
@@ -150,22 +154,22 @@ import { logActivity } from "@/lib/social/server/activityService";
 After line 124 (after `return {`), insert before the return statement:
 
 ```typescript
-  // Log activity for hive feed
-  await logActivity(supabase, {
-    hiveId,
-    eventType: "conversation_created",
-    userId,
-    metadata: {
-      conversationId: data.id,
-      conversationTitle: title,
-      conversationType: type,
-    },
-  });
+// Log activity for hive feed
+await logActivity(supabase, {
+  hiveId,
+  eventType: "conversation_created",
+  userId,
+  metadata: {
+    conversationId: data.id,
+    conversationTitle: title,
+    conversationType: type,
+  },
+});
 
-  return {
-    id: data.id,
-    slug: data.slug,
-  };
+return {
+  id: data.id,
+  slug: data.slug,
+};
 ```
 
 **Step 3: Run typecheck**
@@ -185,6 +189,7 @@ git commit -m "feat: log activity when conversation is created"
 ## Task 5: Log Activity on Analysis Complete (Full)
 
 **Files:**
+
 - Modify: `lib/conversations/server/runConversationAnalysis.ts`
 
 **Step 1: Add import**
@@ -200,15 +205,15 @@ import { logActivity } from "@/lib/social/server/activityService";
 Find the early return case (around line 75-79) where we check for no responses. Before that section, we need to fetch conversation data. Add after line 73:
 
 ```typescript
-    // 4. Fetch responses
-    const responses = await fetchResponses(supabase, conversationId);
+// 4. Fetch responses
+const responses = await fetchResponses(supabase, conversationId);
 
-    // 4a. Fetch conversation metadata for activity logging
-    const { data: conversationData } = await supabase
-      .from("conversations")
-      .select("title, hive_id")
-      .eq("id", conversationId)
-      .single();
+// 4a. Fetch conversation metadata for activity logging
+const { data: conversationData } = await supabase
+  .from("conversations")
+  .select("title, hive_id")
+  .eq("id", conversationId)
+  .single();
 ```
 
 **Step 3: Add logging after status update to ready**
@@ -216,17 +221,17 @@ Find the early return case (around line 75-79) where we check for no responses. 
 After line 353 (`await updateAnalysisStatus(supabase, conversationId, "ready");`), add:
 
 ```typescript
-    // 21a. Log activity for hive feed
-    if (conversationData) {
-      await logActivity(supabase, {
-        hiveId: conversationData.hive_id,
-        eventType: "analysis_complete",
-        metadata: {
-          conversationId,
-          conversationTitle: conversationData.title,
-        },
-      });
-    }
+// 21a. Log activity for hive feed
+if (conversationData) {
+  await logActivity(supabase, {
+    hiveId: conversationData.hive_id,
+    eventType: "analysis_complete",
+    metadata: {
+      conversationId,
+      conversationTitle: conversationData.title,
+    },
+  });
+}
 ```
 
 **Step 4: Run typecheck**
@@ -246,6 +251,7 @@ git commit -m "feat: log activity when analysis completes (full)"
 ## Task 6: Log Activity on Analysis Complete (Incremental)
 
 **Files:**
+
 - Modify: `lib/conversations/server/runConversationAnalysisIncremental.ts`
 
 **Step 1: Add import**
@@ -261,21 +267,21 @@ import { logActivity } from "@/lib/social/server/activityService";
 Change line 61-64 from:
 
 ```typescript
-    const { data: conversation, error: convError } = await supabase
-      .from("conversations")
-      .select("analysis_updated_at, analysis_response_count")
-      .eq("id", conversationId)
-      .single();
+const { data: conversation, error: convError } = await supabase
+  .from("conversations")
+  .select("analysis_updated_at, analysis_response_count")
+  .eq("id", conversationId)
+  .single();
 ```
 
 To:
 
 ```typescript
-    const { data: conversation, error: convError } = await supabase
-      .from("conversations")
-      .select("analysis_updated_at, analysis_response_count, title, hive_id")
-      .eq("id", conversationId)
-      .single();
+const { data: conversation, error: convError } = await supabase
+  .from("conversations")
+  .select("analysis_updated_at, analysis_response_count, title, hive_id")
+  .eq("id", conversationId)
+  .single();
 ```
 
 **Step 3: Add logging after status update to ready**
@@ -283,17 +289,17 @@ To:
 After line 275 (`await updateAnalysisStatus(supabase, conversationId, "ready");`), add:
 
 ```typescript
-    // 12a. Log activity for hive feed
-    if (conversation) {
-      await logActivity(supabase, {
-        hiveId: conversation.hive_id,
-        eventType: "analysis_complete",
-        metadata: {
-          conversationId,
-          conversationTitle: conversation.title,
-        },
-      });
-    }
+// 12a. Log activity for hive feed
+if (conversation) {
+  await logActivity(supabase, {
+    hiveId: conversation.hive_id,
+    eventType: "analysis_complete",
+    metadata: {
+      conversationId,
+      conversationTitle: conversation.title,
+    },
+  });
+}
 ```
 
 **Step 4: Run typecheck**
@@ -313,6 +319,7 @@ git commit -m "feat: log activity when analysis completes (incremental)"
 ## Task 7: Log Activity on Report Generated
 
 **Files:**
+
 - Modify: `app/api/conversations/[conversationId]/report/route.ts`
 
 **Step 1: Add import**
@@ -328,17 +335,17 @@ import { logActivity } from "@/lib/social/server/activityService";
 After line 476 (after the `if (insertError || !newReport)` check), add:
 
 ```typescript
-    // 13a. Log activity for hive feed
-    await logActivity(supabase, {
-      hiveId: conversation.hive_id,
-      eventType: "report_generated",
-      userId: session.user.id,
-      metadata: {
-        conversationId,
-        conversationTitle: conversation.title,
-        version: newReport.version,
-      },
-    });
+// 13a. Log activity for hive feed
+await logActivity(supabase, {
+  hiveId: conversation.hive_id,
+  eventType: "report_generated",
+  userId: session.user.id,
+  metadata: {
+    conversationId,
+    conversationTitle: conversation.title,
+    version: newReport.version,
+  },
+});
 ```
 
 **Step 3: Run typecheck**
@@ -358,6 +365,7 @@ git commit -m "feat: log activity when report is generated"
 ## Task 8: Log Activity on Voting Round Closed
 
 **Files:**
+
 - Modify: `lib/decision-space/server/closeDecisionRound.ts`
 
 **Step 1: Add import**
@@ -406,13 +414,16 @@ To:
 Change line 45 from:
 
 ```typescript
-  const conversations = round.conversations as unknown as { hive_id: string };
+const conversations = round.conversations as unknown as { hive_id: string };
 ```
 
 To:
 
 ```typescript
-  const conversations = round.conversations as unknown as { hive_id: string; title: string };
+const conversations = round.conversations as unknown as {
+  hive_id: string;
+  title: string;
+};
 ```
 
 **Step 4: Add logging after round close**
@@ -420,17 +431,17 @@ To:
 After line 69 (after the `if (updateError)` check), add:
 
 ```typescript
-  // 3a. Log activity for hive feed
-  await logActivity(supabase, {
-    hiveId,
-    eventType: "round_closed",
-    userId,
-    metadata: {
-      conversationId: round.conversation_id,
-      conversationTitle: conversations.title,
-      roundId,
-    },
-  });
+// 3a. Log activity for hive feed
+await logActivity(supabase, {
+  hiveId,
+  eventType: "round_closed",
+  userId,
+  metadata: {
+    conversationId: round.conversation_id,
+    conversationTitle: conversations.title,
+    roundId,
+  },
+});
 ```
 
 **Step 5: Run typecheck**
@@ -450,6 +461,7 @@ git commit -m "feat: log activity when voting round is closed"
 ## Task 9: Update Activity Sidebar Display
 
 **Files:**
+
 - Modify: `components/social/ActivitySidebar.tsx`
 
 **Step 1: Add metadata type import**
@@ -535,15 +547,15 @@ git commit -m "chore: formatting cleanup" --allow-empty
 
 ## Summary
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1 | Database migration | `supabase/migrations/045_update_activity_event_types.sql` |
-| 2 | TypeScript types | `lib/social/types.ts` |
-| 3 | Update tests | `lib/social/server/__tests__/activityService.test.ts` |
-| 4 | Log conversation created | `lib/conversations/server/createConversation.ts` |
-| 5 | Log analysis complete (full) | `lib/conversations/server/runConversationAnalysis.ts` |
-| 6 | Log analysis complete (incremental) | `lib/conversations/server/runConversationAnalysisIncremental.ts` |
-| 7 | Log report generated | `app/api/conversations/[conversationId]/report/route.ts` |
-| 8 | Log round closed | `lib/decision-space/server/closeDecisionRound.ts` |
-| 9 | Update sidebar display | `components/social/ActivitySidebar.tsx` |
-| 10 | Final verification | N/A |
+| Task | Description                         | Files                                                            |
+| ---- | ----------------------------------- | ---------------------------------------------------------------- |
+| 1    | Database migration                  | `supabase/migrations/045_update_activity_event_types.sql`        |
+| 2    | TypeScript types                    | `lib/social/types.ts`                                            |
+| 3    | Update tests                        | `lib/social/server/__tests__/activityService.test.ts`            |
+| 4    | Log conversation created            | `lib/conversations/server/createConversation.ts`                 |
+| 5    | Log analysis complete (full)        | `lib/conversations/server/runConversationAnalysis.ts`            |
+| 6    | Log analysis complete (incremental) | `lib/conversations/server/runConversationAnalysisIncremental.ts` |
+| 7    | Log report generated                | `app/api/conversations/[conversationId]/report/route.ts`         |
+| 8    | Log round closed                    | `lib/decision-space/server/closeDecisionRound.ts`                |
+| 9    | Update sidebar display              | `components/social/ActivitySidebar.tsx`                          |
+| 10   | Final verification                  | N/A                                                              |

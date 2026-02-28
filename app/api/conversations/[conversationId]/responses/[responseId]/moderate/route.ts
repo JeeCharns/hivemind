@@ -59,7 +59,11 @@ export async function POST(
 
     // 4. Check if already moderated
     if (response.moderation_flag !== null) {
-      return jsonError("Response is already moderated", 400, "ALREADY_MODERATED");
+      return jsonError(
+        "Response is already moderated",
+        400,
+        "ALREADY_MODERATED"
+      );
     }
 
     // 5. Get the conversation to find hive_id

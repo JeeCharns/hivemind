@@ -34,7 +34,9 @@ export default function ModerationHistoryView({
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch(`/api/conversations/${conversationId}/moderation`);
+      const res = await fetch(
+        `/api/conversations/${conversationId}/moderation`
+      );
       if (!res.ok) {
         throw new Error("Failed to fetch moderation history");
       }
@@ -105,7 +107,9 @@ export default function ModerationHistoryView({
       byResponseId.forEach((entries) => {
         // Sort by performed_at descending
         const sorted = [...entries].sort(
-          (a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime()
+          (a, b) =>
+            new Date(b.performedAt).getTime() -
+            new Date(a.performedAt).getTime()
         );
 
         const latestAction = sorted[0];
@@ -128,11 +132,14 @@ export default function ModerationHistoryView({
 
       return acc;
     },
-    {} as Record<ModerationFlag, Array<{
-      entry: ModerationLogEntry;
-      isReinstated: boolean;
-      reinstatedAt?: string;
-    }>>
+    {} as Record<
+      ModerationFlag,
+      Array<{
+        entry: ModerationLogEntry;
+        isReinstated: boolean;
+        reinstatedAt?: string;
+      }>
+    >
   );
 
   const formatDate = (dateStr: string) => {
@@ -189,7 +196,9 @@ export default function ModerationHistoryView({
                 <h3 className="text-h4 text-text-primary flex items-center gap-2">
                   <span>{emoji}</span>
                   <span>{label}</span>
-                  <span className="text-slate-400 font-normal">({entries.length})</span>
+                  <span className="text-slate-400 font-normal">
+                    ({entries.length})
+                  </span>
                 </h3>
 
                 <div className="space-y-3">
@@ -197,7 +206,9 @@ export default function ModerationHistoryView({
                     <div
                       key={entry.id}
                       className={`bg-slate-50 border rounded-lg p-4 ${
-                        isReinstated ? "border-slate-200 opacity-75" : "border-slate-300"
+                        isReinstated
+                          ? "border-slate-200 opacity-75"
+                          : "border-slate-300"
                       }`}
                     >
                       <p className="text-body text-text-primary mb-2">
@@ -205,9 +216,7 @@ export default function ModerationHistoryView({
                       </p>
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-3 text-info text-slate-500">
-                          <span>
-                            Moderated {formatDate(entry.performedAt)}
-                          </span>
+                          <span>Moderated {formatDate(entry.performedAt)}</span>
                           <span>by {entry.performedBy.name}</span>
                           {isReinstated && reinstatedAt && (
                             <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded text-xs">

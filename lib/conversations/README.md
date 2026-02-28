@@ -415,11 +415,11 @@ Hive admins can moderate responses to remove inappropriate content while maintai
 
 ### API Endpoints
 
-| Method | Endpoint                                                     | Access       | Description                       |
-| ------ | ------------------------------------------------------------ | ------------ | --------------------------------- |
-| POST   | `/api/conversations/[id]/responses/[responseId]/moderate`    | Admin only   | Moderate a response with a flag   |
-| POST   | `/api/conversations/[id]/responses/[responseId]/reinstate`   | Admin only   | Reinstate a moderated response    |
-| GET    | `/api/conversations/[id]/moderation`                         | Hive members | Get moderation history            |
+| Method | Endpoint                                                   | Access       | Description                     |
+| ------ | ---------------------------------------------------------- | ------------ | ------------------------------- |
+| POST   | `/api/conversations/[id]/responses/[responseId]/moderate`  | Admin only   | Moderate a response with a flag |
+| POST   | `/api/conversations/[id]/responses/[responseId]/reinstate` | Admin only   | Reinstate a moderated response  |
+| GET    | `/api/conversations/[id]/moderation`                       | Hive members | Get moderation history          |
 
 ### Database Schema
 

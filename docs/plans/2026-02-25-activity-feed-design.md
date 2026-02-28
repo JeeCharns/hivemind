@@ -41,13 +41,13 @@ ALTER TABLE hive_activity ADD CONSTRAINT hive_activity_event_type_check
 
 Metadata structure for each event type:
 
-| Event Type | Metadata |
-|------------|----------|
-| `join` | `{}` (unchanged) |
+| Event Type             | Metadata                                                  |
+| ---------------------- | --------------------------------------------------------- |
+| `join`                 | `{}` (unchanged)                                          |
 | `conversation_created` | `{ conversationId, conversationTitle, conversationType }` |
-| `analysis_complete` | `{ conversationId, conversationTitle }` |
-| `report_generated` | `{ conversationId, conversationTitle, version }` |
-| `round_closed` | `{ conversationId, conversationTitle, roundId }` |
+| `analysis_complete`    | `{ conversationId, conversationTitle }`                   |
+| `report_generated`     | `{ conversationId, conversationTitle, version }`          |
+| `round_closed`         | `{ conversationId, conversationTitle, roundId }`          |
 
 ### 2. TypeScript Types
 
@@ -86,7 +86,9 @@ Update `components/social/ActivitySidebar.tsx` — `getActivityText()` function:
 ```typescript
 function getActivityText(event: ActivityEvent): string {
   const meta = event.metadata as ActivityEventMetadata;
-  const title = meta.conversationTitle ? `'${meta.conversationTitle}'` : "a conversation";
+  const title = meta.conversationTitle
+    ? `'${meta.conversationTitle}'`
+    : "a conversation";
 
   switch (event.eventType) {
     case "join":

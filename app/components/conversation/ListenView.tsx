@@ -858,7 +858,8 @@ export default function ListenView({
                                   key: "self",
                                   label: displayName,
                                   badge:
-                                    (displayName[0] ?? "M").toUpperCase() || "M",
+                                    (displayName[0] ?? "M").toUpperCase() ||
+                                    "M",
                                 },
                                 { key: "anon", label: "Anonymous", badge: "A" },
                               ].map((opt) => (
@@ -879,7 +880,9 @@ export default function ListenView({
                                   <span className="w-6 h-6 rounded-full bg-slate-200 inline-flex items-center justify-center text-label-sm text-slate-600">
                                     {opt.badge}
                                   </span>
-                                  <span className="text-label">{opt.label}</span>
+                                  <span className="text-label">
+                                    {opt.label}
+                                  </span>
                                 </Button>
                               ))}
                             </div>
