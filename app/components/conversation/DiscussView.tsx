@@ -194,8 +194,8 @@ export default function DiscussView({
       )}
 
       <div className="flex gap-6 flex-1">
-      {/* Left Column - Theme List (same as understand tab) */}
-      <div className="w-2/5 bg-white rounded-2xl overflow-y-auto p-6">
+      {/* Left Column - Theme List (hidden on mobile) */}
+      <div className="hidden md:block w-2/5 bg-white rounded-2xl overflow-y-auto p-6">
         {clusters.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-tertiary">
             <Chats size={48} className="mb-4" />
@@ -213,7 +213,7 @@ export default function DiscussView({
       </div>
 
       {/* Right Column - Statement Detail */}
-      <div className="w-3/5 bg-white rounded-2xl overflow-y-auto">
+      <div className="w-full md:w-3/5 bg-white rounded-2xl overflow-y-auto">
         {selectedStatement ? (
           <StatementDetailPanel
             statement={selectedStatement}
