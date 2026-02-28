@@ -240,7 +240,7 @@ export default function ConversationHeader({
         </Link>
 
         {/* Row 1: Title, description and menu */}
-        <div className="flex flex-row items-start justify-between gap-4 md:gap-6">
+        <div className="flex flex-row items-end justify-between gap-4 md:gap-6">
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <div className="min-w-0 flex-1 max-w-[760px]">
               <h1 className="text-h3 md:text-h2 text-text-primary wrap-break-word">

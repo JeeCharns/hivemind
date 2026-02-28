@@ -177,7 +177,7 @@ export default function DiscussView({
     currentIndex < orderedStatements.length - 1 || unvotedCount > 0;
 
   return (
-    <div className="flex gap-6 h-full min-h-[600px] p-4">
+    <div className="flex gap-6 h-full min-h-[600px] py-4">
       {/* Left Column - Theme List (same as understand tab) */}
       <div className="w-2/5 bg-white rounded-2xl overflow-y-auto p-6">
         {clusters.length === 0 ? (
