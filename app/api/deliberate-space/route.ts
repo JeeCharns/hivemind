@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import { createDeliberateSession } from "@/lib/deliberate-space/server/createDeliberateSession";
 import { createDeliberateSessionSchema } from "@/lib/deliberate-space/schemas";
 import { jsonError } from "@/lib/api/errors";
@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Create deliberate session
-    const supabase = await supabaseServerClient();
+    // 3. Create deliberate session (use admin client to bypass RLS for inserts)
+    const supabase = supabaseAdminClient();
     const result = await createDeliberateSession(
       supabase,
       session.user.id,
