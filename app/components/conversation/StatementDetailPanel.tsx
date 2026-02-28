@@ -19,6 +19,8 @@ interface StatementDetailPanelProps {
   conversationId: string;
   themeColor?: string;
   hasVoted?: boolean;
+  /** Whether the user has passed on this statement */
+  hasPassed?: boolean;
   /** Whether the current user is an admin (can moderate comments) */
   isAdmin?: boolean;
   /** Number of statements the user hasn't voted on yet */
@@ -40,6 +42,7 @@ export default function StatementDetailPanel({
   conversationId,
   themeColor = "#5A54D4",
   hasVoted = false,
+  hasPassed = false,
   isAdmin = false,
   unvotedCount = 0,
   onPrevious,
@@ -90,7 +93,7 @@ export default function StatementDetailPanel({
       </p>
 
       {/* Vote slider */}
-      <VoteSlider value={currentVote} onChange={onVote} />
+      <VoteSlider value={currentVote} onChange={onVote} hasPassed={hasPassed} />
 
       {/* Comments section */}
       <div className="pt-4">

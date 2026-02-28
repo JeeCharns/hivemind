@@ -43,6 +43,10 @@ interface DiscussViewProps {
   onVote: (statementId: string, voteValue: VoteValue | null) => void;
   /** Whether the current user is an admin (can moderate comments) */
   isAdmin?: boolean;
+  /** Set of statement IDs the user has interacted with (voted or passed) */
+  interactedStatements?: Set<string>;
+  /** Set of statement IDs the user has passed on */
+  passedStatements?: Set<string>;
 }
 
 export default function DiscussView({
@@ -51,6 +55,8 @@ export default function DiscussView({
   onSelectStatement,
   onVote,
   isAdmin = false,
+  interactedStatements = new Set(),
+  passedStatements = new Set(),
 }: DiscussViewProps) {
   const { statements, userVotes, clusters } = viewModel;
 
@@ -72,9 +78,14 @@ export default function DiscussView({
     [selectedStatement, getThemeColor]
   );
 
+  // User has interacted if they voted (1-5) or passed
   const hasVoted = selectedStatement
-    ? userVotes[selectedStatement.id] !== undefined &&
-      userVotes[selectedStatement.id] !== null
+    ? interactedStatements.has(selectedStatement.id)
+    : false;
+
+  // Check if user passed on the selected statement
+  const hasPassed = selectedStatement
+    ? passedStatements.has(selectedStatement.id)
     : false;
 
   // Map clusters to ThemeListPanel format
@@ -105,12 +116,10 @@ export default function DiscussView({
   // Track completion alert (use ref to avoid re-renders)
   const hasShownCompletionAlertRef = useRef(false);
 
-  // Count unvoted statements
+  // Count statements user hasn't interacted with yet
   const unvotedCount = useMemo(() => {
-    return statements.filter(
-      (s) => userVotes[s.id] === undefined || userVotes[s.id] === null
-    ).length;
-  }, [statements, userVotes]);
+    return statements.filter((s) => !interactedStatements.has(s.id)).length;
+  }, [statements, interactedStatements]);
 
   // Show completion alert when all voted
   useEffect(() => {
@@ -183,6 +192,7 @@ export default function DiscussView({
             conversationId={viewModel.conversationId}
             themeColor={selectedThemeColor}
             hasVoted={hasVoted}
+            hasPassed={hasPassed}
             isAdmin={isAdmin}
             unvotedCount={unvotedCount}
             onPrevious={handlePrevious}

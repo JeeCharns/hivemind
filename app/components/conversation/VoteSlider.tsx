@@ -14,11 +14,17 @@ import Button from "@/app/components/button";
 interface VoteSliderProps {
   value: VoteValue | null;
   onChange: (value: VoteValue | null) => void;
+  /** Whether the user has passed on this statement */
+  hasPassed?: boolean;
 }
 
 const VOTE_VALUES: VoteValue[] = [1, 2, 3, 4, 5];
 
-export default function VoteSlider({ value, onChange }: VoteSliderProps) {
+export default function VoteSlider({
+  value,
+  onChange,
+  hasPassed = false,
+}: VoteSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
 
   const getPositionFromValue = (v: VoteValue): number => {
@@ -102,14 +108,16 @@ export default function VoteSlider({ value, onChange }: VoteSliderProps) {
           </div>
         </div>
 
-        {/* Pass button - secondary style */}
+        {/* Pass button - secondary style, selected when user has passed */}
         <Button
           type="button"
           variant="secondary"
           size="sm"
           onClick={() => onChange(null)}
           className={`px-6 ${
-            value === null ? "ring-2 ring-slate-300" : ""
+            hasPassed
+              ? "ring-2 ring-brand-primary bg-brand-primary/10 text-brand-primary"
+              : ""
           }`}
         >
           Pass

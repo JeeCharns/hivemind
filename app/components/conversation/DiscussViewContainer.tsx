@@ -7,7 +7,7 @@
  * Handles voting with optimistic updates
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { DeliberateViewModel, VoteValue } from "@/types/deliberate-space";
 import DiscussView from "./DiscussView";
 
@@ -25,13 +25,36 @@ export default function DiscussViewContainer({
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(
     null
   );
+  // Track statements user has interacted with (voted or passed)
+  // Initialize from userVotes - any entry (including null for pass) means interacted
+  const [passedStatements, setPassedStatements] = useState<Set<string>>(() => {
+    // Initially empty - server doesn't track pass yet
+    return new Set();
+  });
+
+  // Combined set of statements user has interacted with
+  const interactedStatements = useMemo(() => {
+    const interacted = new Set<string>();
+    // Add all voted statements (vote value 1-5)
+    for (const [id, vote] of Object.entries(viewModel.userVotes)) {
+      if (vote !== null && vote !== undefined) {
+        interacted.add(id);
+      }
+    }
+    // Add all passed statements
+    for (const id of passedStatements) {
+      interacted.add(id);
+    }
+    return interacted;
+  }, [viewModel.userVotes, passedStatements]);
 
   const handleVote = useCallback(
     async (statementId: string, voteValue: VoteValue | null) => {
-      // Capture previous vote from current state (not closure)
+      // Capture previous state
       let previousVote: VoteValue | null = null;
+      const wasPassed = passedStatements.has(statementId);
 
-      // Optimistic update - capture previous in the same synchronous operation
+      // Optimistic update
       setViewModel((prev) => {
         previousVote = prev.userVotes[statementId] ?? null;
         return {
@@ -39,6 +62,18 @@ export default function DiscussViewContainer({
           userVotes: { ...prev.userVotes, [statementId]: voteValue },
         };
       });
+
+      // Track pass state separately
+      if (voteValue === null) {
+        setPassedStatements((prev) => new Set([...prev, statementId]));
+      } else {
+        // If voting, remove from passed set
+        setPassedStatements((prev) => {
+          const next = new Set(prev);
+          next.delete(statementId);
+          return next;
+        });
+      }
 
       try {
         const response = await fetch(
@@ -59,10 +94,20 @@ export default function DiscussViewContainer({
           ...prev,
           userVotes: { ...prev.userVotes, [statementId]: previousVote },
         }));
+        // Revert pass state
+        if (voteValue === null) {
+          setPassedStatements((prev) => {
+            const next = new Set(prev);
+            if (!wasPassed) next.delete(statementId);
+            return next;
+          });
+        } else if (wasPassed) {
+          setPassedStatements((prev) => new Set([...prev, statementId]));
+        }
         console.error("[DiscussViewContainer] Vote failed:", error);
       }
     },
-    [viewModel.conversationId]
+    [viewModel.conversationId, passedStatements]
   );
 
   return (
@@ -72,6 +117,8 @@ export default function DiscussViewContainer({
       onSelectStatement={setSelectedStatementId}
       onVote={handleVote}
       isAdmin={isAdmin}
+      interactedStatements={interactedStatements}
+      passedStatements={passedStatements}
     />
   );
 }

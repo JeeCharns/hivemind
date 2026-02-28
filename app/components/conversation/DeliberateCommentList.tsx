@@ -437,11 +437,15 @@ export default function DeliberateCommentList({
                       <span className="text-label font-medium text-text-primary">
                         {comment.user.name}
                       </span>
-                      {comment.userVote && (
+                      {comment.userVote !== null && comment.userVote !== undefined ? (
                         <span
                           className={`text-info font-medium ${getVoteColor(comment.userVote)}`}
                         >
                           {VOTE_LABELS[comment.userVote]}
+                        </span>
+                      ) : (
+                        <span className="text-info font-medium text-slate-400">
+                          Pass
                         </span>
                       )}
                       <span className="text-info text-text-tertiary">
