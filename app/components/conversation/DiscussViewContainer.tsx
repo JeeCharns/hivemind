@@ -22,8 +22,19 @@ export default function DiscussViewContainer({
   isAdmin = false,
 }: DiscussViewContainerProps) {
   const [viewModel, setViewModel] = useState(initialViewModel);
+  // Auto-select first statement (needed for mobile where left column is hidden)
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(
-    null
+    () => {
+      if (initialViewModel.statements.length === 0) return null;
+      // Sort by cluster index then display order (same as DiscussView)
+      const sorted = [...initialViewModel.statements].sort((a, b) => {
+        const clusterA = a.clusterIndex ?? -1;
+        const clusterB = b.clusterIndex ?? -1;
+        if (clusterA !== clusterB) return clusterA - clusterB;
+        return a.displayOrder - b.displayOrder;
+      });
+      return sorted[0].id;
+    }
   );
   // Track statements user has interacted with (voted or passed)
   // Initialize from server data
