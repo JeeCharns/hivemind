@@ -152,15 +152,28 @@ export default function DiscussView({
     onSelectStatement(prevStatement.id);
   }, [currentIndex, orderedStatements, onSelectStatement]);
 
-  // Navigate to next statement
+  // Navigate to next statement (wraps to first unvoted if at end)
   const handleNext = useCallback(() => {
-    if (currentIndex >= orderedStatements.length - 1) return;
-    const nextStatement = orderedStatements[currentIndex + 1];
-    onSelectStatement(nextStatement.id);
-  }, [currentIndex, orderedStatements, onSelectStatement]);
+    // If there's a next statement in order, go to it
+    if (currentIndex < orderedStatements.length - 1) {
+      const nextStatement = orderedStatements[currentIndex + 1];
+      onSelectStatement(nextStatement.id);
+      return;
+    }
+
+    // At the end - wrap around to first unvoted statement
+    const firstUnvoted = orderedStatements.find(
+      (s) => !interactedStatements.has(s.id)
+    );
+    if (firstUnvoted) {
+      onSelectStatement(firstUnvoted.id);
+    }
+  }, [currentIndex, orderedStatements, onSelectStatement, interactedStatements]);
 
   const canGoPrevious = currentIndex > 0;
-  const canGoNext = currentIndex < orderedStatements.length - 1;
+  // Can go next if there's another statement OR there are unvoted statements to wrap to
+  const canGoNext =
+    currentIndex < orderedStatements.length - 1 || unvotedCount > 0;
 
   return (
     <div className="flex gap-6 h-full min-h-[600px] p-4">
