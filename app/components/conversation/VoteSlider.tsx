@@ -174,10 +174,12 @@ export default function VoteSlider({
       {/* Labels row - three columns: left label, center (selected), right label */}
       <div className="flex items-center gap-8 w-full">
         <div className="flex-1 flex items-baseline">
-          {/* Left label - no padding, aligned to left edge */}
-          <span className="text-xs text-slate-500 flex-shrink-0">
-            {VOTE_LABELS[1]}
-          </span>
+          {/* Left label - hide when vote selected */}
+          {!value && (
+            <span className="text-xs text-slate-500 flex-shrink-0">
+              {VOTE_LABELS[1]}
+            </span>
+          )}
 
           {/* Center - selected value label */}
           <span
@@ -188,10 +190,12 @@ export default function VoteSlider({
             {value ? VOTE_LABELS[value] : ""}
           </span>
 
-          {/* Right label - no padding, aligned to right edge */}
-          <span className="text-xs text-slate-500 flex-shrink-0">
-            {VOTE_LABELS[5]}
-          </span>
+          {/* Right label - hide when vote selected */}
+          {!value && (
+            <span className="text-xs text-slate-500 flex-shrink-0">
+              {VOTE_LABELS[5]}
+            </span>
+          )}
         </div>
         {/* Spacer to match Pass button width */}
         <div className="w-[88px]" />

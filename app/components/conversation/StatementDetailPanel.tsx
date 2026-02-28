@@ -52,8 +52,8 @@ export default function StatementDetailPanel({
 }: StatementDetailPanelProps) {
   return (
     <div className="p-8 space-y-6">
-      {/* Navigation header with Previous / Title / Next */}
-      <div className="flex items-center justify-between">
+      {/* Navigation header - Desktop: Previous / Title / Next in a row */}
+      <div className="hidden md:flex items-center justify-between">
         {/* Previous button */}
         <button
           type="button"
@@ -85,6 +85,43 @@ export default function StatementDetailPanel({
           Next {unvotedCount > 0 && `(${unvotedCount})`}
           <CaretRight size={16} />
         </button>
+      </div>
+
+      {/* Navigation header - Mobile: Buttons row, then title below */}
+      <div className="flex flex-col gap-3 md:hidden">
+        <div className="flex items-center justify-between">
+          {/* Previous button */}
+          <button
+            type="button"
+            onClick={onPrevious}
+            disabled={!canGoPrevious}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-lg text-text-secondary hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            <CaretLeft size={16} />
+            Previous
+          </button>
+
+          {/* Next button with unvoted count */}
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!canGoNext}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-lg text-text-secondary hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            Next {unvotedCount > 0 && `(${unvotedCount})`}
+            <CaretRight size={16} />
+          </button>
+        </div>
+
+        {/* Title below buttons on mobile */}
+        {statement.statementTitle && (
+          <h3
+            className="text-lg font-display font-medium"
+            style={{ color: themeColor }}
+          >
+            {statement.statementTitle}
+          </h3>
+        )}
       </div>
 
       {/* Statement text */}
