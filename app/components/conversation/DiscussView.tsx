@@ -4,14 +4,21 @@
  * DiscussView - Client Component
  *
  * Main view component for the Discuss tab showing clustered statements
- * Left column: clusters with statement pills (matching understand view pattern)
- * Right column: selected statement detail with voting and comments
+ * Two states:
+ * - Cluster overview: clusters with statement title pills
+ * - Drilled-in view: back button, cluster name, statements with voting
  */
 
 import { useMemo, useState } from "react";
-import type { DeliberateViewModel, VoteValue } from "@/types/deliberate-space";
+import type {
+  DeliberateViewModel,
+  VoteValue,
+  DeliberateStatement,
+} from "@/types/deliberate-space";
 import StatementDetailPanel from "./StatementDetailPanel";
-import { Chats } from "@phosphor-icons/react";
+import VoteSlider from "./VoteSlider";
+import { Chats, CaretLeft } from "@phosphor-icons/react";
+import Button from "@/app/components/button";
 
 // Color palette matching UnderstandView
 const palette = [
@@ -24,6 +31,13 @@ const palette = [
   "#E0609A", // soft pink
   "#28B0A0", // soft teal
 ];
+
+/** Generate a short title from statement text (first ~5 words) */
+function getStatementTitle(text: string): string {
+  const words = text.split(/\s+/).slice(0, 5);
+  const title = words.join(" ");
+  return title.length < text.length ? `${title}...` : title;
+}
 
 interface DiscussViewProps {
   viewModel: DeliberateViewModel;
@@ -39,7 +53,9 @@ export default function DiscussView({
   onVote,
 }: DiscussViewProps) {
   const { statements, userVotes, clusters } = viewModel;
-  const [expandedCluster, setExpandedCluster] = useState<number | null>(null);
+  const [selectedClusterIndex, setSelectedClusterIndex] = useState<
+    number | null
+  >(null);
 
   const selectedStatement = useMemo(
     () => statements.find((s) => s.id === selectedStatementId) ?? null,
@@ -47,7 +63,7 @@ export default function DiscussView({
   );
 
   const statementsByCluster = useMemo(() => {
-    const grouped = new Map<number | null, typeof statements>();
+    const grouped = new Map<number | null, DeliberateStatement[]>();
     for (const stmt of statements) {
       const key = stmt.clusterIndex;
       const existing = grouped.get(key) || [];
@@ -63,34 +79,41 @@ export default function DiscussView({
   };
 
   const handleClusterClick = (clusterIndex: number | null) => {
-    if (expandedCluster === clusterIndex) {
-      setExpandedCluster(null);
-    } else {
-      setExpandedCluster(clusterIndex);
-      // Auto-select first statement in cluster
-      const clusterStatements = statementsByCluster.get(clusterIndex) || [];
-      if (clusterStatements.length > 0) {
-        onSelectStatement(clusterStatements[0].id);
-      }
+    setSelectedClusterIndex(clusterIndex);
+    // Auto-select first statement in cluster
+    const clusterStatements = statementsByCluster.get(clusterIndex) || [];
+    if (clusterStatements.length > 0) {
+      onSelectStatement(clusterStatements[0].id);
     }
   };
 
+  const handleBackToOverview = () => {
+    setSelectedClusterIndex(null);
+    onSelectStatement(null);
+  };
+
+  const selectedCluster = clusters.find((c) => c.index === selectedClusterIndex);
+  const selectedClusterStatements =
+    selectedClusterIndex !== null
+      ? statementsByCluster.get(selectedClusterIndex) || []
+      : [];
+
   return (
     <div className="flex gap-6 h-full min-h-[600px] p-4">
-      {/* Left Column - Cluster List */}
+      {/* Left Column - Cluster List or Drilled-in View */}
       <div className="w-2/5 bg-white rounded-2xl overflow-y-auto p-6">
         {clusters.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-tertiary">
             <Chats size={48} className="mb-4" />
             <p>No statements yet</p>
           </div>
-        ) : (
+        ) : selectedClusterIndex === null ? (
+          /* Cluster Overview */
           <div className="space-y-6">
             {clusters.map((cluster) => {
               const clusterStatements =
                 statementsByCluster.get(cluster.index) || [];
               const color = getClusterColor(cluster.index);
-              const isExpanded = expandedCluster === cluster.index;
 
               return (
                 <button
@@ -108,36 +131,100 @@ export default function DiscussView({
                       {cluster.name || "Unclustered"}
                     </div>
                     <span className="text-xs text-blue-500 underline group-hover:text-blue-600 transition-colors">
-                      {isExpanded ? "Hide" : "Show"} {cluster.statementCount}{" "}
-                      statement{cluster.statementCount !== 1 ? "s" : ""}
+                      Show {cluster.statementCount} statement
+                      {cluster.statementCount !== 1 ? "s" : ""}
                     </span>
                   </div>
 
-                  {/* Statement pills - always visible */}
+                  {/* Statement title pills */}
                   <div className="flex flex-wrap gap-2">
                     {clusterStatements.map((stmt) => (
                       <span
                         key={stmt.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectStatement(stmt.id);
-                          setExpandedCluster(cluster.index);
-                        }}
-                        className={`inline-flex items-center px-3 py-1 text-sm rounded-full border cursor-pointer transition-colors ${
-                          stmt.id === selectedStatementId
-                            ? "bg-slate-200 text-slate-800 border-slate-300"
-                            : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-150 hover:border-slate-300"
-                        }`}
+                        className="inline-flex items-center px-3 py-1 text-sm rounded-full bg-slate-100 text-slate-700 border border-slate-200"
                       >
-                        {stmt.statementText.length > 30
-                          ? `${stmt.statementText.slice(0, 30)}...`
-                          : stmt.statementText}
+                        {getStatementTitle(stmt.statementText)}
                       </span>
                     ))}
                   </div>
                 </button>
               );
             })}
+          </div>
+        ) : (
+          /* Drilled-in Cluster View */
+          <div className="space-y-6">
+            {/* Back button + Cluster name */}
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="p-2! aspect-square"
+                onClick={handleBackToOverview}
+                aria-label="Back to all clusters"
+              >
+                <CaretLeft size={16} weight="bold" />
+              </Button>
+              <span
+                className="font-display text-lg font-medium"
+                style={{ color: getClusterColor(selectedClusterIndex) }}
+              >
+                {selectedCluster?.name || "Unclustered"}
+              </span>
+            </div>
+
+            {/* Statements in cluster */}
+            <div className="space-y-8">
+              {selectedClusterStatements.map((stmt) => {
+                const color = getClusterColor(stmt.clusterIndex);
+                const currentVote = userVotes[stmt.id] ?? null;
+                const isSelected = stmt.id === selectedStatementId;
+
+                return (
+                  <button
+                    key={stmt.id}
+                    type="button"
+                    className={`w-full text-left space-y-3 p-4 rounded-xl transition-all ${
+                      isSelected
+                        ? "bg-slate-50 ring-2 ring-slate-200"
+                        : "hover:bg-slate-50"
+                    }`}
+                    onClick={() => onSelectStatement(stmt.id)}
+                  >
+                    {/* Statement title */}
+                    <div
+                      className="text-base font-display font-medium"
+                      style={{ color }}
+                    >
+                      {getStatementTitle(stmt.statementText)}
+                    </div>
+
+                    {/* Full statement text */}
+                    <p className="text-body text-slate-800 leading-relaxed">
+                      {stmt.statementText}
+                    </p>
+
+                    {/* Inline voting */}
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="pt-2"
+                    >
+                      <VoteSlider
+                        value={currentVote}
+                        onChange={(value) => onVote(stmt.id, value)}
+                      />
+                    </div>
+
+                    {/* Vote/comment counts */}
+                    <div className="flex items-center gap-4 text-xs text-slate-500 pt-1">
+                      <span>{stmt.voteCount} votes</span>
+                      <span>{stmt.commentCount} comments</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
