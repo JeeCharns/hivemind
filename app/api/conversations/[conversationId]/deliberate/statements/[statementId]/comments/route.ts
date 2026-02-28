@@ -20,16 +20,6 @@ interface ProfileData {
   avatar_url: string | null;
 }
 
-interface CommentRow {
-  id: number;
-  statement_id: string;
-  comment_text: string;
-  is_anonymous: boolean;
-  created_at: string;
-  user_id: string;
-  profiles: ProfileData | ProfileData[] | null;
-}
-
 /**
  * GET /api/conversations/[conversationId]/deliberate/statements/[statementId]/comments
  * Fetch comments for a specific statement
@@ -45,11 +35,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const supabase = await supabaseAdminClient();
 
+    // Fetch comments (without profile join - no direct FK relationship)
     const { data: comments, error } = await supabase
       .from("deliberation_comments")
-      .select(
-        "id, statement_id, comment_text, is_anonymous, created_at, user_id, profiles(id, display_name, avatar_url)"
-      )
+      .select("id, statement_id, comment_text, is_anonymous, created_at, user_id")
       .eq("statement_id", statementId)
       .order("created_at", { ascending: true });
 
@@ -58,9 +47,30 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return jsonError("Failed to fetch comments", 500);
     }
 
-    const formattedComments = ((comments as unknown as CommentRow[]) || []).map((c) => {
-      // profiles can be an object or array depending on Supabase response shape
-      const profile = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
+    // Get unique user IDs for profile lookup (excluding anonymous)
+    const userIds = [
+      ...new Set(
+        (comments || [])
+          .filter((c) => !c.is_anonymous && c.user_id)
+          .map((c) => c.user_id)
+      ),
+    ];
+
+    // Fetch profiles separately
+    const profileMap = new Map<string, ProfileData>();
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .in("id", userIds);
+
+      for (const profile of profiles || []) {
+        profileMap.set(profile.id, profile);
+      }
+    }
+
+    const formattedComments = (comments || []).map((c) => {
+      const profile = c.user_id ? profileMap.get(c.user_id) : null;
       return {
         id: String(c.id),
         statementId: c.statement_id,
