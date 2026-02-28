@@ -8,7 +8,7 @@
  * Used by both UnderstandView and DiscussView.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import Button from "@/app/components/button";
 import { CaretDown, SpinnerGap } from "@phosphor-icons/react";
 import { useBucketResponses } from "@/lib/conversations/react/useBucketResponses";
@@ -232,6 +232,21 @@ export default function ThemeListPanel({
 }: ThemeListPanelProps) {
   type SelectedTheme = "all" | number | null;
   const [selectedTheme, setSelectedTheme] = useState<SelectedTheme>("all");
+
+  // When selected bucket changes, ensure its cluster is visible
+  useEffect(() => {
+    if (!selectedBucketId) return;
+
+    const selectedBucket = buckets.find((b) => b.id === selectedBucketId);
+    if (!selectedBucket) return;
+
+    const bucketClusterIndex = selectedBucket.clusterIndex;
+
+    // If we're in "all" view or the bucket is in a different cluster, switch to that cluster
+    if (selectedTheme === "all" || selectedTheme !== bucketClusterIndex) {
+      setSelectedTheme(bucketClusterIndex);
+    }
+  }, [selectedBucketId, buckets, selectedTheme]);
 
   const getThemeColor = useCallback((clusterIndex: number | null) => {
     if (clusterIndex === null) return "#94a3b8";
