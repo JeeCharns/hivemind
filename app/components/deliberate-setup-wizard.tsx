@@ -182,7 +182,7 @@ export default function DeliberateSetupWizard({
                   </span>
                   <div className="flex-1">
                     <span className="text-subtitle text-text-primary block">
-                      From an Understand session
+                      From an existing conversation
                     </span>
                     <span className="text-body text-text-secondary mt-1 block">
                       Select clusters and statements from an existing
