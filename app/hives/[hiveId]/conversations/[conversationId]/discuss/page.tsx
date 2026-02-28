@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
 import { supabaseServerClient } from "@/lib/supabase/serverClient";
 import { getDeliberateViewModel } from "@/lib/deliberate-space/server/getDeliberateViewModel";
+import { resolveHiveAndConversation } from "@/lib/conversations/server/resolveHiveAndConversation";
 import { authorizeHiveAdmin } from "@/lib/hives/server/authorizeHiveAdmin";
 import DiscussViewContainer from "@/app/components/conversation/DiscussViewContainer";
 
@@ -17,7 +18,7 @@ interface PageProps {
 }
 
 export default async function DiscussPage({ params }: PageProps) {
-  const { hiveId, conversationId } = await params;
+  const { hiveId: hiveKey, conversationId: conversationKey } = await params;
 
   // 1. Verify authentication
   const session = await getServerSession();
@@ -27,18 +28,25 @@ export default async function DiscussPage({ params }: PageProps) {
 
   const supabase = await supabaseServerClient();
 
-  // 2. Get deliberate view model
+  // 2. Resolve hive and conversation from slugs/keys
+  const { hive, conversation } = await resolveHiveAndConversation(
+    supabase,
+    hiveKey,
+    conversationKey
+  );
+
+  // 3. Get deliberate view model
   const viewModel = await getDeliberateViewModel(supabase, {
-    conversationId,
+    conversationId: conversation.id,
     userId: session.user.id,
   });
 
   if (!viewModel) {
-    redirect(`/hives/${hiveId}`);
+    redirect(`/hives/${hiveKey}`);
   }
 
-  // 3. Check if user is admin
-  const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hiveId);
+  // 4. Check if user is admin
+  const isAdmin = await authorizeHiveAdmin(supabase, session.user.id, hive.id);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-0 md:px-6">
