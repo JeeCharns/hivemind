@@ -9,6 +9,7 @@
 
 import { useCallback, useRef } from "react";
 import { VOTE_LABELS, type VoteValue } from "@/types/deliberate-space";
+import Button from "@/app/components/button";
 
 interface VoteSliderProps {
   value: VoteValue | null;
@@ -50,86 +51,92 @@ export default function VoteSlider({ value, onChange }: VoteSliderProps) {
   );
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-4">
-        {/* Slider track */}
+    <div className="space-y-4 w-full">
+      {/* Slider and Pass button row */}
+      <div className="flex items-center gap-8 w-full">
+        {/* Slider track container */}
         <div className="flex-1 relative">
           <div
             ref={trackRef}
             onClick={handleTrackClick}
-            className="relative h-10 flex items-center cursor-pointer"
+            className="relative h-12 flex items-center cursor-pointer"
           >
-            {/* Track line */}
-            <div className="absolute inset-x-0 h-1 bg-slate-200 rounded-full" />
+            {/* Track line - centered vertically */}
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-200" />
 
-            {/* Tick marks and numbers */}
-            {VOTE_VALUES.map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDotClick(v);
-                }}
-                className="absolute -translate-x-1/2 flex flex-col items-center"
-                style={{ left: `${getPositionFromValue(v)}%` }}
-              >
-                <div
-                  className={`w-3 h-3 rounded-full border-2 transition-colors ${
-                    value === v
-                      ? "bg-brand-primary border-brand-primary"
-                      : "bg-white border-slate-300 hover:border-slate-400"
-                  }`}
-                />
-                <span
-                  className={`text-xs mt-1 transition-colors ${
-                    value === v
-                      ? "text-brand-primary font-medium"
-                      : "text-slate-500"
-                  }`}
+            {/* Tick marks with numbers below */}
+            {VOTE_VALUES.map((v) => {
+              const isSelected = value === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDotClick(v);
+                  }}
+                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
+                  style={{ left: `${getPositionFromValue(v)}%` }}
                 >
-                  {v}
-                </span>
-              </button>
-            ))}
-
-            {/* Selected indicator circle (larger, on top) */}
-            {value !== null && (
-              <div
-                className="absolute -translate-x-1/2 pointer-events-none"
-                style={{ left: `${getPositionFromValue(value)}%` }}
-              >
-                <div className="w-5 h-5 rounded-full bg-brand-primary shadow-md ring-4 ring-brand-primary/20" />
-              </div>
-            )}
+                  {/* Dot on the line */}
+                  <div
+                    className={`w-4 h-4 rounded-full border-2 transition-all ${
+                      isSelected
+                        ? "bg-brand-primary border-brand-primary scale-125 shadow-md ring-4 ring-brand-primary/20"
+                        : "bg-white border-slate-300 hover:border-slate-400 hover:scale-110"
+                    }`}
+                  />
+                  {/* Number below */}
+                  <span
+                    className={`text-xs mt-2 transition-colors ${
+                      isSelected
+                        ? "text-brand-primary font-semibold"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {v}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Pass button */}
-        <button
+        {/* Pass button - secondary style */}
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => onChange(null)}
-          className={`px-4 py-2 text-sm rounded-lg transition-colors whitespace-nowrap ${
-            value === null
-              ? "text-slate-700 font-medium"
-              : "text-slate-500 hover:text-slate-700"
+          className={`px-6 ${
+            value === null ? "ring-2 ring-slate-300" : ""
           }`}
         >
           Pass
-        </button>
+        </Button>
       </div>
 
-      {/* Labels */}
-      <div className="flex justify-between text-xs text-slate-500 pr-16">
-        <span>{VOTE_LABELS[1]}</span>
-        <span>{VOTE_LABELS[5]}</span>
+      {/* Labels row */}
+      <div className="flex items-center gap-8 w-full">
+        <div className="flex-1 flex justify-between text-xs text-slate-500 px-0">
+          <span>{VOTE_LABELS[1]}</span>
+          <span>{VOTE_LABELS[5]}</span>
+        </div>
+        {/* Spacer to match Pass button width */}
+        <div className="w-[88px]" />
       </div>
 
-      {/* Current vote label */}
+      {/* Current vote label - centered under the slider */}
       {value && (
-        <p className="text-center text-sm text-slate-600 font-medium">
-          {VOTE_LABELS[value]}
-        </p>
+        <div className="flex items-center gap-8 w-full">
+          <div className="flex-1 text-center">
+            <span className="text-sm text-slate-700 font-medium">
+              {VOTE_LABELS[value]}
+            </span>
+          </div>
+          {/* Spacer to match Pass button width */}
+          <div className="w-[88px]" />
+        </div>
       )}
     </div>
   );

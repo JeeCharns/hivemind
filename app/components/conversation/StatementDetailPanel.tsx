@@ -29,7 +29,7 @@ export default function StatementDetailPanel({
   hasVoted = false,
 }: StatementDetailPanelProps) {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-8 space-y-6">
       {/* Coloured title */}
       {statement.statementTitle && (
         <h3
@@ -46,9 +46,7 @@ export default function StatementDetailPanel({
       </p>
 
       {/* Vote slider */}
-      <div className="max-w-lg">
-        <VoteSlider value={currentVote} onChange={onVote} />
-      </div>
+      <VoteSlider value={currentVote} onChange={onVote} />
 
       {/* Comments section */}
       <div className="pt-4">

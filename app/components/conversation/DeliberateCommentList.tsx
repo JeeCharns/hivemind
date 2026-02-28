@@ -28,6 +28,7 @@ export default function DeliberateCommentList({
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchComments() {
@@ -53,6 +54,8 @@ export default function DeliberateCommentList({
     if (!newComment.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
+    setError(null);
+
     try {
       const response = await fetch(
         `/api/conversations/${conversationId}/deliberate/comments`,
@@ -67,19 +70,28 @@ export default function DeliberateCommentList({
         }
       );
 
-      if (response.ok) {
-        setNewComment("");
-        // Refetch comments
-        const refreshResponse = await fetch(
-          `/api/conversations/${conversationId}/deliberate/statements/${statementId}/comments`
-        );
-        if (refreshResponse.ok) {
-          const data = await refreshResponse.json();
-          setComments(data.comments || []);
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[DeliberateCommentList] POST failed:", response.status, errorData);
+        setError(errorData.error || "Failed to post comment");
+        return;
       }
-    } catch (error) {
-      console.error("[DeliberateCommentList] Failed to post comment:", error);
+
+      setNewComment("");
+
+      // Refetch comments
+      const refreshResponse = await fetch(
+        `/api/conversations/${conversationId}/deliberate/statements/${statementId}/comments`
+      );
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        setComments(data.comments || []);
+      } else {
+        console.error("[DeliberateCommentList] Refresh failed:", refreshResponse.status);
+      }
+    } catch (err) {
+      console.error("[DeliberateCommentList] Failed to post comment:", err);
+      setError("Failed to post comment");
     } finally {
       setIsSubmitting(false);
     }
@@ -150,6 +162,9 @@ export default function DeliberateCommentList({
             />
             Post anonymously
           </label>
+        )}
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
         )}
       </div>
 
