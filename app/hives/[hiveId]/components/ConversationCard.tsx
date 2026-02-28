@@ -54,7 +54,9 @@ export default function ConversationCard({
       ? "DECIDE"
       : conversation.type === "explore"
         ? "EXPLORE"
-        : "DISCUSS";
+        : conversation.type === "deliberate"
+          ? "DELIBERATE"
+          : "DISCUSS";
   const title = conversation.title?.trim() || "Untitled Conversation";
   const description =
     conversation.description?.trim() || "No description has been added yet.";
@@ -73,7 +75,9 @@ export default function ConversationCard({
               ? "bg-emerald-50 text-emerald-600"
               : conversation.type === "explore"
                 ? "bg-violet-50 text-violet-600"
-                : "bg-red-50 text-red-600"
+                : conversation.type === "deliberate"
+                  ? "bg-amber-50 text-amber-600"
+                  : "bg-red-50 text-red-600"
           }`}
         >
           {typeLabel}
