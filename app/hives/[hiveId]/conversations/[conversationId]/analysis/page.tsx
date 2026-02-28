@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Analysis Page - Placeholder
  *
