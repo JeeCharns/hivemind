@@ -17,12 +17,14 @@ export interface ConversationCta {
  * Determines the CTA based on conversation state
  *
  * Business logic:
- * Always route to /listen page - users navigate to other tabs from there
+ * - Deliberate conversations route to /discuss
+ * - Other conversations route to /listen
  *
  * CTA labels indicate conversation state:
  * 1. If report is ready -> "Result ready"
  * 2. If analysis is complete -> "Analysis complete"
- * 3. Otherwise -> "Submit your thoughts!"
+ * 3. For deliberate -> "Join discussion"
+ * 4. Otherwise -> "Submit your thoughts!"
  *
  * @param hiveKey - Hive identifier (slug or ID)
  * @param conversation - Conversation data
@@ -35,7 +37,15 @@ export function getConversationCta(
   const convoKey = conversation.slug ?? conversation.id;
   const base = `/hives/${hiveKey}/conversations/${convoKey}`;
 
-  // Always navigate to listen tab, but show appropriate label based on state
+  // Deliberate conversations go to discuss tab
+  if (conversation.type === "deliberate") {
+    return {
+      label: "Join discussion",
+      href: `${base}/discuss`,
+    };
+  }
+
+  // Other conversations go to listen tab with state-based label
   let label: string;
 
   if (conversation.report_json) {
