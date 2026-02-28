@@ -32,6 +32,7 @@ export interface SourceCluster {
 export interface SourceConversation {
   id: string;
   title: string;
+  description: string;
   type: "understand" | "explore";
   statementCount: number;
   clusterCount: number;
@@ -180,6 +181,7 @@ export function useDeliberateSetupWizard({
           (s: {
             id: string;
             title?: string;
+            description?: string;
             type?: string;
             statementCount?: number;
             clusterCount?: number;
@@ -187,6 +189,7 @@ export function useDeliberateSetupWizard({
           }) => ({
             id: s.id,
             title: s.title || "Untitled Session",
+            description: s.description || "",
             type: (s.type as "understand" | "explore") || "understand",
             statementCount: s.statementCount || 0,
             clusterCount: s.clusterCount || 0,
@@ -384,6 +387,16 @@ export function useDeliberateSetupWizard({
         if (selectedCount === 0) {
           setError("Select at least one statement");
           return;
+        }
+        // Pre-fill title and description from source conversation
+        const sourceConv = sourceConversations.find(
+          (c) => c.id === selectedSourceId
+        );
+        if (sourceConv && !title) {
+          setTitle(sourceConv.title);
+        }
+        if (sourceConv && !description) {
+          setDescription(sourceConv.description);
         }
         setStep(4);
       } else if (step === 4) {

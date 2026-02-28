@@ -54,7 +54,7 @@ export async function GET(
     // Fetch understand and explore conversations
     let query = supabase
       .from("conversations")
-      .select("id, title, type, analysis_status, created_at")
+      .select("id, title, description, type, analysis_status, created_at")
       .eq("hive_id", hiveId)
       .in("type", ["understand", "explore"])
       .order("created_at", { ascending: false });
@@ -157,6 +157,7 @@ export async function GET(
       return {
         id: conv.id,
         title: conv.title || "Untitled",
+        description: conv.description || "",
         type: conv.type,
         statementCount,
         votingCoverage,
