@@ -13,10 +13,13 @@ import DiscussView from "./DiscussView";
 
 interface DiscussViewContainerProps {
   initialViewModel: DeliberateViewModel;
+  /** Whether the current user is an admin (can moderate comments) */
+  isAdmin?: boolean;
 }
 
 export default function DiscussViewContainer({
   initialViewModel,
+  isAdmin = false,
 }: DiscussViewContainerProps) {
   const [viewModel, setViewModel] = useState(initialViewModel);
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(
@@ -68,6 +71,7 @@ export default function DiscussViewContainer({
       selectedStatementId={selectedStatementId}
       onSelectStatement={setSelectedStatementId}
       onVote={handleVote}
+      isAdmin={isAdmin}
     />
   );
 }

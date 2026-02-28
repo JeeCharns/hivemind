@@ -41,6 +41,8 @@ interface DiscussViewProps {
   selectedStatementId: string | null;
   onSelectStatement: (id: string | null) => void;
   onVote: (statementId: string, voteValue: VoteValue | null) => void;
+  /** Whether the current user is an admin (can moderate comments) */
+  isAdmin?: boolean;
 }
 
 export default function DiscussView({
@@ -48,6 +50,7 @@ export default function DiscussView({
   selectedStatementId,
   onSelectStatement,
   onVote,
+  isAdmin = false,
 }: DiscussViewProps) {
   const { statements, userVotes, clusters } = viewModel;
 
@@ -129,6 +132,7 @@ export default function DiscussView({
             conversationId={viewModel.conversationId}
             themeColor={selectedThemeColor}
             hasVoted={hasVoted}
+            isAdmin={isAdmin}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-text-tertiary">

@@ -2,6 +2,7 @@
  * Deliberate Comments API Route
  *
  * POST - Add a comment to a statement
+ * PATCH - Edit a comment (only owner can edit)
  * DELETE - Delete a comment (only owner can delete)
  * Requires authentication
  */
@@ -12,10 +13,12 @@ import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import {
   addComment,
   deleteComment,
+  editComment,
 } from "@/lib/deliberate-space/server/addComment";
 import {
   addCommentSchema,
   deleteCommentSchema,
+  editCommentSchema,
 } from "@/lib/deliberate-space/schemas";
 import { jsonError } from "@/lib/api/errors";
 
@@ -54,6 +57,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("[POST comments] Error:", error);
+    const message = error instanceof Error ? error.message : "Internal error";
+    return jsonError(message, 500);
+  }
+}
+
+/**
+ * PATCH /api/conversations/[conversationId]/deliberate/comments
+ * Edit a comment (only owner can edit)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    // 1. Verify authentication
+    const session = await getServerSession();
+    if (!session) {
+      return jsonError("Unauthorised", 401);
+    }
+
+    // 2. Parse and validate request body
+    const body = await request.json();
+    const parsed = editCommentSchema.safeParse(body);
+
+    if (!parsed.success) {
+      const firstError = parsed.error.issues?.[0];
+      return jsonError(
+        firstError?.message ?? "Invalid request body",
+        400,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    // 3. Edit comment
+    const supabase = await supabaseAdminClient();
+    const result = await editComment(
+      supabase,
+      parsed.data.commentId,
+      parsed.data.text,
+      session.user.id
+    );
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("[PATCH comments] Error:", error);
     const message = error instanceof Error ? error.message : "Internal error";
     return jsonError(message, 500);
   }

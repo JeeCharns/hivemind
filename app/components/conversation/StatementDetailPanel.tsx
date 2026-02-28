@@ -18,6 +18,8 @@ interface StatementDetailPanelProps {
   conversationId: string;
   themeColor?: string;
   hasVoted?: boolean;
+  /** Whether the current user is an admin (can moderate comments) */
+  isAdmin?: boolean;
 }
 
 export default function StatementDetailPanel({
@@ -27,6 +29,7 @@ export default function StatementDetailPanel({
   conversationId,
   themeColor = "#5A54D4",
   hasVoted = false,
+  isAdmin = false,
 }: StatementDetailPanelProps) {
   return (
     <div className="p-8 space-y-6">
@@ -54,6 +57,7 @@ export default function StatementDetailPanel({
           statementId={statement.id}
           conversationId={conversationId}
           disabled={!hasVoted}
+          isAdmin={isAdmin}
         />
       </div>
     </div>

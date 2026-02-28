@@ -10,7 +10,18 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { DeliberateComment, VoteValue } from "@/types/deliberate-space";
 import { VOTE_LABELS } from "@/types/deliberate-space";
-import { PaperPlaneTilt, Trash, User, CaretDown } from "@phosphor-icons/react";
+import {
+  PaperPlaneTilt,
+  Trash,
+  User,
+  CaretDown,
+  PencilSimple,
+  Flag,
+  Check,
+  X,
+} from "@phosphor-icons/react";
+import ModerationFlagMenu from "@/app/components/conversation/ModerationFlagMenu";
+import type { ModerationFlag } from "@/types/moderation";
 
 /** Get colour class for vote value */
 function getVoteColor(vote: VoteValue): string {
@@ -63,12 +74,15 @@ interface DeliberateCommentListProps {
   conversationId: string;
   /** When true, the comment input is disabled (e.g., user hasn't voted yet) */
   disabled?: boolean;
+  /** Whether the current user is an admin (can moderate comments) */
+  isAdmin?: boolean;
 }
 
 export default function DeliberateCommentList({
   statementId,
   conversationId,
   disabled = false,
+  isAdmin = false,
 }: DeliberateCommentListProps) {
   const [comments, setComments] = useState<DeliberateComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -79,6 +93,15 @@ export default function DeliberateCommentList({
   const [filter, setFilter] = useState<FilterOption>("all");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Moderation state
+  const [moderatingId, setModeratingId] = useState<string | null>(null);
+  const [isModerating, setIsModerating] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -203,6 +226,79 @@ export default function DeliberateCommentList({
     [conversationId]
   );
 
+  const startEdit = useCallback((commentId: string, currentText: string) => {
+    setEditingId(commentId);
+    setEditText(currentText);
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+    setEditText("");
+  }, []);
+
+  const handleSaveEdit = useCallback(
+    async (commentId: string) => {
+      if (!editText.trim() || isSavingEdit) return;
+
+      setIsSavingEdit(true);
+      try {
+        const response = await fetch(
+          `/api/conversations/${conversationId}/deliberate/comments`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              commentId: parseInt(commentId, 10),
+              text: editText.trim(),
+            }),
+          }
+        );
+
+        if (response.ok) {
+          setComments((prev) =>
+            prev.map((c) =>
+              c.id === commentId ? { ...c, text: editText.trim() } : c
+            )
+          );
+          setEditingId(null);
+          setEditText("");
+        }
+      } catch (error) {
+        console.error("[DeliberateCommentList] Failed to edit comment:", error);
+      } finally {
+        setIsSavingEdit(false);
+      }
+    },
+    [conversationId, editText, isSavingEdit]
+  );
+
+  const handleModerate = useCallback(
+    async (commentId: string, flag: ModerationFlag) => {
+      setIsModerating(true);
+      try {
+        const response = await fetch(
+          `/api/conversations/${conversationId}/deliberate/comments/${commentId}/moderate`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ flag }),
+          }
+        );
+
+        if (response.ok) {
+          // Remove the moderated comment from the list
+          setComments((prev) => prev.filter((c) => c.id !== commentId));
+        }
+      } catch (error) {
+        console.error("[DeliberateCommentList] Failed to moderate comment:", error);
+      } finally {
+        setIsModerating(false);
+        setModeratingId(null);
+      }
+    },
+    [conversationId]
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -314,7 +410,10 @@ export default function DeliberateCommentList({
       ) : (
         <div className="space-y-3">
           {filteredComments.map((comment) => (
-            <div key={comment.id} className="p-3 rounded-lg bg-surface-secondary">
+            <div
+              key={comment.id}
+              className="group p-3 rounded-lg bg-surface-secondary"
+            >
               <div className="flex items-start gap-3">
                 {/* Avatar */}
                 <div className="flex-shrink-0">
@@ -339,7 +438,9 @@ export default function DeliberateCommentList({
                         {comment.user.name}
                       </span>
                       {comment.userVote && (
-                        <span className={`text-info font-medium ${getVoteColor(comment.userVote)}`}>
+                        <span
+                          className={`text-info font-medium ${getVoteColor(comment.userVote)}`}
+                        >
                           {VOTE_LABELS[comment.userVote]}
                         </span>
                       )}
@@ -347,18 +448,102 @@ export default function DeliberateCommentList({
                         {formatRelativeTime(comment.createdAt)}
                       </span>
                     </div>
-                    {comment.isMine && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(comment.id)}
-                        className="text-text-tertiary hover:text-red-500"
-                        aria-label="Delete comment"
-                      >
-                        <Trash size={16} />
-                      </button>
-                    )}
+
+                    {/* Action buttons - visible on hover only */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Edit button - for own comments */}
+                      {comment.isMine && editingId !== comment.id && (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(comment.id, comment.text)}
+                          className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                          title="Edit"
+                        >
+                          <PencilSimple size={16} />
+                        </button>
+                      )}
+
+                      {/* Delete button - for own comments */}
+                      {comment.isMine && editingId !== comment.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(comment.id)}
+                          className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          title="Delete"
+                        >
+                          <Trash size={16} />
+                        </button>
+                      )}
+
+                      {/* Moderate button - for admins */}
+                      {isAdmin && editingId !== comment.id && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setModeratingId(
+                                moderatingId === comment.id ? null : comment.id
+                              )
+                            }
+                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition"
+                            title="Moderate"
+                          >
+                            <Flag size={16} />
+                          </button>
+                          <ModerationFlagMenu
+                            isOpen={moderatingId === comment.id}
+                            onClose={() => setModeratingId(null)}
+                            onSelect={(flag) => handleModerate(comment.id, flag)}
+                            isLoading={isModerating}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-body text-text-secondary mt-1">{comment.text}</p>
+
+                  {/* Comment text or edit form */}
+                  {editingId === comment.id ? (
+                    <div className="mt-2 space-y-2">
+                      <input
+                        type="text"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border-secondary focus:border-brand-primary focus:outline-none text-body"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSaveEdit(comment.id);
+                          } else if (e.key === "Escape") {
+                            cancelEdit();
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEdit(comment.id)}
+                          disabled={isSavingEdit || !editText.trim()}
+                          className="flex items-center gap-1 px-3 py-1 text-sm bg-brand-primary text-white rounded-lg disabled:opacity-50"
+                        >
+                          <Check size={14} />
+                          {isSavingEdit ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="flex items-center gap-1 px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+                        >
+                          <X size={14} />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-body text-text-secondary mt-1">
+                      {comment.text}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

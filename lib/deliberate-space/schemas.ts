@@ -76,6 +76,20 @@ export const deleteCommentSchema = z.object({
 
 export type DeleteCommentInput = z.infer<typeof deleteCommentSchema>;
 
+export const editCommentSchema = z.object({
+  commentId: z.coerce.number().int().positive(),
+  text: z.string().min(1).max(1000),
+});
+
+export type EditCommentInput = z.infer<typeof editCommentSchema>;
+
+export const moderateCommentSchema = z.object({
+  commentId: z.coerce.number().int().positive(),
+  flag: z.enum(["antisocial", "misleading", "illegal", "spam", "doxing"]),
+});
+
+export type ModerateCommentInput = z.infer<typeof moderateCommentSchema>;
+
 // FETCH PARAMS
 export const getDeliberateSetupDataSchema = z.object({
   sourceConversationId: z.string().uuid(),
