@@ -14,11 +14,14 @@ import { PaperPlaneTilt, Trash } from "@phosphor-icons/react";
 interface DeliberateCommentListProps {
   statementId: string;
   conversationId: string;
+  /** When true, the comment input is disabled (e.g., user hasn't voted yet) */
+  disabled?: boolean;
 }
 
 export default function DeliberateCommentList({
   statementId,
   conversationId,
+  disabled = false,
 }: DeliberateCommentListProps) {
   const [comments, setComments] = useState<DeliberateComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -111,10 +114,17 @@ export default function DeliberateCommentList({
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
-            className="flex-1 px-3 py-2 rounded-lg border border-border-secondary focus:border-brand-primary focus:outline-none text-body"
+            placeholder={
+              disabled
+                ? "Vote on the statement to leave a comment"
+                : "Why did you give that result?"
+            }
+            disabled={disabled}
+            className={`flex-1 px-3 py-2 rounded-lg border border-border-secondary focus:border-brand-primary focus:outline-none text-body ${
+              disabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : ""
+            }`}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !disabled) {
                 e.preventDefault();
                 handleSubmit();
               }
@@ -123,22 +133,24 @@ export default function DeliberateCommentList({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!newComment.trim() || isSubmitting}
+            disabled={disabled || !newComment.trim() || isSubmitting}
             className="px-4 py-2 rounded-lg bg-brand-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Send comment"
           >
             <PaperPlaneTilt size={16} />
           </button>
         </div>
-        <label className="flex items-center gap-2 text-info text-text-tertiary">
-          <input
-            type="checkbox"
-            checked={isAnonymous}
-            onChange={(e) => setIsAnonymous(e.target.checked)}
-            className="rounded"
-          />
-          Post anonymously
-        </label>
+        {!disabled && (
+          <label className="flex items-center gap-2 text-info text-text-tertiary">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="rounded"
+            />
+            Post anonymously
+          </label>
+        )}
       </div>
 
       {isLoading ? (

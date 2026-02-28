@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import { jsonError } from "@/lib/api/errors";
 
 interface RouteParams {
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return jsonError("Unauthorised", 401);
     }
 
-    const supabase = await supabaseServerClient();
+    const supabase = await supabaseAdminClient();
 
     const { data: comments, error } = await supabase
       .from("deliberation_comments")

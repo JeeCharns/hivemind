@@ -25,13 +25,17 @@ export default function DiscussViewContainer({
 
   const handleVote = useCallback(
     async (statementId: string, voteValue: VoteValue | null) => {
-      const previousVote = viewModel.userVotes[statementId] ?? null;
+      // Capture previous vote from current state (not closure)
+      let previousVote: VoteValue | null = null;
 
-      // Optimistic update
-      setViewModel((prev) => ({
-        ...prev,
-        userVotes: { ...prev.userVotes, [statementId]: voteValue },
-      }));
+      // Optimistic update - capture previous in the same synchronous operation
+      setViewModel((prev) => {
+        previousVote = prev.userVotes[statementId] ?? null;
+        return {
+          ...prev,
+          userVotes: { ...prev.userVotes, [statementId]: voteValue },
+        };
+      });
 
       try {
         const response = await fetch(
@@ -55,7 +59,7 @@ export default function DiscussViewContainer({
         console.error("[DiscussViewContainer] Vote failed:", error);
       }
     },
-    [viewModel.conversationId, viewModel.userVotes]
+    [viewModel.conversationId]
   );
 
   return (

@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import { voteOnStatement } from "@/lib/deliberate-space/server/voteOnStatement";
 import { voteOnStatementSchema } from "@/lib/deliberate-space/schemas";
 import { jsonError } from "@/lib/api/errors";
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Cast vote
-    const supabase = await supabaseServerClient();
+    const supabase = await supabaseAdminClient();
     const result = await voteOnStatement(supabase, {
       ...parsed.data,
       userId: session.user.id,

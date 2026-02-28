@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/server/requireAuth";
-import { supabaseServerClient } from "@/lib/supabase/serverClient";
+import { supabaseAdminClient } from "@/lib/supabase/adminClient";
 import {
   addComment,
   deleteComment,
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Add comment
-    const supabase = await supabaseServerClient();
+    const supabase = await supabaseAdminClient();
     const result = await addComment(supabase, {
       ...parsed.data,
       userId: session.user.id,
@@ -87,7 +87,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 3. Delete comment
-    const supabase = await supabaseServerClient();
+    const supabase = await supabaseAdminClient();
     await deleteComment(supabase, parsed.data.commentId, session.user.id);
 
     return NextResponse.json({ success: true });

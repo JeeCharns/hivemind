@@ -20,8 +20,14 @@ export interface DeliberateStatement {
   id: string;
   clusterIndex: number | null;
   clusterName: string | null;
+  /** Short title for the statement (from source bucket name if available) */
+  statementTitle: string | null;
   statementText: string;
   sourceBucketId: string | null;
+  /** Source conversation ID (for fetching original responses) */
+  sourceConversationId: string | null;
+  /** Number of original responses in the source bucket */
+  originalResponseCount: number;
   displayOrder: number;
   voteCount: number;
   averageVote: number | null;

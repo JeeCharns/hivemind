@@ -10,7 +10,8 @@
 
 import { useState, useCallback, useMemo } from "react";
 import Button from "@/app/components/button";
-import { CaretDown } from "@phosphor-icons/react";
+import { CaretDown, SpinnerGap } from "@phosphor-icons/react";
+import { useBucketResponses } from "@/lib/conversations/react/useBucketResponses";
 
 // Color palette matching UnderstandView
 const palette = [
@@ -35,7 +36,12 @@ export interface ThemeListBucket {
   clusterIndex: number | null;
   bucketName: string;
   consolidatedStatement: string;
+  /** Number of original responses in the source bucket */
   responseCount?: number;
+  /** Source bucket ID for fetching original responses */
+  sourceBucketId?: string;
+  /** Source conversation ID for fetching original responses */
+  sourceConversationId?: string;
 }
 
 export interface ThemeListPanelProps {
@@ -51,6 +57,168 @@ export interface ThemeListPanelProps {
   selectedBucketId?: string | null;
   /** Empty state message */
   emptyMessage?: string;
+}
+
+/** Internal component for expandable bucket cards with original responses */
+function ExpandableBucketCard({
+  bucket,
+  themeColor,
+  isSelected,
+  onSelect,
+}: {
+  bucket: ThemeListBucket;
+  themeColor: string;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Only use the hook if we have source data
+  const canExpand =
+    bucket.sourceBucketId &&
+    bucket.sourceConversationId &&
+    bucket.responseCount &&
+    bucket.responseCount > 0;
+
+  const {
+    responses,
+    isLoading,
+    error,
+    hasMore,
+    total,
+    loadResponses,
+    loadMore,
+  } = useBucketResponses({
+    conversationId: bucket.sourceConversationId || "",
+    bucketId: bucket.sourceBucketId || "",
+    pageSize: 20,
+  });
+
+  const hasLoadedOnce = total > 0 || responses.length > 0;
+
+  const handleToggleExpand = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!canExpand) return;
+
+      setIsExpanded((prev) => {
+        const willExpand = !prev;
+        if (willExpand && !hasLoadedOnce && !isLoading) {
+          loadResponses();
+        }
+        return willExpand;
+      });
+    },
+    [canExpand, hasLoadedOnce, isLoading, loadResponses]
+  );
+
+  return (
+    <div
+      className={`w-full text-left rounded-2xl space-y-3 p-4 transition-all ${
+        isSelected ? "bg-slate-50 ring-2 ring-slate-200" : "hover:bg-slate-50"
+      }`}
+    >
+      {/* Clickable header area for selection */}
+      <button
+        type="button"
+        className="w-full text-left"
+        onClick={onSelect}
+      >
+        {/* Bucket name as title */}
+        <div
+          className="text-base font-display font-medium"
+          style={{ color: themeColor }}
+        >
+          {bucket.bucketName}
+        </div>
+
+        {/* Consolidated statement */}
+        <p className="text-subtitle text-slate-800 leading-relaxed mt-3">
+          {bucket.consolidatedStatement}
+        </p>
+      </button>
+
+      {/* Show original responses toggle (if has responses) */}
+      {canExpand && (
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleToggleExpand}
+            className="w-full flex items-center justify-center gap-2 text-slate-500 hover:bg-slate-100 px-3 py-2.5 rounded-lg transition"
+          >
+            <span className="text-info">
+              {isExpanded ? "Hide" : "Show"} {bucket.responseCount} original{" "}
+              {bucket.responseCount === 1 ? "response" : "responses"}
+            </span>
+            {isLoading && !hasLoadedOnce ? (
+              <SpinnerGap
+                size={14}
+                weight="bold"
+                className="animate-spin text-slate-400"
+              />
+            ) : (
+              <CaretDown
+                size={14}
+                weight="bold"
+                className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
+              />
+            )}
+          </button>
+
+          {/* Expanded original responses */}
+          {isExpanded && (
+            <div className="mt-3 space-y-3 pl-4 border-l-2 border-indigo-200">
+              {/* Loading state for initial load */}
+              {isLoading && responses.length === 0 && (
+                <div className="flex items-center gap-2 py-2 text-slate-500">
+                  <SpinnerGap size={16} className="animate-spin" />
+                  <span className="text-sm">Loading responses...</span>
+                </div>
+              )}
+
+              {/* Error state */}
+              {error && (
+                <div className="py-2 text-sm text-red-600">
+                  Failed to load responses. Please try again.
+                </div>
+              )}
+
+              {/* Responses list */}
+              {responses.map((response) => (
+                <div key={response.id} className="space-y-1">
+                  <p className="text-body text-slate-700 leading-relaxed">
+                    {response.responseText}
+                  </p>
+                </div>
+              ))}
+
+              {/* Load more button */}
+              {hasMore && !isLoading && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    loadMore();
+                  }}
+                  className="w-full text-slate-500 hover:bg-slate-100 py-2 text-sm rounded-lg"
+                >
+                  Load more responses
+                </button>
+              )}
+
+              {/* Loading more indicator */}
+              {isLoading && responses.length > 0 && (
+                <div className="flex items-center justify-center gap-2 py-2 text-slate-500">
+                  <SpinnerGap size={16} className="animate-spin" />
+                  <span className="text-sm">Loading more...</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ThemeListPanel({
@@ -213,48 +381,15 @@ export default function ThemeListPanel({
         ) : (
           /* Bucket cards for filtered view */
           <>
-            {filteredBuckets.map((bucket) => {
-              const themeColor = getThemeColor(bucket.clusterIndex);
-              const isSelected = bucket.id === selectedBucketId;
-
-              return (
-                <button
-                  key={bucket.id}
-                  type="button"
-                  className={`w-full text-left rounded-2xl space-y-3 p-4 transition-all ${
-                    isSelected
-                      ? "bg-slate-50 ring-2 ring-slate-200"
-                      : "hover:bg-slate-50"
-                  }`}
-                  onClick={() => onSelectBucket?.(bucket.id)}
-                >
-                  {/* Bucket name as title */}
-                  <div
-                    className="text-base font-display font-medium"
-                    style={{ color: themeColor }}
-                  >
-                    {bucket.bucketName}
-                  </div>
-
-                  {/* Consolidated statement */}
-                  <p className="text-subtitle text-slate-800 leading-relaxed">
-                    {bucket.consolidatedStatement}
-                  </p>
-
-                  {/* Show original responses toggle (if has responses) */}
-                  {bucket.responseCount !== undefined &&
-                    bucket.responseCount > 0 && (
-                      <div className="flex items-center justify-center gap-2 text-slate-500 pt-2">
-                        <span className="text-info">
-                          Show {bucket.responseCount} original{" "}
-                          {bucket.responseCount === 1 ? "response" : "responses"}
-                        </span>
-                        <CaretDown size={14} weight="bold" />
-                      </div>
-                    )}
-                </button>
-              );
-            })}
+            {filteredBuckets.map((bucket) => (
+              <ExpandableBucketCard
+                key={bucket.id}
+                bucket={bucket}
+                themeColor={getThemeColor(bucket.clusterIndex)}
+                isSelected={bucket.id === selectedBucketId}
+                onSelect={() => onSelectBucket?.(bucket.id)}
+              />
+            ))}
           </>
         )}
       </div>

@@ -8,7 +8,7 @@
  * Right column: Selected statement detail with voting and comments
  */
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import type { DeliberateViewModel, VoteValue } from "@/types/deliberate-space";
 import ThemeListPanel, {
   ThemeListCluster,
@@ -16,6 +16,18 @@ import ThemeListPanel, {
 } from "./ThemeListPanel";
 import StatementDetailPanel from "./StatementDetailPanel";
 import { Chats } from "@phosphor-icons/react";
+
+// Color palette matching ThemeListPanel
+const palette = [
+  "#5A54D4", // soft indigo
+  "#2A9BD4", // soft blue
+  "#36B86A", // soft green
+  "#E8A832", // soft amber
+  "#E05858", // soft red
+  "#8E6FE8", // soft purple
+  "#E0609A", // soft pink
+  "#28B0A0", // soft teal
+];
 
 /** Generate a short title from statement text (first ~5 words) */
 function getStatementTitle(text: string): string {
@@ -44,6 +56,24 @@ export default function DiscussView({
     [statements, selectedStatementId]
   );
 
+  const getThemeColor = useCallback((clusterIndex: number | null) => {
+    if (clusterIndex === null) return "#94a3b8";
+    return palette[clusterIndex % palette.length];
+  }, []);
+
+  const selectedThemeColor = useMemo(
+    () =>
+      selectedStatement
+        ? getThemeColor(selectedStatement.clusterIndex)
+        : "#94a3b8",
+    [selectedStatement, getThemeColor]
+  );
+
+  const hasVoted = selectedStatement
+    ? userVotes[selectedStatement.id] !== undefined &&
+      userVotes[selectedStatement.id] !== null
+    : false;
+
   // Map clusters to ThemeListPanel format
   const themeClusters: ThemeListCluster[] = useMemo(
     () =>
@@ -60,10 +90,11 @@ export default function DiscussView({
       statements.map((stmt) => ({
         id: stmt.id,
         clusterIndex: stmt.clusterIndex,
-        bucketName: getStatementTitle(stmt.statementText),
+        bucketName: stmt.statementTitle || getStatementTitle(stmt.statementText),
         consolidatedStatement: stmt.statementText,
-        // We don't have original responses for deliberate statements yet
-        responseCount: undefined,
+        responseCount: stmt.originalResponseCount || undefined,
+        sourceBucketId: stmt.sourceBucketId || undefined,
+        sourceConversationId: stmt.sourceConversationId || undefined,
       })),
     [statements]
   );
@@ -96,6 +127,8 @@ export default function DiscussView({
             currentVote={userVotes[selectedStatement.id] ?? null}
             onVote={(value) => onVote(selectedStatement.id, value)}
             conversationId={viewModel.conversationId}
+            themeColor={selectedThemeColor}
+            hasVoted={hasVoted}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-text-tertiary">

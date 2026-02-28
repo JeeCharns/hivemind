@@ -73,7 +73,31 @@ export async function getDeliberateViewModel(
 
   const statementIds = statements.map((s) => s.id);
 
-  // 4. Get vote aggregates
+  // 4. Get source bucket data (names, conversation IDs, response counts)
+  const sourceBucketIds = statements
+    .map((s) => s.source_bucket_id)
+    .filter((id): id is string => id !== null);
+
+  const bucketDataMap = new Map<
+    string,
+    { bucketName: string; conversationId: string; responseCount: number }
+  >();
+  if (sourceBucketIds.length > 0) {
+    const { data: buckets } = await supabase
+      .from("conversation_cluster_buckets")
+      .select("id, bucket_name, conversation_id, response_count")
+      .in("id", sourceBucketIds);
+
+    for (const bucket of buckets || []) {
+      bucketDataMap.set(bucket.id, {
+        bucketName: bucket.bucket_name || "",
+        conversationId: bucket.conversation_id,
+        responseCount: bucket.response_count || 0,
+      });
+    }
+  }
+
+  // 5. Get vote aggregates
   const { data: allVotes } = await supabase
     .from("deliberation_votes")
     .select("statement_id, vote_value")
@@ -130,12 +154,18 @@ export async function getDeliberateViewModel(
   // 7. Build statement list
   const statementList: DeliberateStatement[] = statements.map((stmt) => {
     const votes = votesByStatement.get(stmt.id);
+    const bucketData = stmt.source_bucket_id
+      ? bucketDataMap.get(stmt.source_bucket_id)
+      : null;
     return {
       id: stmt.id,
       clusterIndex: stmt.cluster_index,
       clusterName: stmt.cluster_name,
+      statementTitle: bucketData?.bucketName || null,
       statementText: stmt.statement_text,
       sourceBucketId: stmt.source_bucket_id,
+      sourceConversationId: bucketData?.conversationId || null,
+      originalResponseCount: bucketData?.responseCount || 0,
       displayOrder: stmt.display_order,
       voteCount: votes?.count || 0,
       averageVote: votes ? votes.sum / votes.count : null,
