@@ -11,7 +11,6 @@ import { resolveHiveId } from "@/lib/hives/data/hiveResolver";
 import { getHiveById } from "@/lib/navbar/data/hiveRepository";
 import { listHiveConversations } from "@/lib/conversations/server/listHiveConversations";
 import { getRecentActivity } from "@/lib/social/server/activityService";
-import { getRecentReactions } from "@/lib/social/server/reactionsService";
 import HiveHome from "./HiveHome";
 import { redirect } from "next/navigation";
 import Button from "@/app/components/button";
@@ -45,28 +44,10 @@ export default async function HivePage({
     return <HiveNotFound />;
   }
 
-  // 4. Fetch conversations, profile, and social sidebar data in parallel
-  const [conversations, profile, activity, reactions] = await Promise.all([
+  // 4. Fetch conversations and social sidebar data in parallel
+  const [conversations, activity] = await Promise.all([
     listHiveConversations(supabase, hiveId, session.user.id),
-    supabase
-      .from("profiles")
-      .select("display_name, avatar_path")
-      .eq("id", session.user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("[HivePage] Error fetching profile:", error);
-        }
-        if (!data?.display_name) {
-          console.warn(
-            "[HivePage] Profile missing display_name for user:",
-            session.user.id
-          );
-        }
-        return data;
-      }),
     getRecentActivity(supabase, hiveId, 15),
-    getRecentReactions(supabase, hiveId, 20),
   ]);
 
   // 5. Detect Welcome Hive
@@ -80,11 +61,7 @@ export default async function HivePage({
       hiveName={hive.name}
       initialConversations={conversations}
       logoUrl={hive.logo_url}
-      userId={session.user.id}
-      displayName={profile?.display_name || "Anonymous"}
-      avatarUrl={profile?.avatar_path || null}
       initialActivity={activity}
-      initialReactions={reactions}
       isWelcomeHive={isWelcomeHive}
     />
   );

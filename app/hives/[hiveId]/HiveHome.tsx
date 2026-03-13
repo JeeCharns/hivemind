@@ -8,13 +8,9 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ConversationCardData } from "@/types/conversations";
-import type {
-  ActivityEvent,
-  Reaction,
-  ReactionEmoji,
-} from "@/lib/social/types";
+import type { ActivityEvent } from "@/lib/social/types";
 import { useHiveConversations } from "@/lib/conversations/hooks";
 import ConversationCard from "./components/ConversationCard";
 import NewSessionLauncher from "@/app/components/new-session-launcher";
@@ -30,11 +26,7 @@ interface HiveHomeProps {
   hiveName: string;
   initialConversations: ConversationCardData[];
   logoUrl?: string | null;
-  userId: string;
-  displayName: string;
-  avatarUrl: string | null;
   initialActivity: ActivityEvent[];
-  initialReactions: Reaction[];
   /** Whether this is the Welcome Hive (shows Create Hive CTA) */
   isWelcomeHive?: boolean;
 }
@@ -45,11 +37,7 @@ export default function HiveHome({
   hiveName,
   initialConversations,
   logoUrl = null,
-  userId,
-  displayName,
-  avatarUrl,
   initialActivity,
-  initialReactions,
   isWelcomeHive = false,
 }: HiveHomeProps) {
   // Real-time conversations subscription
@@ -79,21 +67,6 @@ export default function HiveHome({
       cancelled = true;
     };
   }, [logoUrl]);
-
-  const handleAddReaction = useCallback(
-    async (emoji: ReactionEmoji, message?: string) => {
-      const response = await fetch(`/api/hives/${hiveId}/reactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emoji, message }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add reaction");
-      }
-    },
-    [hiveId]
-  );
 
   return (
     <div className="relative mx-auto w-full max-w-7xl min-h-[833px] flex flex-col gap-6 md:gap-10 rounded-3xl px-3 md:px-4 py-6 md:py-10">
@@ -159,12 +132,7 @@ export default function HiveHome({
         <div className="hidden w-72 shrink-0 lg:block">
           <HiveHomeSidebar
             hiveId={hiveId}
-            userId={userId}
-            displayName={displayName}
-            avatarUrl={avatarUrl}
             initialActivity={initialActivity}
-            initialReactions={initialReactions}
-            onAddReaction={handleAddReaction}
           />
         </div>
       </div>
@@ -172,12 +140,7 @@ export default function HiveHome({
       {/* Mobile social sheet - visible only on mobile */}
       <MobileSocialSheet
         hiveId={hiveId}
-        userId={userId}
-        displayName={displayName}
-        avatarUrl={avatarUrl}
         initialActivity={initialActivity}
-        initialReactions={initialReactions}
-        onAddReaction={handleAddReaction}
       />
     </div>
   );
